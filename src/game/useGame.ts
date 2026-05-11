@@ -1,10 +1,22 @@
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
   RANDOM_EVENTS, GIRL_MISSIONS, type Archetype, type Girl, type MissionDef,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
+
+// Toast queue — populated inside setState updaters, flushed via effect to avoid
+// double-firing under React StrictMode.
+type ToastItem = { kind: "success" | "info" | "error"; title: string; description?: string };
+const _toastQueue: ToastItem[] = [];
+const _seenToastIds = new Set<string>();
+function enqueueToast(id: string, item: ToastItem) {
+  if (_seenToastIds.has(id)) return;
+  _seenToastIds.add(id);
+  _toastQueue.push(item);
+}
 
 export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
