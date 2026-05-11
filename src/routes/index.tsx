@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useGame, dayName, timeStr, isOpen, type GameState } from "@/game/useGame";
-import { LOCATIONS, type Girl } from "@/game/data";
+import { useGame, dayName, timeStr, isOpen, absHour, type GameState } from "@/game/useGame";
+import { LOCATIONS, ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import {
   DISTRICTS, HOTSPOTS, LOCATION_DEFS, LOCATION_ACTIONS,
   type LocationId,
@@ -72,6 +72,8 @@ function GamePage() {
           onFire={g.fireGirl}
           onTrain={g.trainGirl}
           onGift={g.giftGirl}
+          onStartMission={g.startMission}
+          onCancelMission={g.cancelMission}
         />
       )}
       {statsOpen && (
@@ -275,13 +277,15 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
 }
 
 /* ========== ROSTER SHEET ========== */
-function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift }: {
+function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
   state: GameState; selected?: string;
   onClose: () => void;
   onSelect: (id: string) => void;
   onFire: (id: string) => void;
   onTrain: (id: string) => void;
   onGift: (id: string) => void;
+  onStartMission: (girlId: string, missionId: string) => void;
+  onCancelMission: (girlId: string) => void;
 }) {
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
@@ -293,15 +297,16 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
         <p className="text-xs text-muted-foreground">
           {state.girls.length}/6 stjerner. Scout via Bar, Skog eller Velvet.
         </p>
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
           {state.girls.length === 0 && (
             <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
               Ingen stjerner ennå.
             </p>
           )}
           {state.girls.map((g) => (
-            <GirlCard key={g.id} g={g} selected={selected === g.id}
-              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift} />
+            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)}
+              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift}
+              onStartMission={onStartMission} onCancelMission={onCancelMission} />
           ))}
         </div>
       </div>
@@ -309,29 +314,81 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
   );
 }
 
-function GirlCard({ g, selected, onSelect, onFire, onTrain, onGift }: {
-  g: Girl; selected: boolean;
+function GirlCard({ g, selected, nowAbs, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
+  g: Girl; selected: boolean; nowAbs: number;
   onSelect: () => void; onFire: (id: string) => void; onTrain: (id: string) => void; onGift: (id: string) => void;
+  onStartMission: (girlId: string, mid: string) => void; onCancelMission: (girlId: string) => void;
 }) {
+  const portrait = ARCHETYPE_PORTRAITS[g.archetype];
+  const onMission = !!g.mission;
+  const hoursLeft = g.mission ? Math.max(0, g.mission.endsAt - nowAbs) : 0;
   return (
     <div onClick={onSelect}
-      className={`rounded-lg border p-2.5 cursor-pointer transition ${selected ? "border-primary bg-primary/10 neon-border" : "border-border bg-secondary/40 hover:bg-secondary/60"}`}>
-      <div className="flex items-baseline justify-between">
-        <span className="font-bold">{g.name}</span>
-        <span className="text-[10px] text-muted-foreground">${g.salary}/uke</span>
+      className={`rounded-lg border overflow-hidden cursor-pointer transition ${selected ? "border-primary bg-primary/10 neon-border" : "border-border bg-secondary/40 hover:bg-secondary/60"}`}>
+      <div className="flex gap-3 p-2.5">
+        <img src={portrait} alt={g.archetype} width={64} height={80}
+          className="h-20 w-16 flex-none rounded-md object-cover border border-border" loading="lazy" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-bold truncate">{g.name}</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">${g.salary}/uke</span>
+          </div>
+          <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          <div className="mt-1.5 grid grid-cols-4 gap-1 text-[10px]">
+            <Stat label="Bea" v={g.beauty} />
+            <Stat label="Perf" v={g.performance} />
+            <Stat label="Pop" v={g.popularity} />
+            <Stat label="Loy" v={g.loyalty} />
+          </div>
+        </div>
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-accent">{g.archetype}</div>
-      <div className="mt-2 grid grid-cols-4 gap-1 text-[10px]">
-        <Stat label="Bea" v={g.beauty} />
-        <Stat label="Perf" v={g.performance} />
-        <Stat label="Pop" v={g.popularity} />
-        <Stat label="Loy" v={g.loyalty} />
-      </div>
-      {selected && (
-        <div className="mt-2 grid grid-cols-3 gap-1">
-          <button onClick={(e) => { e.stopPropagation(); onTrain(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Train $200</button>
-          <button onClick={(e) => { e.stopPropagation(); onGift(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Gift $150</button>
-          <button onClick={(e) => { e.stopPropagation(); if (confirm(`Sparke ${g.name}?`)) onFire(g.id); }} className="rounded bg-destructive/80 px-1.5 py-1 text-[10px] text-destructive-foreground hover:bg-destructive">Fire</button>
+
+      {/* Inline activity / mission */}
+      {(onMission || g.lastActivity) && (
+        <div className="border-t border-border/60 bg-background/40 px-2.5 py-1.5 text-[11px]">
+          {onMission ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-foreground">
+                ⏳ <b>{g.mission!.label}</b> · ~${g.mission!.payout} · {hoursLeft}t igjen
+              </span>
+              <button onClick={(e) => { e.stopPropagation(); onCancelMission(g.id); }}
+                className="rounded bg-destructive/70 px-1.5 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
+                Hent hjem
+              </button>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">📌 {g.lastActivity}</span>
+          )}
+        </div>
+      )}
+
+      {selected && !onMission && (
+        <div className="border-t border-border/60 bg-background/30 p-2 space-y-2">
+          <div className="text-[10px] uppercase tracking-wider text-accent">Send på oppdrag</div>
+          <div className="grid grid-cols-1 gap-1">
+            {GIRL_MISSIONS.map((m) => {
+              const stat = g[m.statKey];
+              const locked = stat < m.min;
+              return (
+                <button key={m.id} disabled={locked}
+                  onClick={(e) => { e.stopPropagation(); onStartMission(g.id, m.id); }}
+                  className={`flex items-center justify-between rounded px-2 py-1 text-[11px] transition ${
+                    locked ? "bg-background/40 text-muted-foreground opacity-50 cursor-not-allowed"
+                           : "bg-secondary hover:bg-secondary/80 text-foreground"
+                  }`}>
+                  <span>{m.emoji} {m.label}</span>
+                  <span className="font-mono text-[10px] text-accent">
+                    ~${m.basePay} · {m.hours}t {locked ? `· ${m.statKey} ${m.min}+` : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            <button onClick={(e) => { e.stopPropagation(); onTrain(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Train $200</button>
+            <button onClick={(e) => { e.stopPropagation(); onGift(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Gift $150</button>
+            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Sparke ${g.name}?`)) onFire(g.id); }} className="rounded bg-destructive/80 px-1.5 py-1 text-[10px] text-destructive-foreground hover:bg-destructive">Fire</button>
+          </div>
         </div>
       )}
     </div>

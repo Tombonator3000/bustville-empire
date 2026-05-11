@@ -74,6 +74,9 @@ export interface Production {
   girlIds: string[];         // cast
   quality: number;           // 0-100
   startedDay: number;
+  reworks: number;           // # of failed stage rolls
+  flopped?: boolean;         // true if release flopped
+  releasedGross?: number;
 }
 
 export const STAGE_ORDER: StageId[] = ["briefing", "casting", "shooting", "editing", "release"];
