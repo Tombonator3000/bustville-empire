@@ -499,9 +499,123 @@ export function useGame() {
     });
   }, []);
 
+  // === PRODUCTION PIPELINE ====================================
+  const startProduction = useCallback((tierId: string, girlIds: string[]) => {
+    setState((s) => {
+      const tier = getTier(tierId);
+      if (!tier) return s;
+      if (s.locationLevel < tier.minLevel)
+        return log(s, `${tier.name} krever Level ${tier.minLevel}.`);
+      const brief = tier.stages[0];
+      if (s.cash < brief.cost) return log(s, `Briefing koster $${brief.cost}.`);
+      if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
+      const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
+      const prod: Production = {
+        id: Math.random().toString(36).slice(2, 10),
+        tierId, title,
+        stageIdx: 0,
+        hoursLeft: brief.hours,
+        girlIds, quality: 10 + s.player.business * 2,
+        startedDay: s.day,
+      };
+      return log({
+        ...s,
+        cash: s.cash - brief.cost,
+        stamina: s.stamina - brief.staminaCost,
+        productions: [...s.productions, prod],
+      }, `📝 "${title}" (${tier.name}) i briefing. ${brief.flavor}`);
+    });
+  }, []);
+
+  const advanceProduction = useCallback((id: string) => {
+    setState((s) => {
+      const idx = s.productions.findIndex((p) => p.id === id);
+      if (idx === -1) return s;
+      const p = s.productions[idx];
+      const tier = getTier(p.tierId)!;
+      if (p.stageIdx >= STAGE_ORDER.length) return log(s, "Allerede ferdig.");
+      if (p.hoursLeft > 0) return log(s, `Vent ${p.hoursLeft}t til ${tier.stages[p.stageIdx].label} er ferdig.`);
+
+      const nextIdx = p.stageIdx + 1;
+      // If just finished the release stage → payout
+      if (p.stageIdx === STAGE_ORDER.length - 1) {
+        const girlBonus = p.girlIds.reduce((acc, gid) => {
+          const g = s.girls.find((x) => x.id === gid);
+          if (!g) return acc;
+          return acc + (g.beauty + g.performance + g.popularity) / 4;
+        }, 0);
+        const qualityMult = (p.quality + girlBonus) / 100;
+        const hustleMult = 1 + s.player.hustle * 0.04;
+        const studioMult = 1 + (s.studioLevel - 1) * 0.15;
+        const gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
+        const repGain = tier.baseRep + Math.floor(qualityMult * 5);
+        const updated = s.productions.map((x, i) =>
+          i === idx ? { ...x, stageIdx: STAGE_ORDER.length } : x
+        );
+        return log({
+          ...s,
+          cash: s.cash + gross,
+          reputation: s.reputation + repGain,
+          backlog: s.backlog + 1,
+          productions: updated,
+          girls: s.girls.map((g) => p.girlIds.includes(g.id)
+            ? { ...g, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2) }
+            : g),
+        }, `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.`);
+      }
+
+      // pay next stage cost & enter it
+      const nextStage = tier.stages[nextIdx];
+      if (s.cash < nextStage.cost) return log(s, `${nextStage.label} koster $${nextStage.cost}.`);
+      if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
+      // Casting must have girl(s)
+      if (nextStage.id === "shooting" && p.girlIds.length === 0)
+        return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
+
+      // quality bonus from stats
+      const qBonus =
+        (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
+        (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 : 0) +
+        (nextStage.id === "editing"  ? 4 + s.player.business : 0) +
+        (nextStage.id === "release"  ? 3 + s.player.hustle : 0);
+
+      const updated = s.productions.map((x, i) => i === idx
+        ? { ...x, stageIdx: nextIdx, hoursLeft: nextStage.hours, quality: Math.min(100, x.quality + qBonus) }
+        : x);
+      return log({
+        ...s,
+        cash: s.cash - nextStage.cost,
+        stamina: Math.max(0, s.stamina - nextStage.staminaCost),
+        productions: updated,
+      }, `${nextStage.emoji} "${p.title}" → ${nextStage.label}. ${nextStage.flavor}`);
+    });
+  }, []);
+
+  const assignToProduction = useCallback((id: string, girlId: string) => {
+    setState((s) => {
+      const idx = s.productions.findIndex((p) => p.id === id);
+      if (idx === -1) return s;
+      const p = s.productions[idx];
+      if (p.stageIdx > 1) return log(s, "Casting er låst etter innspilling startet.");
+      const has = p.girlIds.includes(girlId);
+      const newCast = has ? p.girlIds.filter((x) => x !== girlId) : [...p.girlIds, girlId];
+      return { ...s, productions: s.productions.map((x, i) => i === idx ? { ...x, girlIds: newCast } : x) };
+    });
+  }, []);
+
+  const cancelProduction = useCallback((id: string) => {
+    setState((s) => {
+      const p = s.productions.find((x) => x.id === id);
+      if (!p) return s;
+      return log({ ...s, productions: s.productions.filter((x) => x.id !== id) },
+        `🗑️ "${p.title}" avlyst. Sunk cost.`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
+    startProduction, advanceProduction, assignToProduction, cancelProduction,
   };
 }
