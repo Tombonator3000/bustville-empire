@@ -122,6 +122,9 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: 
             Lv{loc.level} {loc.name}
           </span>
           <button onClick={onOpenStats} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">Boss</button>
+          <button onClick={onOpenProductions} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">
+            🎬 Filmer ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
+          </button>
           <button onClick={onOpenRoster} className="rounded bg-primary px-2 py-1 text-primary-foreground hover:brightness-110">
             💋 Roster ({state.girls.length})
           </button>
