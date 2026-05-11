@@ -192,11 +192,15 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
         </div>
       )}
 
-      {/* Cast */}
+      {/* Cast with role assignment */}
       {!isDone && (
-        <div className="mt-2">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Cast ({p.girlIds.length})</div>
-          <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-2 space-y-2">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Cast & roller ({p.girlIds.length})
+          </div>
+
+          {/* Pool: tap to toggle in/out of cast */}
+          <div className="flex flex-wrap gap-1">
             {girls.length === 0 && (
               <span className="text-[11px] text-muted-foreground">Ingen stjerner i roster.</span>
             )}
@@ -219,6 +223,49 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
               );
             })}
           </div>
+
+          {/* Role assignment for each cast member */}
+          {p.girlIds.length > 0 && (
+            <div className="space-y-1.5 rounded-md border border-border/60 bg-background/40 p-2">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Sett rolle per stjerne — påvirker risikorull og kvalitet på det steget.
+              </div>
+              {p.girlIds.map((gid) => {
+                const g = girls.find((x) => x.id === gid);
+                if (!g) return null;
+                const current = (p.roles?.[gid] ?? "shooting") as CastRole;
+                return (
+                  <div key={gid} className="flex items-center gap-2">
+                    <img src={ARCHETYPE_PORTRAITS[g.archetype]} alt="" width={20} height={20}
+                      className="h-5 w-5 rounded-full object-cover" loading="lazy" />
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-bold">{g.name}</span>
+                    <div className="flex gap-1">
+                      {CAST_ROLES.map((r) => {
+                        const stageIdx = STAGE_ORDER.indexOf(r.id);
+                        const past = stageIdx >= 0 && p.stageIdx > stageIdx;
+                        const active = current === r.id;
+                        return (
+                          <button
+                            key={r.id}
+                            disabled={past}
+                            onClick={() => onSetRole(p.id, gid, r.id)}
+                            title={past ? `${r.label} – steget er ferdig` : r.hint}
+                            className={`rounded border px-1.5 py-0.5 text-[10px] transition ${
+                              active
+                                ? "border-primary bg-primary/30 text-foreground"
+                                : "border-border bg-background/60 text-muted-foreground hover:border-primary/60"
+                            } ${past ? "opacity-30 cursor-not-allowed" : ""}`}
+                          >
+                            {r.emoji}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
