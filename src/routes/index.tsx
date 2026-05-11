@@ -326,6 +326,7 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
                     open={open}
                     onToggle={() => setOpenId(open ? null : a.id)}
                     girls={state.girls}
+                    nowAbs={absHour(state)}
                     defaultGirl={selectedGirl}
                     onRun={(girlId, intensity) => {
                       onPerform(a.id, girlId, intensity);
