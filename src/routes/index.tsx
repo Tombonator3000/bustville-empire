@@ -30,6 +30,8 @@ function GamePage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [invOpen, setInvOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
