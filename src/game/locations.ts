@@ -190,7 +190,7 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "drink",     label: "Drikk en runde", emoji: "🍺", hours: 1, desc: "-$30, +rep, -stamina." },
   ],
   sheriff: [
-    { id: "bribe",  label: "Bestikk Buck", emoji: "💵", hours: 1, desc: "-$200, -razzia-risiko." },
+    { id: "bribe",  label: "Bestikk Buck", emoji: "💵", hours: 1, desc: "Kostnad skalerer med heat. 3 dagers immunitet. Gjentatt bribing innen 5 dager = dyrere & mindre effekt." },
     { id: "snitch", label: "Tysteri-tips", emoji: "🤐", hours: 1, desc: "+$120, -rep." },
   ],
   gas: [
