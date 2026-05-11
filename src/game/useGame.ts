@@ -20,6 +20,13 @@ function enqueueToast(id: string, item: ToastItem) {
 
 export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
+export type Intensity = "chill" | "standard" | "intense";
+export const INTENSITIES: { id: Intensity; label: string; emoji: string; hint: string }[] = [
+  { id: "chill",    label: "Avslappet", emoji: "🌙", hint: "0.7× lønn, mindre heat. For trøtte stjerner." },
+  { id: "standard", label: "Standard",  emoji: "⚖️", hint: "Vanlig økt — balansert risiko." },
+  { id: "intense",  label: "Hardcore",  emoji: "🔥", hint: "1.45× lønn, +heat. Skru opp innsatsen." },
+];
+
 export interface PlayerStats {
   charisma: number;
   hustle: number;
