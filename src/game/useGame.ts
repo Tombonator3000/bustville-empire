@@ -118,7 +118,7 @@ const INITIAL: GameState = {
   won: false,
   district: "park",
   activeLocation: null,
-  heatLevel: 5, bribedUntilDay: 0,
+  heatLevel: 5, bribedUntilDay: 0, bribeStreak: 0, lastBribeDay: 0,
   loan: 0, loanDueDay: 0,
   distilleryLevel: 1, studioLevel: 1,
   equipment: { camera: 0, lighting: 0, editing: 0 },
