@@ -121,6 +121,7 @@ const INITIAL: GameState = {
   distilleryLevel: 1, studioLevel: 1,
   equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
+  filmstock: 0, costumes: 0, auditionVouchers: 0, distribBonus: 0,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
