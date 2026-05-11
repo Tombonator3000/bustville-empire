@@ -353,19 +353,29 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
 }
 
 /* ========== ACTION ROW (with girl + intensity picker) ========== */
-function ActionRow({ action, open, onToggle, girls, defaultGirl, onRun }: {
+function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }: {
   action: { id: string; label: string; emoji: string; hours: number; desc?: string };
   open: boolean;
   onToggle: () => void;
   girls: Girl[];
+  nowAbs: number;
   defaultGirl?: string;
   onRun: (girlId: string | undefined, intensity: Intensity) => void;
 }) {
-  const [girlId, setGirlId] = useState<string | undefined>(defaultGirl);
-  const [intensity, setIntensity] = useState<Intensity>("standard");
-  useEffect(() => { if (open) setGirlId(defaultGirl); }, [open, defaultGirl]);
+  const isAvailable = (g: Girl) => !g.mission && (!g.busyUntil || g.busyUntil <= nowAbs);
+  const statusOf = (g: Girl): { ok: boolean; label: string } => {
+    if (g.mission) return { ok: false, label: `⏳ ${g.mission.label} ${Math.max(0, g.mission.endsAt - nowAbs)}t` };
+    if (g.busyUntil && g.busyUntil > nowAbs) return { ok: false, label: `💤 hviler ${g.busyUntil - nowAbs}t` };
+    return { ok: true, label: "✓ klar" };
+  };
 
-  const available = girls.filter((g) => !g.mission);
+  const initialGirl = defaultGirl && girls.find((g) => g.id === defaultGirl && isAvailable(g)) ? defaultGirl : undefined;
+  const [girlId, setGirlId] = useState<string | undefined>(initialGirl);
+  const [intensity, setIntensity] = useState<Intensity>("standard");
+  useEffect(() => { if (open) setGirlId(initialGirl); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [open, defaultGirl]);
+
+  const selectedGirlObj = girlId ? girls.find((g) => g.id === girlId) : undefined;
+  const selectedBlocked = selectedGirlObj && !isAvailable(selectedGirlObj);
   return (
     <div className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}>
       <button
@@ -384,7 +394,7 @@ function ActionRow({ action, open, onToggle, girls, defaultGirl, onRun }: {
           {!open && (
             <div className="text-[10px] text-accent/80">
               {girlId
-                ? `★ ${girls.find((g) => g.id === girlId)?.name ?? "—"}`
+                ? `★ ${selectedGirlObj?.name ?? "—"}${selectedBlocked ? " (utilgjengelig)" : ""}`
                 : "Trykk for å velge stjerne & intensitet"}
             </div>
           )}
@@ -404,23 +414,28 @@ function ActionRow({ action, open, onToggle, girls, defaultGirl, onRun }: {
               >
                 Solo (du selv)
               </button>
-              {available.length === 0 && (
-                <span className="text-[10px] text-muted-foreground">Ingen ledige stjerner.</span>
+              {girls.length === 0 && (
+                <span className="text-[10px] text-muted-foreground">Ingen stjerner i roster.</span>
               )}
-              {available.map((g) => {
+              {girls.map((g) => {
                 const on = girlId === g.id;
+                const st = statusOf(g);
+                const disabled = !st.ok;
                 return (
                   <button
                     key={g.id}
+                    disabled={disabled}
                     onClick={() => setGirlId(g.id)}
-                    title={`${g.archetype} · Bea ${g.beauty} · Perf ${g.performance} · Pop ${g.popularity}`}
+                    title={`${g.archetype} · Bea ${g.beauty} · Perf ${g.performance} · Pop ${g.popularity} · ${st.label}`}
                     className={`flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 text-[10px] transition ${
-                      on ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
-                    }`}
+                      on ? "border-primary bg-primary/20 text-foreground"
+                         : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
+                    } ${disabled ? "opacity-40 cursor-not-allowed hover:border-border" : ""}`}
                   >
                     <img src={ARCHETYPE_PORTRAITS[g.archetype]} alt="" width={18} height={18}
                       className="h-4 w-4 rounded-full object-cover" loading="lazy" />
                     {on ? "★ " : ""}{g.name}
+                    <span className={`ml-1 text-[9px] ${st.ok ? "text-accent" : "text-destructive"}`}>{st.label}</span>
                   </button>
                 );
               })}
