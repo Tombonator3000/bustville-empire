@@ -6,6 +6,8 @@ import {
   DISTRICTS, HOTSPOTS, LOCATION_DEFS, LOCATION_ACTIONS,
   type LocationId,
 } from "@/game/locations";
+import { ProductionsSheet } from "@/components/game/ProductionsSheet";
+import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 
 export const Route = createFileRoute("/")({
@@ -24,6 +26,7 @@ function GamePage() {
   const [selectedGirl, setSelectedGirl] = useState<string | undefined>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [prodOpen, setProdOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
