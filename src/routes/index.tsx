@@ -12,6 +12,10 @@ import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
+import {
+  DollarSign, Star, Zap, Flame, Wine, Calendar, Backpack, Crown,
+  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
