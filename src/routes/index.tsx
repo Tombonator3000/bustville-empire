@@ -212,74 +212,86 @@ function MapView({ state, district, onGoTo }: {
   }, [district.id]);
 
   return (
-    <section className="mx-auto max-w-7xl px-3 pt-3">
-      <div className="mb-2 flex items-baseline justify-between">
+    <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
+      {/* Full-bleed background map */}
+      <img
+        src={district.image}
+        alt={district.name}
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        width={1920}
+        height={1080}
+      />
+      <div className="absolute inset-0 scan-lines opacity-15 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/70 pointer-events-none" />
+
+      {/* Title overlay */}
+      <div className="absolute left-4 top-4 z-10 flex items-start gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Klikk en bygning</p>
-          <h2 className="font-display text-3xl uppercase neon-text">{district.name}</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="hidden text-xs text-muted-foreground sm:block">{district.tagline}</p>
-          <button
-            onClick={() => setEditor(true)}
-            className="rounded border border-border bg-secondary/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground hover:border-primary"
-            title="Juster soner på kartet">
-            🛠️ Sone-editor
-          </button>
+          <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{district.name}</h2>
+          <p className="mt-0.5 text-xs text-foreground/80">{district.tagline}</p>
         </div>
       </div>
 
+      {/* Sone-editor */}
+      <button
+        onClick={() => setEditor(true)}
+        className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur hover:border-primary"
+        title="Juster soner på kartet">
+        <Wrench className="h-3.5 w-3.5" /> Sone-editor
+      </button>
+
+      {/* Downtown lock notice */}
       {district.id === "park" && state.locationLevel < 3 && (
-        <div className="mb-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+        <div className="absolute left-4 right-4 top-24 z-10 mx-auto max-w-2xl rounded-lg border border-accent/40 bg-background/85 px-3 py-2 text-xs backdrop-blur">
           <p className="font-display text-[10px] uppercase tracking-widest text-accent">🔒 Låst i Downtown · Lv 3</p>
           <p className="mt-0.5 text-muted-foreground">
-            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med:
-            <span className="text-foreground"> 🎥 Sparky's Camera Shack</span> (utstyr + filmstock),
-            <span className="text-foreground"> 👗 Glitter & Garter</span> (kostymer),
-            <span className="text-foreground"> 🎭 Open Mic Casting</span> (audition-vouchers) og
-            <span className="text-foreground"> 📼 Reel Republic</span> (distribusjon).
+            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med
+            <span className="text-foreground"> 🎥 Camera Shack</span>,
+            <span className="text-foreground"> 👗 Glitter & Garter</span>,
+            <span className="text-foreground"> 🎭 Casting</span> og
+            <span className="text-foreground"> 📼 Reel Republic</span>.
           </p>
         </div>
       )}
 
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border neon-border">
-        <img src={district.image} alt={district.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1920} height={1080} />
-        <div className="absolute inset-0 scan-lines opacity-15" />
+      {/* Hotspots */}
+      {hotspots.map((h) => {
+        const def = LOCATION_DEFS[h.id];
+        const locked = def.unlockLevel && state.locationLevel < def.unlockLevel;
+        const open = isOpen(h.id, state.hour);
+        return (
+          <button
+            key={h.id}
+            onClick={() => !locked && onGoTo(h.id)}
+            disabled={!!locked}
+            className={`group absolute rounded-lg border-2 transition
+              ${locked
+                ? "cursor-not-allowed border-destructive/40 bg-destructive/10"
+                : "border-primary/0 bg-primary/0 hover:border-primary hover:bg-primary/20 hover:shadow-[0_0_24px_oklch(0.7_0.28_350/0.7)]"}
+            `}
+            style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.w}%`, height: `${h.h}%` }}
+            title={h.label}
+          >
+            <span className={`absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition
+              ${locked
+                ? "bg-destructive/80 text-destructive-foreground"
+                : open
+                  ? "bg-primary text-primary-foreground opacity-0 group-hover:opacity-100"
+                  : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"}
+            `}>
+              {locked ? `🔒 Lv ${def.unlockLevel}` : open ? h.label : `${h.label} (stengt)`}
+            </span>
+          </button>
+        );
+      })}
 
-        {hotspots.map((h) => {
-          const def = LOCATION_DEFS[h.id];
-          const locked = def.unlockLevel && state.locationLevel < def.unlockLevel;
-          const open = isOpen(h.id, state.hour);
-          return (
-            <button
-              key={h.id}
-              onClick={() => !locked && onGoTo(h.id)}
-              disabled={!!locked}
-              className={`group absolute rounded-lg border-2 transition
-                ${locked
-                  ? "cursor-not-allowed border-destructive/40 bg-destructive/10"
-                  : "border-primary/0 bg-primary/0 hover:border-primary hover:bg-primary/20 hover:shadow-[0_0_24px_oklch(0.7_0.28_350/0.7)]"}
-              `}
-              style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.w}%`, height: `${h.h}%` }}
-              title={h.label}
-            >
-              <span className={`absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition
-                ${locked
-                  ? "bg-destructive/80 text-destructive-foreground"
-                  : open
-                    ? "bg-primary text-primary-foreground opacity-0 group-hover:opacity-100"
-                    : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"}
-              `}>
-                {locked ? `🔒 Lv ${def.unlockLevel}` : open ? h.label : `${h.label} (stengt)`}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Recent log strip */}
-      <div className="mt-3 rounded-lg border border-border bg-card/60 p-2 text-xs">
-        <div className="font-display text-[10px] uppercase tracking-widest text-accent">Hendelser</div>
+      {/* Floating event log */}
+      <div className="absolute bottom-4 left-4 right-4 z-10 mx-auto max-w-2xl rounded-lg border border-border bg-background/80 p-2 text-xs backdrop-blur">
+        <div className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-widest text-accent">
+          <ScrollText className="h-3 w-3" /> Hendelser
+        </div>
         <div className="mt-1 max-h-24 space-y-0.5 overflow-y-auto">
           {state.log.slice(0, 6).map((line, i) => (
             <p key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>{line}</p>
