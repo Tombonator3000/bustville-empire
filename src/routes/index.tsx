@@ -157,7 +157,16 @@ function Pill({ label, value, accent, hot }: { label: string; value: string; acc
 function MapView({ state, district, onGoTo }: {
   state: GameState; district: typeof DISTRICTS[number]; onGoTo: (id: LocationId) => void;
 }) {
-  const hotspots = HOTSPOTS[district.id];
+  const [editor, setEditor] = useState(false);
+  const [hotspots, setHotspots] = useState(() => getHotspotsFor(district.id));
+
+  useEffect(() => { setHotspots(getHotspotsFor(district.id)); }, [district.id]);
+  useEffect(() => {
+    const refresh = () => setHotspots(getHotspotsFor(district.id));
+    window.addEventListener("hotspot-overrides-changed", refresh);
+    return () => window.removeEventListener("hotspot-overrides-changed", refresh);
+  }, [district.id]);
+
   return (
     <section className="mx-auto max-w-7xl px-3 pt-3">
       <div className="mb-2 flex items-baseline justify-between">
@@ -165,7 +174,15 @@ function MapView({ state, district, onGoTo }: {
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Klikk en bygning</p>
           <h2 className="font-display text-3xl uppercase neon-text">{district.name}</h2>
         </div>
-        <p className="hidden text-xs text-muted-foreground sm:block">{district.tagline}</p>
+        <div className="flex items-center gap-3">
+          <p className="hidden text-xs text-muted-foreground sm:block">{district.tagline}</p>
+          <button
+            onClick={() => setEditor(true)}
+            className="rounded border border-border bg-secondary/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground hover:border-primary"
+            title="Juster soner på kartet">
+            🛠️ Sone-editor
+          </button>
+        </div>
       </div>
 
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border neon-border">
@@ -212,6 +229,10 @@ function MapView({ state, district, onGoTo }: {
           ))}
         </div>
       </div>
+
+      {editor && (
+        <HotspotEditor district={district.id} mapImage={district.image} onClose={() => setEditor(false)} />
+      )}
     </section>
   );
 }
