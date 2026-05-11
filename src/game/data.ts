@@ -3,6 +3,38 @@ import apartmentImg from "@/assets/loc-apartment.jpg";
 import loftImg from "@/assets/loc-loft.jpg";
 import studioImg from "@/assets/loc-studio.jpg";
 import hqImg from "@/assets/loc-hq.jpg";
+import girlAmateur from "@/assets/girl-amateur.jpg";
+import girlParty from "@/assets/girl-party.jpg";
+import girlIceQueen from "@/assets/girl-icequeen.jpg";
+import girlNextDoor from "@/assets/girl-nextdoor.jpg";
+import girlMilf from "@/assets/girl-milf.jpg";
+import girlExotic from "@/assets/girl-exotic.jpg";
+
+export const ARCHETYPE_PORTRAITS: Record<string, string> = {
+  "Amateur Sweetheart": girlAmateur,
+  "Wild Party Girl": girlParty,
+  "Ice Queen Pornstar": girlIceQueen,
+  "Girl Next Door": girlNextDoor,
+  "MILF Next Door": girlMilf,
+  "Exotic Import": girlExotic,
+};
+
+export interface GirlMission {
+  endsAt: number;       // absolute hour (day * 24 + hour)
+  id: string;
+  label: string;
+  payout: number;
+  rep: number;
+}
+
+export const GIRL_MISSIONS = [
+  { id: "webcam",   label: "Webcam Solo",      emoji: "💻", hours: 4,  basePay: 220,  rep: 1, statKey: "performance" as const, min: 0 },
+  { id: "club",     label: "Strip Club Gig",   emoji: "💃", hours: 6,  basePay: 380,  rep: 2, statKey: "beauty"      as const, min: 30 },
+  { id: "onlyfans", label: "OnlyFans Grind",   emoji: "🔥", hours: 8,  basePay: 560,  rep: 2, statKey: "popularity"  as const, min: 35 },
+  { id: "vip",      label: "VIP Eskorte",      emoji: "💎", hours: 10, basePay: 1200, rep: 3, statKey: "beauty"      as const, min: 55 },
+  { id: "tour",     label: "Convention Tour",  emoji: "✈️", hours: 14, basePay: 2200, rep: 5, statKey: "popularity"  as const, min: 65 },
+] as const;
+export type MissionDef = (typeof GIRL_MISSIONS)[number];
 
 export type Phase = "startup" | "empire";
 
@@ -58,6 +90,9 @@ export interface Girl {
   popularity: number;
   loyalty: number;
   salary: number;
+  mission?: GirlMission;
+  lastActivity?: string;     // shown inline under the portrait
+  lastActivityDay?: number;
 }
 
 export const CONTENT_TYPES = [
