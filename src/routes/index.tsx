@@ -46,6 +46,7 @@ function GamePage() {
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
+        onOpenProductions={() => setProdOpen(true)}
         onSwitch={g.switchDistrict}
       />
 
@@ -75,6 +76,16 @@ function GamePage() {
       )}
       {statsOpen && (
         <StatsSheet state={g.state} onClose={() => setStatsOpen(false)} onUpgrade={g.upgradeStat} />
+      )}
+      {prodOpen && (
+        <ProductionsSheet
+          state={g.state}
+          onClose={() => setProdOpen(false)}
+          onStart={g.startProduction}
+          onAdvance={g.advanceProduction}
+          onAssign={g.assignToProduction}
+          onCancel={g.cancelProduction}
+        />
       )}
 
       <footer className="mx-auto mt-4 max-w-7xl px-3 text-center text-[10px] text-muted-foreground">
