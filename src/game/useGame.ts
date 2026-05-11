@@ -555,25 +555,32 @@ export function useGame() {
       if (!tier) return s;
       if (s.locationLevel < tier.minLevel)
         return log(s, `${tier.name} krever Level ${tier.minLevel}.`);
+      const mods = getStudioMods(s);
+      const activeCount = s.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
+      if (activeCount >= mods.capacity)
+        return log(s, `Studio-kapasitet full (${activeCount}/${mods.capacity}). Oppgrader utstyr eller fullfør et prosjekt.`);
       const brief = tier.stages[0];
-      if (s.cash < brief.cost) return log(s, `Briefing koster $${brief.cost}.`);
+      const cost = stageCost(brief, mods);
+      const hours = stageHours(brief, mods);
+      if (s.cash < cost) return log(s, `Briefing koster $${cost}.`);
       if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
       const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
+      const startQ = Math.min(mods.qualityCap, 10 + s.player.business * 2 + mods.eqSum);
       const prod: Production = {
         id: Math.random().toString(36).slice(2, 10),
         tierId, title,
         stageIdx: 0,
-        hoursLeft: brief.hours,
-        girlIds, quality: 10 + s.player.business * 2,
+        hoursLeft: hours,
+        girlIds, quality: startQ,
         startedDay: s.day,
         reworks: 0,
       };
       return log({
         ...s,
-        cash: s.cash - brief.cost,
+        cash: s.cash - cost,
         stamina: s.stamina - brief.staminaCost,
         productions: [...s.productions, prod],
-      }, `📝 "${title}" (${tier.name}) i briefing. ${brief.flavor}`);
+      }, `📝 "${title}" (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
     });
   }, []);
 
