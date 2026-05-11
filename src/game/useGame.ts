@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
-  RANDOM_EVENTS, CONTENT_TYPES,
-  type Archetype, type Girl,
+  RANDOM_EVENTS, type Archetype, type Girl,
 } from "./data";
+import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 
 export interface PlayerStats {
   charisma: number;
@@ -17,7 +17,8 @@ export interface GameState {
   reputation: number;
   stamina: number;
   maxStamina: number;
-  day: number;
+  day: number;          // 1+
+  hour: number;         // 0-23
   locationLevel: number;
   moonshine: number;
   backlog: number;
@@ -25,35 +26,56 @@ export interface GameState {
   girls: Girl[];
   log: string[];
   won: boolean;
+  district: DistrictId;
+  activeLocation: LocationId | null;
+  // economy / risk
+  heatLevel: number;       // 0-100 → razzia risk
+  bribedUntilDay: number;
+  loan: number;
+  loanDueDay: number;
+  distilleryLevel: number; // 1-3
+  studioLevel: number;     // 1-3
 }
 
 const INITIAL: GameState = {
-  cash: 350,
-  reputation: 2,
-  stamina: 100,
-  maxStamina: 100,
-  day: 1,
+  cash: 350, reputation: 2,
+  stamina: 100, maxStamina: 100,
+  day: 1, hour: 8,
   locationLevel: 1,
-  moonshine: 2,
-  backlog: 0,
+  moonshine: 2, backlog: 0,
   player: { charisma: 3, hustle: 3, business: 1, lust: 4 },
   girls: [],
   log: [
     "Velkommen til Bustville, Alabama. Lukten av rust og muligheter.",
     "Du eier én trailer, $350, og en uforklarlig selvtillit.",
+    "Klikk på en bygning for å komme i gang.",
   ],
   won: false,
+  district: "park",
+  activeLocation: null,
+  heatLevel: 5, bribedUntilDay: 0,
+  loan: 0, loanDueDay: 0,
+  distilleryLevel: 1, studioLevel: 1,
 };
 
-const STORAGE_KEY = "bustville-empire-v1";
-const rand = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const STORAGE_KEY = "bustville-empire-v2";
+const rand = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
 
-export function genGirl(playerCharisma: number, locLevel: number): Girl {
-  const tier = Math.min(5, Math.floor(locLevel + Math.random() * 2));
-  const pool: Archetype[] = locLevel >= 4
-    ? [...ARCHETYPES]
-    : ARCHETYPES.filter((a) => a !== "Exotic Import");
+export function dayName(day: number) {
+  return ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"][(day - 1) % 7];
+}
+export function timeStr(h: number) {
+  return `${String(h).padStart(2, "0")}:00`;
+}
+export function isOpen(locId: LocationId, hour: number) {
+  const [a, b] = LOCATION_DEFS[locId].openHours;
+  return hour >= a && hour < b;
+}
+
+function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl {
+  const tier = Math.max(1, Math.min(5, locLevel + qualityMod));
+  const pool: Archetype[] = locLevel >= 4 ? [...ARCHETYPES] : ARCHETYPES.filter((a) => a !== "Exotic Import");
   const archetype = rand(pool);
   const base = 25 + tier * 8 + playerCharisma * 2;
   return {
@@ -75,7 +97,10 @@ export function useGame() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setState({ ...INITIAL, ...parsed });
+      }
     } catch {}
     setLoaded(true);
   }, []);
@@ -83,76 +108,359 @@ export function useGame() {
     if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state, loaded]);
 
-  const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 40) });
+  const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 60) });
 
   const reset = useCallback(() => setState(INITIAL), []);
 
-  const doContent = useCallback((contentId: string, girlId?: string) => {
-    setState((s) => {
-      const ct = CONTENT_TYPES.find((c) => c.id === contentId);
-      if (!ct) return s;
-      if (s.locationLevel < ct.minLevel) return log(s, `${ct.name} krever Level ${ct.minLevel}.`);
-      if (s.cash < ct.cost) return log(s, `Trenger $${ct.cost} for ${ct.name}.`);
-      if (s.stamina < ct.stamina) return log(s, "For sliten. Sov, eller drikk moonshine.");
-      const girl = s.girls.find((g) => g.id === girlId);
-      const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
-      const hustleMult = 1 + s.player.hustle * 0.05;
-      const earn = Math.floor(ct.basePay * girlMult * hustleMult * (0.85 + Math.random() * 0.3));
-      const rep = ct.repGain + (girl ? Math.floor(girl.popularity / 30) : 0);
-      let next = {
-        ...s,
-        cash: s.cash - ct.cost + earn,
-        stamina: s.stamina - ct.stamina,
-        reputation: s.reputation + rep,
-        backlog: s.backlog + (ct.id === "feature" || ct.id === "glamour" ? 1 : 0),
-      };
-      // bumps
-      if (girl) {
-        next.girls = s.girls.map((g) => g.id === girl.id ? { ...g, popularity: Math.min(99, g.popularity + 2), loyalty: Math.min(99, g.loyalty + 1) } : g);
+  // === TIME ENGINE ============================================
+  // Advance time by N hours, drain stamina, maybe roll week-end
+  function advance(s: GameState, hours: number): GameState {
+    let next = { ...s };
+    next.stamina = Math.max(0, next.stamina - hours * 4);
+    next.hour += hours;
+    while (next.hour >= 24) {
+      next.hour -= 24;
+      next.day += 1;
+      // daily heat decay
+      next.heatLevel = Math.max(0, next.heatLevel - 3);
+      // weekly tick every 7 days
+      if ((next.day - 1) % 7 === 0) next = weekTick(next);
+      // loan due?
+      if (next.loan > 0 && next.day >= next.loanDueDay) {
+        if (next.cash >= next.loan) {
+          next = log(next, `🏦 Lån betalt automatisk: -$${next.loan}.`);
+          next.cash -= next.loan; next.loan = 0;
+        } else {
+          const penalty = Math.floor(next.loan * 0.1);
+          next = log(next, `🏦 Lån forfalt! Renter +$${penalty}.`);
+          next.loan += penalty; next.loanDueDay = next.day + 7;
+        }
       }
-      const who = girl ? ` med ${girl.name}` : "";
-      return log(next, `🎬 ${ct.name}${who}: +$${earn}, +${rep} rep. ${ct.flavor}`);
-    });
-  }, []);
+    }
+    return next;
+  }
 
-  const sellMoonshine = useCallback(() => {
+  function weekTick(s: GameState): GameState {
+    let next = { ...s };
+    const wages = next.girls.reduce((a, g) => a + g.salary, 0);
+    const royalty = next.backlog * 180;
+    next.cash += royalty - wages;
+    next = log(next, `📅 Ukens lønn: -$${wages}. Royalties: +$${royalty}.`);
+    const pool = RANDOM_EVENTS.filter((e) => !e.minLevel || next.locationLevel >= e.minLevel);
+    const ev = rand(pool);
+    if (ev.cash) next.cash += ev.cash;
+    if (ev.rep) next.reputation = Math.max(0, next.reputation + ev.rep);
+    if (ev.stamina) next.stamina = Math.max(0, Math.min(next.maxStamina, next.stamina + ev.stamina));
+    next = log(next, ev.text);
+    // razzia roll
+    if (next.heatLevel > 40 && next.day >= next.bribedUntilDay && Math.random() < next.heatLevel / 200) {
+      const loss = Math.min(next.cash, 200 + next.heatLevel * 10);
+      const lostShine = Math.min(next.moonshine, 3);
+      next.cash -= loss; next.moonshine -= lostShine;
+      next.heatLevel = Math.max(0, next.heatLevel - 20);
+      next = log(next, `🚓 RAZZIA! Politiet beslagla $${loss} og ${lostShine} 🥃.`);
+    }
+    // win?
+    if (next.locationLevel >= 5 && next.cash >= 250000 && next.reputation >= 140) {
+      next.won = true;
+      next = log(next, "👑 DU ER PORN KING OF THE SOUTH! Bustville Empire er din!");
+    }
+    return next;
+  }
+
+  // === NAVIGATION ============================================
+  const goTo = useCallback((id: LocationId) => {
     setState((s) => {
-      if (s.moonshine <= 0) return log(s, "Tom for moonshine. Destilleriet hviler.");
-      const earn = 140 + ri(0, 80) + s.player.hustle * 10;
-      return log({ ...s, moonshine: s.moonshine - 1, cash: s.cash + earn },
-        `🥃 Solgt en flaske moonshine til $${earn}. Sheriff Buck ser fortsatt en annen vei.`);
+      const def = LOCATION_DEFS[id];
+      if (def.unlockLevel && s.locationLevel < def.unlockLevel)
+        return log(s, `${def.name} låses opp på Level ${def.unlockLevel}.`);
+      if (!isOpen(id, s.hour))
+        return log(s, `${def.name} er stengt nå. Åpningstider ${def.openHours[0]}-${def.openHours[1]}.`);
+      // small travel cost
+      const next = advance(s, 1);
+      return { ...next, activeLocation: id };
     });
   }, []);
 
-  const brewMoonshine = useCallback(() => {
+  const backToMap = useCallback(() => {
+    setState((s) => ({ ...s, activeLocation: null }));
+  }, []);
+
+  const switchDistrict = useCallback(() => {
     setState((s) => {
-      if (s.cash < 80) return log(s, "Trenger $80 til mais, gjær og rør.");
-      if (s.stamina < 12) return log(s, "For sliten til å destillere.");
-      return log({ ...s, cash: s.cash - 80, stamina: s.stamina - 12, moonshine: s.moonshine + 3 },
-        "🔥 Brygget 3 nye flasker. Smaker som maling. Selger som varmt hvetebrød.");
+      const target: DistrictId = s.district === "park" ? "downtown" : "park";
+      if (target === "downtown" && s.locationLevel < 3)
+        return log(s, "Du har ikke råd til Downtown ennå. Bli Level 3 først.");
+      const next = advance(s, 2);
+      return log({ ...next, district: target, activeLocation: null },
+        `🚗 Kjørte til ${target === "park" ? "Trailer Park" : "Downtown"}.`);
     });
   }, []);
 
-  const scoutGirl = useCallback(() => {
-    setState((s) => {
-      const cost = 120 + s.locationLevel * 60;
-      if (s.cash < cost) return log(s, `Scouting koster $${cost}.`);
-      if (s.girls.length >= 6) return log(s, "Maks 6 stjerner. Sparken noen først.");
-      const g = genGirl(s.player.charisma, s.locationLevel);
-      return log({ ...s, cash: s.cash - cost, girls: [...s.girls, g] },
-        `💋 Signerte ${g.name} (${g.archetype}). Bea ${g.beauty} / Perf ${g.performance} / Pop ${g.popularity}.`);
-    });
+  // === ACTIONS ===============================================
+  const perform = useCallback((locId: LocationId, actionId: string, girlId?: string) => {
+    setState((s) => doAction(s, locId, actionId, girlId, advance));
   }, []);
 
+  function doAction(
+    s: GameState, locId: LocationId, actionId: string, girlId: string | undefined,
+    advanceFn: (s: GameState, h: number) => GameState,
+  ): GameState {
+    const action = LOCATION_ACTIONS[locId].find((a) => a.id === actionId);
+    if (!action) return s;
+    const girl = girlId ? s.girls.find((g) => g.id === girlId) : undefined;
+    const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
+    const hustleMult = 1 + s.player.hustle * 0.05;
+    let next = s;
+
+    const earn = (base: number) =>
+      Math.floor(base * girlMult * hustleMult * (0.85 + Math.random() * 0.3));
+    const checkStam = (h: number) =>
+      next.stamina >= h * 4 || (next.log[0] = "For sliten — sov i traileren.", false);
+
+    switch (`${locId}:${actionId}`) {
+      // Trailer
+      case "trailer:sleep": {
+        const target = next.hour <= 7 ? 7 : 7 + 24;
+        const delta = target - next.hour;
+        next = advanceFn(next, delta);
+        next.stamina = next.maxStamina;
+        return log(next, `😴 Du sov til ${timeStr(next.hour)}. Full stamina.`);
+      }
+      case "trailer:webcam": {
+        if (next.cash < 40) return log(next, "Trenger $40 til ringlys-batterier.");
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(180);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - 40 + $, reputation: next.reputation + 1 },
+          `💻 Webcam show${girl ? ` med ${girl.name}` : ""}: +$${$}, +1 rep.`);
+      }
+      case "trailer:visit": {
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(220);
+        next = advanceFn(next, action.hours);
+        next = { ...next, cash: next.cash + $, reputation: next.reputation + 1, heatLevel: Math.min(100, next.heatLevel + 2) };
+        return log(next, `🚪 Mystisk besøk: +$${$}. Heat +2.`);
+      }
+      case "trailer:roster": return next; // handled in UI (opens sheet)
+      case "trailer:upgrade": {
+        const nextLoc = LOCATIONS[next.locationLevel];
+        if (!nextLoc) return log(next, "Du er allerede på toppen.");
+        if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
+        if (next.reputation < nextLoc.unlockRep) return log(next, `Trenger ${nextLoc.unlockRep} rep.`);
+        return log({ ...next, cash: next.cash - nextLoc.unlockCash, locationLevel: nextLoc.level, maxStamina: next.maxStamina + 10 },
+          `🏆 OPPGRADERT til ${nextLoc.name}! ${nextLoc.tagline}`);
+      }
+
+      // Moonshine
+      case "moonshine:brew": {
+        if (next.cash < 80) return log(next, "Trenger $80.");
+        if (!checkStam(action.hours)) return next;
+        const yieldShine = 2 + next.distilleryLevel;
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - 80, moonshine: next.moonshine + yieldShine, heatLevel: Math.min(100, next.heatLevel + 3) },
+          `🔥 Brygget ${yieldShine} flasker. Heat +3.`);
+      }
+      case "moonshine:distillUp": {
+        if (next.distilleryLevel >= 3) return log(next, "Destilleriet er maks oppgradert.");
+        const cost = 600 * next.distilleryLevel;
+        if (next.cash < cost) return log(next, `Oppgradering koster $${cost}.`);
+        return log({ ...next, cash: next.cash - cost, distilleryLevel: next.distilleryLevel + 1 },
+          `🛠️ Destilleri Lv ${next.distilleryLevel + 1}. Mer per batch.`);
+      }
+
+      // Bar
+      case "bar:sellLocal": {
+        if (next.moonshine < 1) return log(next, "Ingen moonshine å selge.");
+        const $ = 130 + ri(0, 80) + next.player.hustle * 10;
+        next = advanceFn(next, action.hours);
+        return log({ ...next, moonshine: next.moonshine - 1, cash: next.cash + $ },
+          `🥃 Solgt en flaske til Dan: +$${$}.`);
+      }
+      case "bar:rumor": {
+        next = advanceFn(next, action.hours);
+        const ev = rand(RANDOM_EVENTS.filter((e) => !e.minLevel || next.locationLevel >= e.minLevel));
+        if (ev.cash) next.cash += ev.cash;
+        if (ev.rep) next.reputation = Math.max(0, next.reputation + ev.rep);
+        return log(next, `👂 ${ev.text}`);
+      }
+      case "bar:scoutBar": {
+        const cost = 180;
+        if (next.cash < cost) return log(next, `Drinks til en danser: $${cost}.`);
+        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
+        next = advanceFn(next, action.hours);
+        const g = genGirl(next.player.charisma, next.locationLevel, -1);
+        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
+          `💃 ${g.name} signerte over en drink. ${g.archetype}.`);
+      }
+      case "bar:drink": {
+        if (next.cash < 30) return log(next, "Du har ikke råd til en runde.");
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - 30, reputation: next.reputation + 1 },
+          "🍺 En runde til alle. Bra for ryktet, dårlig for hodet.");
+      }
+
+      // Sheriff
+      case "sheriff:bribe": {
+        if (next.cash < 200) return log(next, "Buck vil ha $200.");
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - 200, heatLevel: Math.max(0, next.heatLevel - 25), bribedUntilDay: next.day + 7 },
+          "💵 Buck blunker. Heat ned, beskyttet i 7 dager.");
+      }
+      case "sheriff:snitch": {
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash + 120, reputation: Math.max(0, next.reputation - 4) },
+          "🤐 Du tystet på naboen. +$120, -4 rep. Skammelig.");
+      }
+
+      // Gas station
+      case "gas:sellTrucker": {
+        if (next.moonshine < 1) return log(next, "Tom for moonshine.");
+        const $ = 180 + ri(0, 60) + next.player.hustle * 8;
+        next = advanceFn(next, action.hours);
+        return log({ ...next, moonshine: next.moonshine - 1, cash: next.cash + $ },
+          `🚛 Trucker tok flaska: +$${$}.`);
+      }
+      case "gas:supplies": {
+        if (next.cash < 60) return log(next, "Trenger $60.");
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - 60, stamina: Math.min(next.maxStamina, next.stamina + 20) },
+          "🥫 Energy-drikk og pølser. +20 stamina.");
+      }
+      case "gas:hitchhike": {
+        next = advanceFn(next, action.hours);
+        if (Math.random() < 0.5 && next.girls.length < 6) {
+          const g = genGirl(next.player.charisma, next.locationLevel, -2);
+          return log({ ...next, girls: [...next.girls, g] }, `👠 Du plukket opp ${g.name}. Hun har en historie.`);
+        }
+        const loss = 80;
+        return log({ ...next, cash: Math.max(0, next.cash - loss) },
+          `👠 Haiker stjal $${loss} fra hanskerommet. Klassisk.`);
+      }
+
+      // Forest
+      case "forest:scoutForest": {
+        const cost = 60;
+        if (next.cash < cost) return log(next, "Trenger $60 til lommelykt og lokkemat.");
+        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
+        next = advanceFn(next, action.hours);
+        const g = genGirl(next.player.charisma, next.locationLevel, -1);
+        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
+          `🔦 Fant ${g.name} i skogen. ${g.archetype}.`);
+      }
+      case "forest:hideStash": {
+        next = advanceFn(next, action.hours);
+        return log({ ...next, heatLevel: Math.max(0, next.heatLevel - 15) },
+          "🌲 Gjemte lageret. Razzia-risiko ned.");
+      }
+
+      // Loft
+      case "loft:glamour": {
+        const cost = 250;
+        if (next.cash < cost) return log(next, "Glamour koster $250.");
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(1400);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost + $, reputation: next.reputation + 4, backlog: next.backlog + 1 },
+          `📸 Glamour shoot${girl ? ` m/ ${girl.name}` : ""}: +$${$}, +4 rep.`);
+      }
+      case "loft:onlyfans": {
+        const cost = 80;
+        if (next.cash < cost) return log(next, "Trenger $80 til abonnement-bot.");
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(520);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost + $, reputation: next.reputation + 2 },
+          `🔥 OnlyFans-pakke: +$${$}.`);
+      }
+
+      // Velvet
+      case "velvet:network": {
+        next = advanceFn(next, action.hours);
+        const rep = 5 + next.player.charisma;
+        return log({ ...next, reputation: next.reputation + rep },
+          `🤝 Nettverket. +${rep} rep.`);
+      }
+      case "velvet:party": {
+        const cost = 600 + next.locationLevel * 200;
+        if (next.cash < cost) return log(next, `Fest koster $${cost}.`);
+        if (next.moonshine < 2) return log(next, "Trenger 2 🥃.");
+        next = advanceFn(next, action.hours);
+        const rep = 8 + next.locationLevel * 2 + next.player.charisma;
+        return log({
+          ...next, cash: next.cash - cost, moonshine: next.moonshine - 2,
+          reputation: next.reputation + rep,
+          girls: next.girls.map((g) => ({ ...g, loyalty: Math.min(99, g.loyalty + 5), popularity: Math.min(99, g.popularity + 3) })),
+        }, `🎉 Velvet-fest! +${rep} rep, jentene elsker deg.`);
+      }
+      case "velvet:scoutVip": {
+        const cost = 800;
+        if (next.cash < cost) return log(next, `VIP-scout: $${cost}.`);
+        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
+        next = advanceFn(next, action.hours);
+        const g = genGirl(next.player.charisma, next.locationLevel, +1);
+        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
+          `💎 ${g.name} signerte: Bea ${g.beauty}/Perf ${g.performance}/Pop ${g.popularity}.`);
+      }
+
+      // Bank
+      case "bank:loan": {
+        if (next.loan > 0) return log(next, "Du har allerede et lån.");
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash + 5000, loan: 6500, loanDueDay: next.day + 28 },
+          "💰 +$5000 lån. Tilbakebetal $6500 innen 4 uker.");
+      }
+      case "bank:repay": {
+        if (next.loan <= 0) return log(next, "Ingen lån.");
+        if (next.cash < next.loan) return log(next, `Trenger $${next.loan}.`);
+        return log({ ...next, cash: next.cash - next.loan, loan: 0 }, "💸 Lånet er nedbetalt.");
+      }
+
+      // Pro Studio
+      case "studio:feature": {
+        const cost = 900;
+        if (next.cash < cost) return log(next, "Feature koster $900.");
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(4800);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost + $, reputation: next.reputation + 8, backlog: next.backlog + 1 },
+          `🎬 Feature Film${girl ? ` m/ ${girl.name}` : ""}: +$${$}, +8 rep.`);
+      }
+      case "studio:upgradeStudio": {
+        if (next.studioLevel >= 3) return log(next, "Studio er maks oppgradert.");
+        const cost = 4000 * next.studioLevel;
+        if (next.cash < cost) return log(next, `Trenger $${cost}.`);
+        return log({ ...next, cash: next.cash - cost, studioLevel: next.studioLevel + 1 },
+          `🎥 Studio Lv ${next.studioLevel + 1}.`);
+      }
+
+      // HQ
+      case "hq:intl": {
+        const cost = 3200;
+        if (next.cash < cost) return log(next, "Internasjonal deal: $3200.");
+        if (!checkStam(action.hours)) return next;
+        const $ = earn(18500);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost + $, reputation: next.reputation + 14, backlog: next.backlog + 2 },
+          `🌍 Internasjonal deal: +$${$}, +14 rep.`);
+      }
+      case "hq:empire": {
+        next = advanceFn(next, action.hours);
+        return log({ ...next, reputation: next.reputation + 12 },
+          "👑 Empire-møte. +12 rep. Folk hvisker navnet ditt.");
+      }
+    }
+    return next;
+  }
+
+  // direct manipulators for sheet
   const fireGirl = useCallback((id: string) => {
     setState((s) => {
       const g = s.girls.find((x) => x.id === id);
       if (!g) return s;
-      return log({ ...s, girls: s.girls.filter((x) => x.id !== id) },
-        `👋 ${g.name} ble sparket. Hun tok ringlyset med seg.`);
+      return log({ ...s, girls: s.girls.filter((x) => x.id !== id) }, `👋 ${g.name} sparket.`);
     });
   }, []);
-
   const trainGirl = useCallback((id: string) => {
     setState((s) => {
       if (s.cash < 200) return log(s, "Trening koster $200.");
@@ -160,88 +468,33 @@ export function useGame() {
       if (!g) return s;
       const stat = ["beauty", "performance", "popularity"][ri(0, 2)] as keyof Girl;
       const inc = ri(2, 6);
-      return log({
-        ...s, cash: s.cash - 200,
+      return log({ ...s, cash: s.cash - 200,
         girls: s.girls.map((x) => x.id === id ? { ...x, [stat]: Math.min(99, (x as any)[stat] + inc) } : x),
       }, `🏋️ ${g.name} trente ${stat}. +${inc}.`);
     });
   }, []);
-
   const giftGirl = useCallback((id: string) => {
     setState((s) => {
       if (s.cash < 150) return log(s, "Gaver koster $150.");
       const g = s.girls.find((x) => x.id === id);
       if (!g) return s;
-      return log({
-        ...s, cash: s.cash - 150,
+      return log({ ...s, cash: s.cash - 150,
         girls: s.girls.map((x) => x.id === id ? { ...x, loyalty: Math.min(99, x.loyalty + ri(6, 14)) } : x),
-      }, `🎁 Du ga ${g.name} en gave. Lojalitet opp.`);
+      }, `🎁 ${g.name} fikk en gave.`);
     });
   }, []);
-
   const upgradeStat = useCallback((stat: keyof PlayerStats) => {
     setState((s) => {
       const cost = 300 + s.player[stat] * 250;
-      if (s.cash < cost) return log(s, `Trenger $${cost} til å oppgradere ${stat}.`);
+      if (s.cash < cost) return log(s, `Trenger $${cost}.`);
       return log({ ...s, cash: s.cash - cost, player: { ...s.player, [stat]: s.player[stat] + 1 } },
         `📈 ${stat} +1.`);
     });
   }, []);
 
-  const throwParty = useCallback(() => {
-    setState((s) => {
-      const cost = 600 + s.locationLevel * 200;
-      if (s.cash < cost) return log(s, `Fest koster $${cost}.`);
-      if (s.moonshine < 2) return log(s, "Trenger minst 2 moonshine til en skikkelig fest.");
-      const repGain = 8 + s.locationLevel * 2 + s.player.charisma;
-      return log({
-        ...s, cash: s.cash - cost, moonshine: s.moonshine - 2, reputation: s.reputation + repGain,
-        girls: s.girls.map((g) => ({ ...g, loyalty: Math.min(99, g.loyalty + 5), popularity: Math.min(99, g.popularity + 3) })),
-      }, `🎉 EPIC PARTY! +${repGain} rep. Jentene elsker deg. Naboene ringer politiet.`);
-    });
-  }, []);
-
-  const upgradeLocation = useCallback(() => {
-    setState((s) => {
-      const next = LOCATIONS[s.locationLevel];
-      if (!next) return log(s, "Du er allerede på toppen. Imperium oppnådd.");
-      if (s.cash < next.unlockCash) return log(s, `Trenger $${next.unlockCash} til oppgradering.`);
-      if (s.reputation < next.unlockRep) return log(s, `Trenger ${next.unlockRep} rep.`);
-      return log({ ...s, cash: s.cash - next.unlockCash, locationLevel: next.level, maxStamina: s.maxStamina + 10 },
-        `🏆 OPPGRADERT til ${next.name}! ${next.tagline}`);
-    });
-  }, []);
-
-  const endWeek = useCallback(() => {
-    setState((s) => {
-      let next = { ...s, day: s.day + 7, stamina: Math.min(s.maxStamina, s.stamina + 70) };
-      // pay salaries
-      const wages = s.girls.reduce((a, g) => a + g.salary, 0);
-      next.cash -= wages;
-      // backlog royalties
-      const royalty = s.backlog * 180;
-      next.cash += royalty;
-      // random event
-      const pool = RANDOM_EVENTS.filter((e) => !e.minLevel || s.locationLevel >= e.minLevel);
-      const ev = rand(pool);
-      if (ev.cash) next.cash += ev.cash;
-      if (ev.rep) next.reputation = Math.max(0, next.reputation + ev.rep);
-      if (ev.stamina) next.stamina = Math.max(0, Math.min(next.maxStamina, next.stamina + ev.stamina));
-      next = log(next, `📅 Uke ferdig. Lønn: -$${wages}. Royalties: +$${royalty}.`);
-      next = log(next, ev.text);
-      // win?
-      if (next.locationLevel >= 5 && next.cash >= 250000 && next.reputation >= 140) {
-        next.won = true;
-        next = log(next, "👑 DU ER PORN KING OF THE SOUTH! Bustville Empire er din!");
-      }
-      return next;
-    });
-  }, []);
-
   return {
     state, loaded, reset,
-    doContent, sellMoonshine, brewMoonshine,
-    scoutGirl, fireGirl, trainGirl, giftGirl,
-    upgradeStat, throwParty, upgradeLocation, endWeek,
+    goTo, backToMap, switchDistrict, perform,
+    fireGirl, trainGirl, giftGirl, upgradeStat,
   };
 }
