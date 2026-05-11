@@ -1,4 +1,4 @@
-import { TIERS, STAGE_ORDER, getTier, type Production } from "@/game/productions";
+import { TIERS, STAGE_ORDER, getTier, CAST_ROLES, type Production, type CastRole } from "@/game/productions";
 import {
   getStudioMods, stageCost, stageHours,
   EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST,
@@ -12,11 +12,12 @@ interface Props {
   onStart: (tierId: string, girlIds: string[]) => void;
   onAdvance: (id: string) => void;
   onAssign: (id: string, girlId: string) => void;
+  onSetRole: (id: string, girlId: string, role: CastRole) => void;
   onCancel: (id: string) => void;
   onUpgradeEquipment: (kind: EquipmentKind) => void;
 }
 
-export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onCancel, onUpgradeEquipment }: Props) {
+export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onSetRole, onCancel, onUpgradeEquipment }: Props) {
   const mods = getStudioMods(state);
   const activeCount = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const full = activeCount >= mods.capacity;
