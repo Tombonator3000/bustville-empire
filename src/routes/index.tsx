@@ -48,7 +48,7 @@ function GamePage() {
           <ActionsPanel
             state={g.state}
             selectedGirl={selectedGirl}
-            onDo={(id) => g.doContent(id, selectedGirl)}
+            onDo={(id: string) => g.doContent(id, selectedGirl)}
             onBrew={g.brewMoonshine}
             onSell={g.sellMoonshine}
             onScout={g.scoutGirl}
@@ -171,7 +171,7 @@ function Pill({ label, value, accent }: { label: string; value: string; accent?:
 }
 
 function StatsPanel({ state, onUpgradeStat }: { state: any; onUpgradeStat: (s: any) => void }) {
-  const stats: Array<keyof typeof state.player> = ["charisma", "hustle", "business", "lust"];
+  const stats: Array<"charisma" | "hustle" | "business" | "lust"> = ["charisma", "hustle", "business", "lust"];
   return (
     <div className="rounded-xl border border-border bg-card/60 p-3">
       <h3 className="font-display text-lg uppercase">The Boss</h3>
