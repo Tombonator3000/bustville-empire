@@ -93,6 +93,7 @@ export interface Girl {
   mission?: GirlMission;
   lastActivity?: string;     // shown inline under the portrait
   lastActivityDay?: number;
+  busyUntil?: number;        // absolute hour until girl is back from short-form work cooldown
 }
 
 export const CONTENT_TYPES = [
