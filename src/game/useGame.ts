@@ -4,6 +4,7 @@ import {
   RANDOM_EVENTS, type Archetype, type Girl,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
+import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
 
 export interface PlayerStats {
   charisma: number;
@@ -35,6 +36,7 @@ export interface GameState {
   loanDueDay: number;
   distilleryLevel: number; // 1-3
   studioLevel: number;     // 1-3
+  productions: Production[];
 }
 
 const INITIAL: GameState = {
@@ -56,6 +58,7 @@ const INITIAL: GameState = {
   heatLevel: 5, bribedUntilDay: 0,
   loan: 0, loanDueDay: 0,
   distilleryLevel: 1, studioLevel: 1,
+  productions: [],
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
