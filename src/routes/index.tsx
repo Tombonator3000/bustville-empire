@@ -266,10 +266,15 @@ function MapView({ state, district, onGoTo }: {
 /* ========== LOCATION VIEW ========== */
 function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRoster }: {
   state: GameState; locId: LocationId; selectedGirl?: string;
-  onBack: () => void; onPerform: (actionId: string) => void; onOpenRoster: () => void;
+  onBack: () => void;
+  onPerform: (actionId: string, girlId?: string, intensity?: Intensity) => void;
+  onOpenRoster: () => void;
 }) {
   const def = LOCATION_DEFS[locId];
   const actions = LOCATION_ACTIONS[locId];
+  const [openId, setOpenId] = useState<string | null>(null);
+  // Action ids that don't involve a working girl / shouldn't show picker
+  const SIMPLE = new Set(["sleep", "roster", "upgrade", "distillUp", "upgradeStudio", "repay", "loan", "supplies", "hideStash", "bribe"]);
   return (
     <section className="mx-auto max-w-7xl px-3 pt-3">
       <button onClick={onBack} className="mb-2 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
@@ -290,25 +295,45 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
           <div className="rounded-xl border border-border bg-card/60 p-3">
             <h3 className="font-display text-sm uppercase tracking-widest text-accent">Handlinger</h3>
             <p className="mt-0.5 text-[10px] text-muted-foreground">
-              {selectedGirl ? "🎯 Stjerne valgt — bonus aktivert" : "Velg en stjerne i Roster for produksjons-bonus"}
+              {selectedGirl ? "🎯 Stjerne valgt — bonus aktivert. Trykk en jobb for å justere innstillinger." : "Tips: trykk en jobb for å velge hvilken stjerne + intensitet."}
             </p>
             <div className="mt-2 space-y-1.5">
-              {actions.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => a.id === "roster" ? onOpenRoster() : onPerform(a.id)}
-                  className="flex w-full items-start gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-left hover:border-primary/60 hover:bg-secondary/80 transition"
-                >
-                  <span className="text-xl leading-none">{a.emoji}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold">{a.label}</span>
-                      {a.hours > 0 && <span className="text-[10px] text-muted-foreground">~{a.hours}t</span>}
-                    </div>
-                    {a.desc && <div className="text-[10px] text-muted-foreground">{a.desc}</div>}
-                  </div>
-                </button>
-              ))}
+              {actions.map((a) => {
+                const isSimple = SIMPLE.has(a.id);
+                const open = openId === a.id;
+                if (isSimple) {
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => a.id === "roster" ? onOpenRoster() : onPerform(a.id)}
+                      className="flex w-full items-start gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-left hover:border-primary/60 hover:bg-secondary/80 transition"
+                    >
+                      <span className="text-xl leading-none">{a.emoji}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold">{a.label}</span>
+                          {a.hours > 0 && <span className="text-[10px] text-muted-foreground">~{a.hours}t</span>}
+                        </div>
+                        {a.desc && <div className="text-[10px] text-muted-foreground">{a.desc}</div>}
+                      </div>
+                    </button>
+                  );
+                }
+                return (
+                  <ActionRow
+                    key={a.id}
+                    action={a}
+                    open={open}
+                    onToggle={() => setOpenId(open ? null : a.id)}
+                    girls={state.girls}
+                    defaultGirl={selectedGirl}
+                    onRun={(girlId, intensity) => {
+                      onPerform(a.id, girlId, intensity);
+                      setOpenId(null);
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -325,6 +350,119 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
     </section>
   );
 }
+
+/* ========== ACTION ROW (with girl + intensity picker) ========== */
+function ActionRow({ action, open, onToggle, girls, defaultGirl, onRun }: {
+  action: { id: string; label: string; emoji: string; hours: number; desc?: string };
+  open: boolean;
+  onToggle: () => void;
+  girls: Girl[];
+  defaultGirl?: string;
+  onRun: (girlId: string | undefined, intensity: Intensity) => void;
+}) {
+  const [girlId, setGirlId] = useState<string | undefined>(defaultGirl);
+  const [intensity, setIntensity] = useState<Intensity>("standard");
+  useEffect(() => { if (open) setGirlId(defaultGirl); }, [open, defaultGirl]);
+
+  const available = girls.filter((g) => !g.mission);
+  return (
+    <div className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-secondary/70"
+      >
+        <span className="text-xl leading-none">{action.emoji}</span>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <span className="font-bold">{action.label}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {action.hours > 0 ? `~${action.hours}t` : ""} {open ? "▾" : "▸"}
+            </span>
+          </div>
+          {action.desc && <div className="text-[10px] text-muted-foreground">{action.desc}</div>}
+          {!open && (
+            <div className="text-[10px] text-accent/80">
+              {girlId
+                ? `★ ${girls.find((g) => g.id === girlId)?.name ?? "—"}`
+                : "Trykk for å velge stjerne & intensitet"}
+            </div>
+          )}
+        </div>
+      </button>
+
+      {open && (
+        <div className="space-y-2 border-t border-border/60 p-2.5">
+          <div>
+            <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Hvem jobber?</div>
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setGirlId(undefined)}
+                className={`rounded-full border px-2 py-0.5 text-[10px] transition ${
+                  !girlId ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
+                }`}
+              >
+                Solo (du selv)
+              </button>
+              {available.length === 0 && (
+                <span className="text-[10px] text-muted-foreground">Ingen ledige stjerner.</span>
+              )}
+              {available.map((g) => {
+                const on = girlId === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => setGirlId(g.id)}
+                    title={`${g.archetype} · Bea ${g.beauty} · Perf ${g.performance} · Pop ${g.popularity}`}
+                    className={`flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 text-[10px] transition ${
+                      on ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
+                    }`}
+                  >
+                    <img src={ARCHETYPE_PORTRAITS[g.archetype]} alt="" width={18} height={18}
+                      className="h-4 w-4 rounded-full object-cover" loading="lazy" />
+                    {on ? "★ " : ""}{g.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Intensitet</div>
+            <div className="grid grid-cols-3 gap-1">
+              {INTENSITIES.map((m) => {
+                const on = intensity === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setIntensity(m.id)}
+                    title={m.hint}
+                    className={`rounded-md border px-2 py-1 text-[10px] transition ${
+                      on ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/60 text-muted-foreground hover:border-primary/60"
+                    }`}
+                  >
+                    <div className="text-base leading-none">{m.emoji}</div>
+                    <div className="mt-0.5 font-bold">{m.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {INTENSITIES.find((m) => m.id === intensity)?.hint}
+            </p>
+          </div>
+
+          <button
+            onClick={() => onRun(girlId, intensity)}
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-bold uppercase text-primary-foreground hover:brightness-110 transition"
+          >
+            {action.emoji} Kjør {action.label}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /* ========== ROSTER SHEET ========== */
 function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
