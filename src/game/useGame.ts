@@ -530,6 +530,7 @@ export function useGame() {
         hoursLeft: brief.hours,
         girlIds, quality: 10 + s.player.business * 2,
         startedDay: s.day,
+        reworks: 0,
       };
       return log({
         ...s,
