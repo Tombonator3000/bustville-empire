@@ -319,18 +319,18 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
   // Action ids that don't involve a working girl / shouldn't show picker
   const SIMPLE = new Set(["sleep", "roster", "upgrade", "distillUp", "upgradeStudio", "repay", "loan", "supplies", "hideStash", "bribe"]);
   return (
-    <section className="mx-auto max-w-7xl px-3 pt-3">
-      <button onClick={onBack} className="mb-2 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
-        ← Tilbake til kartet
+    <section className="w-full px-4 pt-3">
+      <button onClick={onBack} className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
+        <ArrowLeft className="h-3.5 w-3.5" /> Tilbake til kartet
       </button>
 
-      <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <div className="relative overflow-hidden rounded-xl border border-border neon-border">
-          <img src={def.image} alt={def.name} className="aspect-[4/3] w-full object-cover" loading="eager" width={1024} height={768} />
+      <div className="grid gap-3 lg:grid-cols-[1.8fr_1fr]">
+        <div className="relative h-[calc(100vh-9rem)] min-h-[420px] overflow-hidden rounded-xl border border-border neon-border">
+          <img src={def.image} alt={def.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1024} height={768} />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
-            <h2 className="font-display text-4xl uppercase neon-text">{def.name}</h2>
-            <p className="text-sm text-muted-foreground">{def.description}</p>
+            <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{def.name}</h2>
+            <p className="text-sm text-foreground/85">{def.description}</p>
           </div>
         </div>
 
