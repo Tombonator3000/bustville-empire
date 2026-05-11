@@ -1,10 +1,22 @@
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
   RANDOM_EVENTS, GIRL_MISSIONS, type Archetype, type Girl, type MissionDef,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
+
+// Toast queue — populated inside setState updaters, flushed via effect to avoid
+// double-firing under React StrictMode.
+type ToastItem = { kind: "success" | "info" | "error"; title: string; description?: string };
+const _toastQueue: ToastItem[] = [];
+const _seenToastIds = new Set<string>();
+function enqueueToast(id: string, item: ToastItem) {
+  if (_seenToastIds.has(id)) return;
+  _seenToastIds.add(id);
+  _toastQueue.push(item);
+}
 
 export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
@@ -147,6 +159,11 @@ export function useGame() {
   }, []);
   useEffect(() => {
     if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // Flush queued toasts after commit
+    while (_toastQueue.length) {
+      const t = _toastQueue.shift()!;
+      toast[t.kind](t.title, t.description ? { description: t.description } : undefined);
+    }
   }, [state, loaded]);
 
   const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 60) });
@@ -178,21 +195,39 @@ export function useGame() {
         }
       }
     }
-    // Complete any missions whose end time has passed
+    // Complete any missions whose end time has passed — consolidated log + toast
     const nowAbs = absHour(next);
-    let payouts = 0, repGain = 0;
+    const completed: { name: string; label: string; payout: number; rep: number; toastId: string }[] = [];
     next.girls = next.girls.map((g) => {
       if (g.mission && g.mission.endsAt <= nowAbs) {
-        payouts += g.mission.payout;
-        repGain += g.mission.rep;
-        const msg = `✅ ${g.mission.label}: +$${g.mission.payout}, +${g.mission.rep} rep`;
-        next = log(next, `${g.name}: ${msg}`);
-        return { ...g, mission: undefined, lastActivity: msg, lastActivityDay: next.day };
+        const m = g.mission;
+        completed.push({ name: g.name, label: m.label, payout: m.payout, rep: m.rep,
+          toastId: `mission:${g.id}:${m.endsAt}` });
+        return { ...g, mission: undefined,
+          lastActivity: `✅ ${m.label}: +$${m.payout}, +${m.rep} rep`,
+          lastActivityDay: next.day };
       }
       return g;
     });
-    if (payouts) next.cash += payouts;
-    if (repGain) next.reputation += repGain;
+    if (completed.length) {
+      const payouts = completed.reduce((a, c) => a + c.payout, 0);
+      const repGain  = completed.reduce((a, c) => a + c.rep, 0);
+      next.cash += payouts;
+      next.reputation += repGain;
+      const details = completed.map((c) => `${c.name} — ${c.label}: +$${c.payout}, +${c.rep} rep`).join(" · ");
+      const summary = completed.length === 1
+        ? `✅ ${completed[0].name} fullførte ${completed[0].label}: +$${payouts}, +${repGain} rep.`
+        : `✅ ${completed.length} oppdrag fullført: +$${payouts}, +${repGain} rep. (${details})`;
+      next = log(next, summary);
+      const toastId = completed.map((c) => c.toastId).join("|");
+      enqueueToast(toastId, {
+        kind: "success",
+        title: completed.length === 1
+          ? `${completed[0].name} er tilbake fra ${completed[0].label}`
+          : `${completed.length} jenter ferdige med oppdrag`,
+        description: `+$${payouts.toLocaleString()} · +${repGain} rep${completed.length > 1 ? `\n${details}` : ""}`,
+      });
+    }
     return next;
   }
 
