@@ -38,8 +38,43 @@ export interface GameState {
   loanDueDay: number;
   distilleryLevel: number; // 1-3
   studioLevel: number;     // 1-3
+  equipment: { camera: number; lighting: number; editing: number }; // 0-3 each
   productions: Production[];
 }
+
+export type EquipmentKind = "camera" | "lighting" | "editing";
+
+export const EQUIPMENT_LABELS: Record<EquipmentKind, { label: string; emoji: string; blurb: string }> = {
+  camera:   { label: "Kameraer",   emoji: "📷", blurb: "Bedre opptak → høyere kvalitet, raskere innspilling." },
+  lighting: { label: "Lyssetting", emoji: "💡", blurb: "Rigget lys → mindre rework, billigere produksjon." },
+  editing:  { label: "Redigering", emoji: "🖥️", blurb: "Raskere maskiner → kortere redigeringstid og bedre finish." },
+};
+
+// Studio + equipment efficiency modifiers — applied to all productions.
+export function getStudioMods(s: GameState) {
+  const eqSum = s.equipment.camera + s.equipment.lighting + s.equipment.editing;
+  const studioBoost = s.studioLevel - 1;            // 0..2
+  // Cost: -8% per studio level above 1, -4% per equipment level. Floor 50%.
+  const costMult = Math.max(0.5, 1 - 0.08 * studioBoost - 0.04 * eqSum);
+  // Hours: -6% per studio level, -3% per equipment level. Floor 50%.
+  const hoursMult = Math.max(0.5, 1 - 0.06 * studioBoost - 0.03 * eqSum);
+  // Quality cap: 70 base + 6/studio level + 2/eq level. Max 100.
+  const qualityCap = Math.min(100, 70 + studioBoost * 6 + eqSum * 2);
+  // Parallel capacity: 1 base + studio level + 1 per 2 equipment levels.
+  const capacity = 1 + studioBoost + Math.floor(eqSum / 2);
+  return { costMult, hoursMult, qualityCap, capacity, eqSum };
+}
+
+export function stageCost(stage: { cost: number }, mods: { costMult: number }) {
+  return Math.max(1, Math.ceil(stage.cost * mods.costMult));
+}
+export function stageHours(stage: { hours: number }, mods: { hoursMult: number }) {
+  return Math.max(1, Math.round(stage.hours * mods.hoursMult));
+}
+
+export const EQUIPMENT_UPGRADE_COST = (level: number, studioLevel: number) =>
+  Math.floor(600 * Math.pow(level + 1, 1.6) * (0.8 + studioLevel * 0.3));
+
 
 const INITIAL: GameState = {
   cash: 350, reputation: 2,
