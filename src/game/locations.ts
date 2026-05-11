@@ -223,4 +223,26 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "intl",   label: "Internasjonal Deal", emoji: "🌍", hours: 5 },
     { id: "empire", label: "Empire-møte", emoji: "👑", hours: 2, desc: "+stort rep." },
   ],
+  electro: [
+    { id: "buyFilm",        label: "Kjøp filmstock (5)", emoji: "📼", hours: 1, desc: "-$300, +5 ruller. Trengs i Innspilling." },
+    { id: "upgradeCamera",  label: "Oppgrader kamera",   emoji: "📷", hours: 0, desc: "Bedre kvalitet & risiko." },
+    { id: "upgradeLighting",label: "Oppgrader lys",      emoji: "💡", hours: 0 },
+    { id: "upgradeEditing", label: "Oppgrader redigering",emoji: "🎞️", hours: 0 },
+  ],
+  boutique: [
+    { id: "buyCostume", label: "Kjøp kostymer (3)", emoji: "👗", hours: 1, desc: "-$240, +3 kostymer. Brukes i Innspilling." },
+    { id: "wardrobe",   label: "Garderobe-økt",      emoji: "💄", hours: 2, desc: "Buff jentenes pop midlertidig." },
+  ],
+  casting: [
+    { id: "bookAudition", label: "Book audition",     emoji: "🎟️", hours: 2, desc: "-$180, +1 audition-voucher (kreves i Casting-steget)." },
+    { id: "openCall",     label: "Hold open call",    emoji: "📣", hours: 4, desc: "-$500, sjanse for ny jente fra køen." },
+  ],
+  distrib: [
+    { id: "signDeal",  label: "Signer distribusjons-deal", emoji: "🤝", hours: 2, desc: "Engangs-bonus på neste utgivelse." },
+    { id: "presell",   label: "Pre-sell katalog",          emoji: "💼", hours: 2, desc: "Få cash på backlog." },
+  ],
+  clinic: [
+    { id: "heal",    label: "Vitamin-sprøyte",     emoji: "💉", hours: 1, desc: "-$120, full stamina." },
+    { id: "detox",   label: "Detox en stjerne",    emoji: "🧴", hours: 3, desc: "-$300, fjerner cooldown på en jente." },
+  ],
 };
