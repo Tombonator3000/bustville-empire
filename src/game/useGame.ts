@@ -112,6 +112,28 @@ const INITIAL: GameState = {
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
+
+export interface SaveSlotMeta {
+  slot: number;
+  label: string;
+  savedAt: number;
+  day: number;
+  cash: number;
+}
+
+export function listSaveSlots(): SaveSlotMeta[] {
+  if (typeof window === "undefined") return [];
+  const out: SaveSlotMeta[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const raw = localStorage.getItem(`${STORAGE_KEY}:slot:${i}`);
+    if (!raw) continue;
+    try {
+      const m = JSON.parse(raw);
+      out.push({ slot: i, label: m.label ?? `Save ${i}`, savedAt: m.savedAt ?? 0, day: m.day ?? m.state?.day ?? 0, cash: m.cash ?? m.state?.cash ?? 0 });
+    } catch {}
+  }
+  return out;
+}
 const rand = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
 
