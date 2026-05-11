@@ -9,12 +9,18 @@ import velvetImg from "@/assets/loc-velvet.jpg";
 import bankImg from "@/assets/loc-bank.jpg";
 import studioImg from "@/assets/loc-studio.jpg";
 import hqImg from "@/assets/loc-hq.jpg";
+import electroImg from "@/assets/loc-electro.jpg";
+import boutiqueImg from "@/assets/loc-boutique.jpg";
+import castingImg from "@/assets/loc-casting.jpg";
+import distribImg from "@/assets/loc-distrib.jpg";
+import clinicImg from "@/assets/loc-clinic.jpg";
 import mapTrailer from "@/assets/map-trailerpark.jpg";
 import mapDowntown from "@/assets/map-downtown.jpg";
 
 export type LocationId =
   | "trailer" | "moonshine" | "bar" | "sheriff" | "gas" | "forest"
-  | "loft" | "velvet" | "bank" | "studio" | "hq";
+  | "loft" | "velvet" | "bank" | "studio" | "hq"
+  | "electro" | "boutique" | "casting" | "distrib" | "clinic";
 
 export type DistrictId = "park" | "downtown";
 
