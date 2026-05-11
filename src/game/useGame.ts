@@ -351,11 +351,31 @@ export function useGame() {
   const perform = useCallback((locId: LocationId, actionId: string, girlId?: string, intensity: Intensity = "standard") => {
     setState((s) => {
       const action = LOCATION_ACTIONS[locId].find((a) => a.id === actionId);
+      // Pre-check: girl exists, isn't on mission, isn't on cooldown
+      if (girlId) {
+        const g = s.girls.find((x) => x.id === girlId);
+        if (!g) return s;
+        if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
+        const nowAbs = absHour(s);
+        if (g.busyUntil && g.busyUntil > nowAbs) {
+          return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t — velg en annen.`);
+        }
+      }
       const before = s;
-      const after = doAction(s, locId, actionId, girlId, intensity, advance);
+      let after = doAction(s, locId, actionId, girlId, intensity, advance);
       // Intensity tax: hardcore tilts heat upward on any cash-earning timed action
       if (intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
-        return { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
+        after = { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
+      }
+      // Apply cooldown to the working girl if action consumed time
+      if (girlId && action && action.hours > 0 && after !== before) {
+        const cdBase = Math.max(2, action.hours);
+        const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
+        const until = absHour(after) + cd;
+        after = {
+          ...after,
+          girls: after.girls.map((g) => g.id === girlId ? { ...g, busyUntil: until } : g),
+        };
       }
       return after;
     });
