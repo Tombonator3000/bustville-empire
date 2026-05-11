@@ -159,6 +159,11 @@ export function useGame() {
   }, []);
   useEffect(() => {
     if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // Flush queued toasts after commit
+    while (_toastQueue.length) {
+      const t = _toastQueue.shift()!;
+      toast[t.kind](t.title, t.description ? { description: t.description } : undefined);
+    }
   }, [state, loaded]);
 
   const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 60) });
