@@ -760,11 +760,25 @@ export function useGame() {
     });
   }, []);
 
+  const upgradeEquipment = useCallback((kind: EquipmentKind) => {
+    setState((s) => {
+      const lvl = s.equipment[kind];
+      if (lvl >= 3) return log(s, `${EQUIPMENT_LABELS[kind].label} er maks oppgradert.`);
+      const cost = EQUIPMENT_UPGRADE_COST(lvl, s.studioLevel);
+      if (s.cash < cost) return log(s, `${EQUIPMENT_LABELS[kind].label} Lv${lvl + 1}: $${cost}.`);
+      return log({
+        ...s, cash: s.cash - cost,
+        equipment: { ...s.equipment, [kind]: lvl + 1 },
+      }, `${EQUIPMENT_LABELS[kind].emoji} ${EQUIPMENT_LABELS[kind].label} → Lv ${lvl + 1}.`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
     startProduction, advanceProduction, assignToProduction, cancelProduction, archiveProduction,
     startMission, cancelMission,
+    upgradeEquipment,
   };
 }
