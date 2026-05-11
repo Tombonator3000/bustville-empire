@@ -44,7 +44,7 @@ type Drag =
 export function HotspotEditor({ district, mapImage, onClose }: Props) {
   const [zones, setZones] = useState<MapHotspot[]>(() => {
     const ov = loadHotspotOverrides();
-    return JSON.parse(JSON.stringify(ov[district] ?? HOTSPOTS[district]));
+    return JSON.parse(JSON.stringify(mergeWithDefaults(district, ov[district])));
   });
   const [selected, setSelected] = useState<string | null>(zones[0]?.id ?? null);
   const [showExport, setShowExport] = useState(false);
