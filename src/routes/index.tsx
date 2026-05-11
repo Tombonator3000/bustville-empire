@@ -12,6 +12,10 @@ import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
+import {
+  DollarSign, Star, Zap, Flame, Wine, Calendar, Backpack, Crown,
+  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
@@ -46,7 +50,7 @@ function GamePage() {
   const activeLoc = g.state.activeLocation;
 
   return (
-    <main className="min-h-screen pb-4">
+    <main className="relative min-h-screen w-full">
       <HUD
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
@@ -113,7 +117,7 @@ function GamePage() {
         />
       )}
 
-      <footer className="mx-auto mt-4 max-w-7xl px-3 text-center text-[10px] text-muted-foreground">
+      <footer className="mx-auto mt-4 max-w-7xl px-3 pb-3 text-center text-[10px] text-muted-foreground">
         <button onClick={() => { if (confirm("Slett all progresjon?")) { g.reset(); setStarted(false); } }} className="underline hover:text-primary">
           Reset
         </button>
@@ -132,48 +136,62 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2 text-xs">
-        <h1 className="font-display text-xl font-black uppercase neon-text mr-2">Bustville</h1>
-        <Pill label="$" value={state.cash.toLocaleString()} accent />
-        <Pill label="Rep" value={state.reputation.toString()} />
-        <Pill label="Stam" value={`${state.stamina}/${state.maxStamina}`} />
-        <Pill label="🥃" value={state.moonshine.toString()} />
-        <Pill label="🔥" value={`${state.heatLevel}%`} hot={state.heatLevel > 40} />
-        {state.loan > 0 && <Pill label="Loan" value={`$${state.loan}`} hot />}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="rounded bg-card/60 px-2 py-1 font-mono">
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
+      <div className="mx-auto flex w-full flex-wrap items-center gap-2 px-4 py-2 text-xs">
+        <h1 className="mr-2 font-display text-xl font-black uppercase neon-text">Bustville</h1>
+        <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash" value={state.cash.toLocaleString()} accent />
+        <Pill icon={<Star className="h-3.5 w-3.5" />} label="Rep" value={state.reputation.toString()} />
+        <Pill icon={<Zap className="h-3.5 w-3.5" />} label="Stam" value={`${state.stamina}/${state.maxStamina}`} />
+        <Pill icon={<Wine className="h-3.5 w-3.5" />} label="Moon" value={state.moonshine.toString()} />
+        <Pill icon={<Flame className="h-3.5 w-3.5" />} label="Heat" value={`${state.heatLevel}%`} hot={state.heatLevel > 40} />
+        {state.loan > 0 && <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Loan" value={`$${state.loan}`} hot />}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1 rounded bg-card/60 px-2 py-1 font-mono">
+            <Calendar className="h-3.5 w-3.5 text-accent" />
             {dayName(state.day)} d.{state.day} · {timeStr(state.hour)}
           </span>
           <span className="hidden text-[10px] text-muted-foreground sm:inline">
             Lv{loc.level} {loc.name}
           </span>
-          <button onClick={onOpenInventory} title="Inventar"
-            className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">🎒 Lager</button>
-          <button onClick={onOpenStats} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">Boss</button>
-          <button onClick={onOpenProductions} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">
-            🎬 Filmer ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
-          </button>
-          <button onClick={onOpenRoster} className="rounded bg-primary px-2 py-1 text-primary-foreground hover:brightness-110">
-            💋 Roster ({state.girls.length})
+          <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
+          <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
+          <IconBtn onClick={onOpenProductions}
+            icon={<Clapperboard className="h-3.5 w-3.5" />}
+            label={`Filmer (${state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})`} />
+          <button onClick={onOpenRoster}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 font-bold text-primary-foreground shadow-sm hover:brightness-110">
+            <Users className="h-3.5 w-3.5" /> Roster ({state.girls.length})
           </button>
           {state.locationLevel >= 3 && (
-            <button onClick={onSwitch} className="rounded bg-accent px-2 py-1 text-accent-foreground hover:brightness-110">
-              {state.district === "park" ? "→ Downtown" : "→ Park"}
+            <button onClick={onSwitch} className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 font-bold text-accent-foreground hover:brightness-110">
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              {state.district === "park" ? "Downtown" : "Park"}
             </button>
           )}
           <button onClick={onOpenOptions} title="Meny / Lagre / Innstillinger"
-            className="rounded border border-border bg-background px-2 py-1 hover:border-primary">⚙️</button>
+            className="rounded-md border border-border bg-background p-1.5 hover:border-primary">
+            <Settings className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     </header>
   );
 }
 
-function Pill({ label, value, accent, hot }: { label: string; value: string; accent?: boolean; hot?: boolean }) {
+function IconBtn({ onClick, icon, label, title }: { onClick: () => void; icon: React.ReactNode; label: string; title?: string }) {
   return (
-    <div className={`rounded-md border border-border/60 px-2 py-1 font-mono ${accent ? "bg-primary/15 text-primary neon-text" : hot ? "bg-destructive/20 text-destructive-foreground" : "bg-card/50"}`}>
-      <span className="mr-1 text-[9px] uppercase tracking-wider text-muted-foreground">{label}</span>
+    <button onClick={onClick} title={title}
+      className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium hover:bg-secondary/70">
+      {icon} {label}
+    </button>
+  );
+}
+
+function Pill({ icon, label, value, accent, hot }: { icon?: React.ReactNode; label: string; value: string; accent?: boolean; hot?: boolean }) {
+  return (
+    <div className={`flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1 font-mono ${accent ? "bg-primary/15 text-primary neon-text" : hot ? "bg-destructive/20 text-destructive-foreground" : "bg-card/50"}`}>
+      {icon}
+      <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <span className="font-bold">{value}</span>
     </div>
   );
@@ -194,74 +212,86 @@ function MapView({ state, district, onGoTo }: {
   }, [district.id]);
 
   return (
-    <section className="mx-auto max-w-7xl px-3 pt-3">
-      <div className="mb-2 flex items-baseline justify-between">
+    <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
+      {/* Full-bleed background map */}
+      <img
+        src={district.image}
+        alt={district.name}
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="eager"
+        width={1920}
+        height={1080}
+      />
+      <div className="absolute inset-0 scan-lines opacity-15 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/70 pointer-events-none" />
+
+      {/* Title overlay */}
+      <div className="absolute left-4 top-4 z-10 flex items-start gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Klikk en bygning</p>
-          <h2 className="font-display text-3xl uppercase neon-text">{district.name}</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="hidden text-xs text-muted-foreground sm:block">{district.tagline}</p>
-          <button
-            onClick={() => setEditor(true)}
-            className="rounded border border-border bg-secondary/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground hover:border-primary"
-            title="Juster soner på kartet">
-            🛠️ Sone-editor
-          </button>
+          <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{district.name}</h2>
+          <p className="mt-0.5 text-xs text-foreground/80">{district.tagline}</p>
         </div>
       </div>
 
+      {/* Sone-editor */}
+      <button
+        onClick={() => setEditor(true)}
+        className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur hover:border-primary"
+        title="Juster soner på kartet">
+        <Wrench className="h-3.5 w-3.5" /> Sone-editor
+      </button>
+
+      {/* Downtown lock notice */}
       {district.id === "park" && state.locationLevel < 3 && (
-        <div className="mb-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+        <div className="absolute left-4 right-4 top-24 z-10 mx-auto max-w-2xl rounded-lg border border-accent/40 bg-background/85 px-3 py-2 text-xs backdrop-blur">
           <p className="font-display text-[10px] uppercase tracking-widest text-accent">🔒 Låst i Downtown · Lv 3</p>
           <p className="mt-0.5 text-muted-foreground">
-            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med:
-            <span className="text-foreground"> 🎥 Sparky's Camera Shack</span> (utstyr + filmstock),
-            <span className="text-foreground"> 👗 Glitter & Garter</span> (kostymer),
-            <span className="text-foreground"> 🎭 Open Mic Casting</span> (audition-vouchers) og
-            <span className="text-foreground"> 📼 Reel Republic</span> (distribusjon).
+            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med
+            <span className="text-foreground"> 🎥 Camera Shack</span>,
+            <span className="text-foreground"> 👗 Glitter & Garter</span>,
+            <span className="text-foreground"> 🎭 Casting</span> og
+            <span className="text-foreground"> 📼 Reel Republic</span>.
           </p>
         </div>
       )}
 
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border neon-border">
-        <img src={district.image} alt={district.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1920} height={1080} />
-        <div className="absolute inset-0 scan-lines opacity-15" />
+      {/* Hotspots */}
+      {hotspots.map((h) => {
+        const def = LOCATION_DEFS[h.id];
+        const locked = def.unlockLevel && state.locationLevel < def.unlockLevel;
+        const open = isOpen(h.id, state.hour);
+        return (
+          <button
+            key={h.id}
+            onClick={() => !locked && onGoTo(h.id)}
+            disabled={!!locked}
+            className={`group absolute rounded-lg border-2 transition
+              ${locked
+                ? "cursor-not-allowed border-destructive/40 bg-destructive/10"
+                : "border-primary/0 bg-primary/0 hover:border-primary hover:bg-primary/20 hover:shadow-[0_0_24px_oklch(0.7_0.28_350/0.7)]"}
+            `}
+            style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.w}%`, height: `${h.h}%` }}
+            title={h.label}
+          >
+            <span className={`absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition
+              ${locked
+                ? "bg-destructive/80 text-destructive-foreground"
+                : open
+                  ? "bg-primary text-primary-foreground opacity-0 group-hover:opacity-100"
+                  : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"}
+            `}>
+              {locked ? `🔒 Lv ${def.unlockLevel}` : open ? h.label : `${h.label} (stengt)`}
+            </span>
+          </button>
+        );
+      })}
 
-        {hotspots.map((h) => {
-          const def = LOCATION_DEFS[h.id];
-          const locked = def.unlockLevel && state.locationLevel < def.unlockLevel;
-          const open = isOpen(h.id, state.hour);
-          return (
-            <button
-              key={h.id}
-              onClick={() => !locked && onGoTo(h.id)}
-              disabled={!!locked}
-              className={`group absolute rounded-lg border-2 transition
-                ${locked
-                  ? "cursor-not-allowed border-destructive/40 bg-destructive/10"
-                  : "border-primary/0 bg-primary/0 hover:border-primary hover:bg-primary/20 hover:shadow-[0_0_24px_oklch(0.7_0.28_350/0.7)]"}
-              `}
-              style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.w}%`, height: `${h.h}%` }}
-              title={h.label}
-            >
-              <span className={`absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition
-                ${locked
-                  ? "bg-destructive/80 text-destructive-foreground"
-                  : open
-                    ? "bg-primary text-primary-foreground opacity-0 group-hover:opacity-100"
-                    : "bg-muted text-muted-foreground opacity-0 group-hover:opacity-100"}
-              `}>
-                {locked ? `🔒 Lv ${def.unlockLevel}` : open ? h.label : `${h.label} (stengt)`}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Recent log strip */}
-      <div className="mt-3 rounded-lg border border-border bg-card/60 p-2 text-xs">
-        <div className="font-display text-[10px] uppercase tracking-widest text-accent">Hendelser</div>
+      {/* Floating event log */}
+      <div className="absolute bottom-4 left-4 right-4 z-10 mx-auto max-w-2xl rounded-lg border border-border bg-background/80 p-2 text-xs backdrop-blur">
+        <div className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-widest text-accent">
+          <ScrollText className="h-3 w-3" /> Hendelser
+        </div>
         <div className="mt-1 max-h-24 space-y-0.5 overflow-y-auto">
           {state.log.slice(0, 6).map((line, i) => (
             <p key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>{line}</p>
@@ -289,18 +319,18 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
   // Action ids that don't involve a working girl / shouldn't show picker
   const SIMPLE = new Set(["sleep", "roster", "upgrade", "distillUp", "upgradeStudio", "repay", "loan", "supplies", "hideStash", "bribe"]);
   return (
-    <section className="mx-auto max-w-7xl px-3 pt-3">
-      <button onClick={onBack} className="mb-2 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
-        ← Tilbake til kartet
+    <section className="w-full px-4 pt-3">
+      <button onClick={onBack} className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
+        <ArrowLeft className="h-3.5 w-3.5" /> Tilbake til kartet
       </button>
 
-      <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-        <div className="relative overflow-hidden rounded-xl border border-border neon-border">
-          <img src={def.image} alt={def.name} className="aspect-[4/3] w-full object-cover" loading="eager" width={1024} height={768} />
+      <div className="grid gap-3 lg:grid-cols-[1.8fr_1fr]">
+        <div className="relative h-[calc(100vh-9rem)] min-h-[420px] overflow-hidden rounded-xl border border-border neon-border">
+          <img src={def.image} alt={def.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1024} height={768} />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
-            <h2 className="font-display text-4xl uppercase neon-text">{def.name}</h2>
-            <p className="text-sm text-muted-foreground">{def.description}</p>
+            <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{def.name}</h2>
+            <p className="text-sm text-foreground/85">{def.description}</p>
           </div>
         </div>
 
