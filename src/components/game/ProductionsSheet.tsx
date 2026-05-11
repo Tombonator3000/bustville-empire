@@ -1,5 +1,9 @@
 import { TIERS, STAGE_ORDER, getTier, type Production } from "@/game/productions";
-import type { GameState } from "@/game/useGame";
+import {
+  getStudioMods, stageCost, stageHours,
+  EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST,
+  type GameState, type EquipmentKind,
+} from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 
 interface Props {
@@ -9,9 +13,14 @@ interface Props {
   onAdvance: (id: string) => void;
   onAssign: (id: string, girlId: string) => void;
   onCancel: (id: string) => void;
+  onUpgradeEquipment: (kind: EquipmentKind) => void;
 }
 
-export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onCancel }: Props) {
+export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onCancel, onUpgradeEquipment }: Props) {
+  const mods = getStudioMods(state);
+  const activeCount = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
+  const full = activeCount >= mods.capacity;
+
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="h-full w-full max-w-2xl overflow-y-auto border-l border-border bg-card p-4 shadow-2xl">
@@ -23,16 +32,59 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
           <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">Lukk</button>
         </div>
 
+        {/* Studio efficiency panel */}
+        <div className="mt-3 rounded-lg border border-border bg-secondary/30 p-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="font-display text-sm uppercase tracking-widest text-accent">Studio Lv {state.studioLevel}</h3>
+            <span className={`text-[11px] font-mono ${full ? "text-destructive" : "text-foreground"}`}>
+              🎬 {activeCount}/{mods.capacity} kø
+            </span>
+          </div>
+          <div className="mt-1 grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
+            <div>Kost <span className="text-foreground font-mono">×{mods.costMult.toFixed(2)}</span></div>
+            <div>Tid <span className="text-foreground font-mono">×{mods.hoursMult.toFixed(2)}</span></div>
+            <div>Q-tak <span className="text-foreground font-mono">{mods.qualityCap}</span></div>
+          </div>
+
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
+            {(Object.keys(EQUIPMENT_LABELS) as EquipmentKind[]).map((kind) => {
+              const lvl = state.equipment[kind];
+              const max = lvl >= 3;
+              const cost = max ? 0 : EQUIPMENT_UPGRADE_COST(lvl, state.studioLevel);
+              const meta = EQUIPMENT_LABELS[kind];
+              return (
+                <button
+                  key={kind}
+                  disabled={max || state.cash < cost}
+                  onClick={() => onUpgradeEquipment(kind)}
+                  title={meta.blurb}
+                  className="rounded-md border border-border bg-background/60 p-2 text-left text-[11px] transition hover:border-primary/60 disabled:opacity-40"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">{meta.emoji} {meta.label}</span>
+                    <span className="text-accent">Lv {lvl}/3</span>
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-muted-foreground">
+                    {max ? "Maks" : `Oppgrader $${cost.toLocaleString()}`}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* New project */}
         <h3 className="mt-4 font-display text-sm uppercase tracking-widest text-accent">Start nytt prosjekt</h3>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {TIERS.map((t) => {
             const locked = state.locationLevel < t.minLevel;
-            const cost = t.stages[0].cost;
+            const cost = stageCost(t.stages[0], mods);
+            const totalHours = t.stages.reduce((a, s) => a + stageHours(s, mods), 0);
+            const blocked = locked || state.cash < cost || full;
             return (
               <button
                 key={t.id}
-                disabled={locked || state.cash < cost}
+                disabled={blocked}
                 onClick={() => onStart(t.id, [])}
                 className={`rounded-lg border p-2.5 text-left transition ${
                   locked
@@ -46,7 +98,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
                 </div>
                 <p className="text-[10px] text-muted-foreground">{t.description}</p>
                 <div className="mt-1 text-[10px] text-muted-foreground">
-                  {locked ? `🔒 Lv ${t.minLevel}` : `Briefing: $${cost} · ${t.stages.reduce((a, s) => a + s.hours, 0)}t total`}
+                  {locked ? `🔒 Lv ${t.minLevel}` : full ? "🚫 Kø full" : `Briefing: $${cost} · ${totalHours}t total`}
                 </div>
               </button>
             );
@@ -55,7 +107,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
 
         {/* Active productions */}
         <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">
-          Aktive produksjoner ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
+          Aktive produksjoner ({activeCount}/{mods.capacity})
         </h3>
         <div className="mt-2 space-y-3">
           {state.productions.length === 0 && (
@@ -64,7 +116,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
             </p>
           )}
           {state.productions.map((p) => (
-            <ProductionCard key={p.id} p={p} girls={state.girls}
+            <ProductionCard key={p.id} p={p} girls={state.girls} mods={mods}
               onAdvance={onAdvance} onAssign={onAssign} onCancel={onCancel} cash={state.cash} />
           ))}
         </div>
@@ -73,8 +125,9 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
   );
 }
 
-function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
+function ProductionCard({ p, girls, mods, onAdvance, onAssign, onCancel, cash }: {
   p: Production; girls: Girl[]; cash: number;
+  mods: ReturnType<typeof getStudioMods>;
   onAdvance: (id: string) => void;
   onAssign: (id: string, gid: string) => void;
   onCancel: (id: string) => void;
@@ -84,7 +137,7 @@ function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
   const currentStage = isDone ? null : tier.stages[p.stageIdx];
   const nextStage = !isDone && p.stageIdx < STAGE_ORDER.length - 1 ? tier.stages[p.stageIdx + 1] : null;
   const canAdvance = !isDone && p.hoursLeft <= 0;
-  const stageCostToAdvance = canAdvance && p.stageIdx < STAGE_ORDER.length - 1 ? nextStage!.cost : 0;
+  const stageCostToAdvance = canAdvance && p.stageIdx < STAGE_ORDER.length - 1 ? stageCost(nextStage!, mods) : 0;
   const isReleaseReady = canAdvance && p.stageIdx === STAGE_ORDER.length - 1;
 
   return (
@@ -93,7 +146,7 @@ function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
         <div>
           <p className="font-bold">{p.title}</p>
           <p className="text-[10px] uppercase tracking-wider text-accent">
-            {tier.name} · Q{Math.round(p.quality)}
+            {tier.name} · Q{Math.round(p.quality)}/{mods.qualityCap}
             {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
           </p>
         </div>
@@ -176,7 +229,7 @@ function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
           {isReleaseReady
             ? "🚀 Slipp filmen!"
             : canAdvance
-              ? `Start ${nextStage!.label} ($${nextStage!.cost})`
+              ? `Start ${nextStage!.label} ($${stageCostToAdvance})`
               : `Vent ${p.hoursLeft}t…`}
         </button>
       )}

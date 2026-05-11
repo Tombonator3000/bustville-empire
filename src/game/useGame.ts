@@ -38,8 +38,43 @@ export interface GameState {
   loanDueDay: number;
   distilleryLevel: number; // 1-3
   studioLevel: number;     // 1-3
+  equipment: { camera: number; lighting: number; editing: number }; // 0-3 each
   productions: Production[];
 }
+
+export type EquipmentKind = "camera" | "lighting" | "editing";
+
+export const EQUIPMENT_LABELS: Record<EquipmentKind, { label: string; emoji: string; blurb: string }> = {
+  camera:   { label: "Kameraer",   emoji: "📷", blurb: "Bedre opptak → høyere kvalitet, raskere innspilling." },
+  lighting: { label: "Lyssetting", emoji: "💡", blurb: "Rigget lys → mindre rework, billigere produksjon." },
+  editing:  { label: "Redigering", emoji: "🖥️", blurb: "Raskere maskiner → kortere redigeringstid og bedre finish." },
+};
+
+// Studio + equipment efficiency modifiers — applied to all productions.
+export function getStudioMods(s: GameState) {
+  const eqSum = s.equipment.camera + s.equipment.lighting + s.equipment.editing;
+  const studioBoost = s.studioLevel - 1;            // 0..2
+  // Cost: -8% per studio level above 1, -4% per equipment level. Floor 50%.
+  const costMult = Math.max(0.5, 1 - 0.08 * studioBoost - 0.04 * eqSum);
+  // Hours: -6% per studio level, -3% per equipment level. Floor 50%.
+  const hoursMult = Math.max(0.5, 1 - 0.06 * studioBoost - 0.03 * eqSum);
+  // Quality cap: 70 base + 6/studio level + 2/eq level. Max 100.
+  const qualityCap = Math.min(100, 70 + studioBoost * 6 + eqSum * 2);
+  // Parallel capacity: 1 base + studio level + 1 per 2 equipment levels.
+  const capacity = 1 + studioBoost + Math.floor(eqSum / 2);
+  return { costMult, hoursMult, qualityCap, capacity, eqSum };
+}
+
+export function stageCost(stage: { cost: number }, mods: { costMult: number }) {
+  return Math.max(1, Math.ceil(stage.cost * mods.costMult));
+}
+export function stageHours(stage: { hours: number }, mods: { hoursMult: number }) {
+  return Math.max(1, Math.round(stage.hours * mods.hoursMult));
+}
+
+export const EQUIPMENT_UPGRADE_COST = (level: number, studioLevel: number) =>
+  Math.floor(600 * Math.pow(level + 1, 1.6) * (0.8 + studioLevel * 0.3));
+
 
 const INITIAL: GameState = {
   cash: 350, reputation: 2,
@@ -60,6 +95,7 @@ const INITIAL: GameState = {
   heatLevel: 5, bribedUntilDay: 0,
   loan: 0, loanDueDay: 0,
   distilleryLevel: 1, studioLevel: 1,
+  equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
 };
 
@@ -519,25 +555,32 @@ export function useGame() {
       if (!tier) return s;
       if (s.locationLevel < tier.minLevel)
         return log(s, `${tier.name} krever Level ${tier.minLevel}.`);
+      const mods = getStudioMods(s);
+      const activeCount = s.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
+      if (activeCount >= mods.capacity)
+        return log(s, `Studio-kapasitet full (${activeCount}/${mods.capacity}). Oppgrader utstyr eller fullfør et prosjekt.`);
       const brief = tier.stages[0];
-      if (s.cash < brief.cost) return log(s, `Briefing koster $${brief.cost}.`);
+      const cost = stageCost(brief, mods);
+      const hours = stageHours(brief, mods);
+      if (s.cash < cost) return log(s, `Briefing koster $${cost}.`);
       if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
       const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
+      const startQ = Math.min(mods.qualityCap, 10 + s.player.business * 2 + mods.eqSum);
       const prod: Production = {
         id: Math.random().toString(36).slice(2, 10),
         tierId, title,
         stageIdx: 0,
-        hoursLeft: brief.hours,
-        girlIds, quality: 10 + s.player.business * 2,
+        hoursLeft: hours,
+        girlIds, quality: startQ,
         startedDay: s.day,
         reworks: 0,
       };
       return log({
         ...s,
-        cash: s.cash - brief.cost,
+        cash: s.cash - cost,
         stamina: s.stamina - brief.staminaCost,
         productions: [...s.productions, prod],
-      }, `📝 "${title}" (${tier.name}) i briefing. ${brief.flavor}`);
+      }, `📝 "${title}" (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
     });
   }, []);
 
@@ -556,13 +599,15 @@ export function useGame() {
         ? castStats.reduce((a, g) => a + (g.beauty + g.performance + g.popularity) / 3, 0) / castStats.length
         : 0;
 
+      const mods = getStudioMods(s);
+
       // Release stage payout
       if (p.stageIdx === STAGE_ORDER.length - 1) {
         const qualityMult = (p.quality + castAvg) / 100;
         const hustleMult = 1 + s.player.hustle * 0.04;
-        const studioMult = 1 + (s.studioLevel - 1) * 0.15;
-        // Flop chance: low quality / bad rolls
-        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02);
+        const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
+        // Flop chance: low quality / bad rolls; equipment reduces flop risk
+        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015);
         const flopped = Math.random() < flopChance;
         let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5);
@@ -596,36 +641,38 @@ export function useGame() {
       // Pay next stage and enter it
       const nextIdx = p.stageIdx + 1;
       const nextStage = tier.stages[nextIdx];
-      if (s.cash < nextStage.cost) return log(s, `${nextStage.label} koster $${nextStage.cost}.`);
+      const nextCost = stageCost(nextStage, mods);
+      const nextHours = stageHours(nextStage, mods);
+      if (s.cash < nextCost) return log(s, `${nextStage.label} koster $${nextCost}.`);
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
 
       // === RISK ROLL ===
-      // Base success scaled by player stats, studio level, cast, and tier difficulty.
+      // Equipment-specific stage boost: lighting helps shooting, editing helps editing, camera helps shoot/edit.
       const stageBoost =
         (nextStage.id === "casting"  ? s.player.charisma * 3 : 0) +
-        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3 : 0) +
-        (nextStage.id === "editing"  ? s.player.business * 3 : 0) +
+        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3
+                                       + s.equipment.lighting * 4 + s.equipment.camera * 3 : 0) +
+        (nextStage.id === "editing"  ? s.player.business * 3 + s.equipment.editing * 4 + s.equipment.camera * 2 : 0) +
         (nextStage.id === "release"  ? s.player.hustle * 3 : 0);
-      const difficulty = tier.minLevel * 6; // harder tiers fail more
+      const difficulty = tier.minLevel * 6;
       const successPct = Math.max(35, Math.min(95, 65 + stageBoost - difficulty));
       const roll = Math.random() * 100;
       const failed = roll > successPct;
 
       const qBonus =
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
-        (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 : 0) +
-        (nextStage.id === "editing"  ? 4 + s.player.business : 0) +
+        (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 + s.equipment.lighting + s.equipment.camera : 0) +
+        (nextStage.id === "editing"  ? 4 + s.player.business + s.equipment.editing * 2 : 0) +
         (nextStage.id === "release"  ? 3 + s.player.hustle : 0);
 
-      let next = { ...s, cash: s.cash - nextStage.cost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
+      let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
 
       if (failed && p.reworks < 2) {
-        // REWORK: redo current stage with extra cost & time, quality drops
-        const reworkCost = Math.floor(nextStage.cost * 0.5);
+        const reworkCost = Math.floor(nextCost * 0.5);
         const updated = next.productions.map((x, i) => i === idx
-          ? { ...x, hoursLeft: Math.floor(tier.stages[p.stageIdx].hours * 0.7),
+          ? { ...x, hoursLeft: Math.max(1, Math.floor(stageHours(tier.stages[p.stageIdx], mods) * 0.7)),
               quality: Math.max(0, x.quality - 8), reworks: x.reworks + 1 }
           : x);
         next.cash = Math.max(0, next.cash - reworkCost);
@@ -633,15 +680,14 @@ export function useGame() {
           `⚠️ ${nextStage.label} feilet (rullet ${Math.round(roll)} mot ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
       }
 
-      // Success (or third strike — push through with quality penalty)
       const qDelta = failed ? -10 : qBonus;
       const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
       const updated = next.productions.map((x, i) => i === idx
-        ? { ...x, stageIdx: nextIdx, hoursLeft: nextStage.hours,
-            quality: Math.max(0, Math.min(100, x.quality + qDelta)) }
+        ? { ...x, stageIdx: nextIdx, hoursLeft: nextHours,
+            quality: Math.max(0, Math.min(mods.qualityCap, x.quality + qDelta)) }
         : x);
       return log({ ...next, productions: updated },
-        `${nextStage.emoji} "${p.title}" → ${nextStage.label}. ${flavor}`);
+        `${nextStage.emoji} "${p.title}" → ${nextStage.label} [$${nextCost}, ${nextHours}t]. ${flavor}`);
     });
   }, []);
 
@@ -714,11 +760,25 @@ export function useGame() {
     });
   }, []);
 
+  const upgradeEquipment = useCallback((kind: EquipmentKind) => {
+    setState((s) => {
+      const lvl = s.equipment[kind];
+      if (lvl >= 3) return log(s, `${EQUIPMENT_LABELS[kind].label} er maks oppgradert.`);
+      const cost = EQUIPMENT_UPGRADE_COST(lvl, s.studioLevel);
+      if (s.cash < cost) return log(s, `${EQUIPMENT_LABELS[kind].label} Lv${lvl + 1}: $${cost}.`);
+      return log({
+        ...s, cash: s.cash - cost,
+        equipment: { ...s.equipment, [kind]: lvl + 1 },
+      }, `${EQUIPMENT_LABELS[kind].emoji} ${EQUIPMENT_LABELS[kind].label} → Lv ${lvl + 1}.`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
     startProduction, advanceProduction, assignToProduction, cancelProduction, archiveProduction,
     startMission, cancelMission,
+    upgradeEquipment,
   };
 }
