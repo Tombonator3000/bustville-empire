@@ -601,12 +601,14 @@ export function useGame() {
       if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
       const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
       const startQ = Math.min(mods.qualityCap, 10 + s.player.business * 2 + mods.eqSum);
+      const roles: Record<string, "casting" | "shooting" | "editing" | "release"> = {};
+      girlIds.forEach((id) => { roles[id] = "shooting"; });
       const prod: Production = {
         id: Math.random().toString(36).slice(2, 10),
         tierId, title,
         stageIdx: 0,
         hoursLeft: hours,
-        girlIds, quality: startQ,
+        girlIds, roles, quality: startQ,
         startedDay: s.day,
         reworks: 0,
       };
@@ -636,16 +638,38 @@ export function useGame() {
 
       const mods = getStudioMods(s);
 
+      // Per-role cast contribution helper.
+      // Each role keys to a (girl) → contribution score. Higher = better roll & quality.
+      const roleScore = (role: "casting" | "shooting" | "editing" | "release") => {
+        const assigned = p.girlIds
+          .map((gid) => s.girls.find((x) => x.id === gid))
+          .filter((g): g is Girl => !!g && (p.roles?.[g.id] ?? "shooting") === role);
+        if (!assigned.length) return { count: 0, score: 0 };
+        const score = assigned.reduce((acc, g) => {
+          switch (role) {
+            case "casting":  return acc + g.beauty * 0.6 + g.popularity * 0.3 + g.loyalty * 0.2;
+            case "shooting": return acc + g.performance * 0.6 + g.beauty * 0.3 + g.loyalty * 0.1;
+            case "editing":  return acc + g.loyalty * 0.5 + g.performance * 0.3;
+            case "release":  return acc + g.popularity * 0.7 + g.beauty * 0.2;
+          }
+        }, 0) / assigned.length;
+        return { count: assigned.length, score };
+      };
+
       // Release stage payout
       if (p.stageIdx === STAGE_ORDER.length - 1) {
         const qualityMult = (p.quality + castAvg) / 100;
         const hustleMult = 1 + s.player.hustle * 0.04;
         const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
-        // Flop chance: low quality / bad rolls; equipment reduces flop risk
-        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015);
+        const release = roleScore("release"); // PR/promo cast cuts flop risk and boosts gross
+        const promoMult = 1 + (release.score / 100) * 0.25 + release.count * 0.02;
+        const flopChance = Math.max(
+          0.02,
+          0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220,
+        );
         const flopped = Math.random() < flopChance;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
-        let repGain = tier.baseRep + Math.floor(qualityMult * 5);
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult);
+        let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
           repGain = -Math.max(2, Math.floor(tier.baseRep / 3));
@@ -655,7 +679,7 @@ export function useGame() {
         );
         const note = flopped
           ? `💀 FLOPP! "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
-          : `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.`;
+          : `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.${release.count ? ` (PR-team x${release.count})` : ""}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           return flopped
@@ -683,14 +707,20 @@ export function useGame() {
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
 
+      // Role-tuned cast contribution for this stage's roll.
+      const role = nextStage.id as "casting" | "shooting" | "editing" | "release";
+      const roleInfo = roleScore(role);
+      const roleBonus = roleInfo.score * 0.18 + roleInfo.count * 1.5; // success%
+      const roleQ     = roleInfo.score * 0.10 + roleInfo.count * 1.0; // quality
+
       // === RISK ROLL ===
-      // Equipment-specific stage boost: lighting helps shooting, editing helps editing, camera helps shoot/edit.
       const stageBoost =
         (nextStage.id === "casting"  ? s.player.charisma * 3 : 0) +
-        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3
+        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.2
                                        + s.equipment.lighting * 4 + s.equipment.camera * 3 : 0) +
         (nextStage.id === "editing"  ? s.player.business * 3 + s.equipment.editing * 4 + s.equipment.camera * 2 : 0) +
-        (nextStage.id === "release"  ? s.player.hustle * 3 : 0);
+        (nextStage.id === "release"  ? s.player.hustle * 3 : 0)
+        + roleBonus;
       const difficulty = tier.minLevel * 6;
       const successPct = Math.max(35, Math.min(95, 65 + stageBoost - difficulty));
       const roll = Math.random() * 100;
@@ -700,7 +730,8 @@ export function useGame() {
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
         (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 + s.equipment.lighting + s.equipment.camera : 0) +
         (nextStage.id === "editing"  ? 4 + s.player.business + s.equipment.editing * 2 : 0) +
-        (nextStage.id === "release"  ? 3 + s.player.hustle : 0);
+        (nextStage.id === "release"  ? 3 + s.player.hustle : 0)
+        + roleQ;
 
       let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
 
@@ -712,17 +743,20 @@ export function useGame() {
           : x);
         next.cash = Math.max(0, next.cash - reworkCost);
         return log({ ...next, productions: updated },
-          `⚠️ ${nextStage.label} feilet (rullet ${Math.round(roll)} mot ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
+          `⚠️ ${nextStage.label} feilet (${Math.round(roll)} vs ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
       }
 
       const qDelta = failed ? -10 : qBonus;
       const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
+      const roleNote = roleInfo.count > 0
+        ? ` (${roleInfo.count} i ${role}-rolle, +${Math.round(roleBonus)}%)`
+        : "";
       const updated = next.productions.map((x, i) => i === idx
         ? { ...x, stageIdx: nextIdx, hoursLeft: nextHours,
             quality: Math.max(0, Math.min(mods.qualityCap, x.quality + qDelta)) }
         : x);
       return log({ ...next, productions: updated },
-        `${nextStage.emoji} "${p.title}" → ${nextStage.label} [$${nextCost}, ${nextHours}t]. ${flavor}`);
+        `${nextStage.emoji} "${p.title}" → ${nextStage.label} [$${nextCost}, ${nextHours}t]${roleNote}. ${flavor}`);
     });
   }, []);
 
@@ -732,12 +766,32 @@ export function useGame() {
       if (idx === -1) return s;
       const p = s.productions[idx];
       if (p.stageIdx > 1) return log(s, "Casting er låst etter innspilling startet.");
-      // Don't allow girls busy with mission
       const target = s.girls.find((x) => x.id === girlId);
       if (target?.mission) return log(s, `${target.name} er opptatt med ${target.mission.label}.`);
       const has = p.girlIds.includes(girlId);
       const newCast = has ? p.girlIds.filter((x) => x !== girlId) : [...p.girlIds, girlId];
-      return { ...s, productions: s.productions.map((x, i) => i === idx ? { ...x, girlIds: newCast } : x) };
+      const newRoles = { ...(p.roles ?? {}) };
+      if (has) delete newRoles[girlId];
+      else newRoles[girlId] = newRoles[girlId] ?? "shooting";
+      return { ...s, productions: s.productions.map((x, i) =>
+        i === idx ? { ...x, girlIds: newCast, roles: newRoles } : x) };
+    });
+  }, []);
+
+  const setCastRole = useCallback((id: string, girlId: string,
+    role: "casting" | "shooting" | "editing" | "release") => {
+    setState((s) => {
+      const idx = s.productions.findIndex((p) => p.id === id);
+      if (idx === -1) return s;
+      const p = s.productions[idx];
+      if (!p.girlIds.includes(girlId)) return s;
+      // Lock role changes once that stage has already been completed
+      const stageDoneIdx = STAGE_ORDER.indexOf(role);
+      if (stageDoneIdx >= 0 && p.stageIdx > stageDoneIdx)
+        return log(s, `${role}-rollen kan ikke endres — steget er allerede ferdig.`);
+      const newRoles = { ...(p.roles ?? {}), [girlId]: role };
+      return { ...s, productions: s.productions.map((x, i) =>
+        i === idx ? { ...x, roles: newRoles } : x) };
     });
   }, []);
 
@@ -812,7 +866,7 @@ export function useGame() {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
-    startProduction, advanceProduction, assignToProduction, cancelProduction, archiveProduction,
+    startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
     startMission, cancelMission,
     upgradeEquipment,
   };

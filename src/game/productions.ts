@@ -65,17 +65,31 @@ export const TIERS: TierDef[] = [
   },
 ];
 
+// Role a cast member fills on a production. Determines which stage they buff.
+export type CastRole = "casting" | "shooting" | "editing" | "release";
+
+export const CAST_ROLES: { id: CastRole; label: string; emoji: string; hint: string }[] = [
+  { id: "casting",  label: "Audition lead", emoji: "💋", hint: "Charmer auditions — bedre casting-rull." },
+  { id: "shooting", label: "Performer",     emoji: "🎬", hint: "På sett under innspilling — kvalitet + suksess." },
+  { id: "editing",  label: "Crew/Continuity", emoji: "🎞️", hint: "Hjelper i redigering — færre rework." },
+  { id: "release",  label: "PR & Promo",    emoji: "📣", hint: "Pusher kampanjen ved utgivelse — mindre flopp-risiko." },
+];
+
+export const ROLE_LABEL: Record<CastRole, string> =
+  Object.fromEntries(CAST_ROLES.map((r) => [r.id, r.label])) as Record<CastRole, string>;
+
 export interface Production {
   id: string;
   tierId: string;
   title: string;
-  stageIdx: number;          // 0..4 = active stage; 5 = done
-  hoursLeft: number;         // remaining in current stage
-  girlIds: string[];         // cast
-  quality: number;           // 0-100
+  stageIdx: number;
+  hoursLeft: number;
+  girlIds: string[];
+  roles?: Record<string, CastRole>; // girlId → role (default "shooting")
+  quality: number;
   startedDay: number;
-  reworks: number;           // # of failed stage rolls
-  flopped?: boolean;         // true if release flopped
+  reworks: number;
+  flopped?: boolean;
   releasedGross?: number;
 }
 
@@ -83,4 +97,5 @@ export const STAGE_ORDER: StageId[] = ["briefing", "casting", "shooting", "editi
 
 export function getTier(id: string): TierDef | undefined {
   return TIERS.find((t) => t.id === id);
+
 }
