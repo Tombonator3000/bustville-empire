@@ -170,6 +170,36 @@ export function useGame() {
 
   const reset = useCallback(() => setState(INITIAL), []);
 
+  const saveToSlot = useCallback((slot: number, label?: string) => {
+    const meta = { state, savedAt: Date.now(), label: label || `Save ${slot}`, day: state.day, cash: state.cash };
+    localStorage.setItem(`${STORAGE_KEY}:slot:${slot}`, JSON.stringify(meta));
+  }, [state]);
+
+  const loadFromSlot = useCallback((slot: number) => {
+    const raw = localStorage.getItem(`${STORAGE_KEY}:slot:${slot}`);
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      setState({ ...INITIAL, ...(parsed.state ?? parsed) });
+      return true;
+    } catch { return false; }
+  }, []);
+
+  const deleteSlot = useCallback((slot: number) => {
+    localStorage.removeItem(`${STORAGE_KEY}:slot:${slot}`);
+  }, []);
+
+  const exportSave = useCallback(() => JSON.stringify(state, null, 2), [state]);
+
+  const importSave = useCallback((json: string) => {
+    try {
+      const parsed = JSON.parse(json);
+      setState({ ...INITIAL, ...parsed });
+      return true;
+    } catch { return false; }
+  }, []);
+
+
   // === TIME ENGINE ============================================
   // Advance time by N hours, drain stamina, complete missions, tick productions
   function advance(s: GameState, hours: number): GameState {
