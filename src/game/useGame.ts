@@ -95,6 +95,7 @@ const INITIAL: GameState = {
   heatLevel: 5, bribedUntilDay: 0,
   loan: 0, loanDueDay: 0,
   distilleryLevel: 1, studioLevel: 1,
+  equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
 };
 
