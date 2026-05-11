@@ -120,6 +120,10 @@ export function useGame() {
   function advance(s: GameState, hours: number): GameState {
     let next = { ...s };
     next.stamina = Math.max(0, next.stamina - hours * 4);
+    // tick productions
+    next.productions = next.productions.map((p) =>
+      p.stageIdx >= STAGE_ORDER.length ? p : { ...p, hoursLeft: Math.max(0, p.hoursLeft - hours) }
+    );
     next.hour += hours;
     while (next.hour >= 24) {
       next.hour -= 24;
