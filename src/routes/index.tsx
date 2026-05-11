@@ -98,6 +98,20 @@ function GamePage() {
           onUpgradeEquipment={g.upgradeEquipment}
         />
       )}
+      {invOpen && (
+        <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />
+      )}
+      {optionsOpen && (
+        <OptionsMenu
+          onClose={() => setOptionsOpen(false)}
+          onSave={g.saveToSlot}
+          onLoad={g.loadFromSlot}
+          onDelete={g.deleteSlot}
+          onExport={g.exportSave}
+          onImport={g.importSave}
+          onReset={() => { g.reset(); setStarted(false); }}
+        />
+      )}
 
       <footer className="mx-auto mt-4 max-w-7xl px-3 text-center text-[10px] text-muted-foreground">
         <button onClick={() => { if (confirm("Slett all progresjon?")) { g.reset(); setStarted(false); } }} className="underline hover:text-primary">
