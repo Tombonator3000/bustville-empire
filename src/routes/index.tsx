@@ -211,6 +211,19 @@ function MapView({ state, district, onGoTo }: {
         </div>
       </div>
 
+      {district.id === "park" && state.locationLevel < 3 && (
+        <div className="mb-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+          <p className="font-display text-[10px] uppercase tracking-widest text-accent">🔒 Låst i Downtown · Lv 3</p>
+          <p className="mt-0.5 text-muted-foreground">
+            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med:
+            <span className="text-foreground"> 🎥 Sparky's Camera Shack</span> (utstyr + filmstock),
+            <span className="text-foreground"> 👗 Glitter & Garter</span> (kostymer),
+            <span className="text-foreground"> 🎭 Open Mic Casting</span> (audition-vouchers) og
+            <span className="text-foreground"> 📼 Reel Republic</span> (distribusjon).
+          </p>
+        </div>
+      )}
+
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-border neon-border">
         <img src={district.image} alt={district.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1920} height={1080} />
         <div className="absolute inset-0 scan-lines opacity-15" />
