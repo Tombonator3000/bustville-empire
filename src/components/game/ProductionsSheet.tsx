@@ -1,6 +1,6 @@
 import { TIERS, STAGE_ORDER, getTier, type Production } from "@/game/productions";
 import type { GameState } from "@/game/useGame";
-import type { Girl } from "@/game/data";
+import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 
 interface Props {
   state: GameState;
@@ -92,10 +92,15 @@ function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
       <div className="flex items-baseline justify-between">
         <div>
           <p className="font-bold">{p.title}</p>
-          <p className="text-[10px] uppercase tracking-wider text-accent">{tier.name} · Q{Math.round(p.quality)}</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent">
+            {tier.name} · Q{Math.round(p.quality)}
+            {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
+          </p>
         </div>
         {isDone ? (
-          <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Sluppet</span>
+          p.flopped
+            ? <span className="rounded bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase text-destructive-foreground">💀 Flopp</span>
+            : <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Hit</span>
         ) : (
           <button onClick={() => onCancel(p.id)} className="rounded bg-destructive/70 px-2 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
             Avlys
@@ -141,16 +146,19 @@ function ProductionCard({ p, girls, onAdvance, onAssign, onCancel, cash }: {
             )}
             {girls.map((g) => {
               const on = p.girlIds.includes(g.id);
-              const locked = p.stageIdx > 1;
+              const locked = p.stageIdx > 1 || !!g.mission;
               return (
                 <button key={g.id}
-                  disabled={locked}
+                  disabled={locked && !on}
                   onClick={() => onAssign(p.id, g.id)}
-                  className={`rounded-full border px-2 py-0.5 text-[10px] transition ${
+                  title={g.mission ? `Opptatt: ${g.mission.label}` : g.name}
+                  className={`flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 text-[10px] transition ${
                     on ? "border-primary bg-primary/20 text-foreground"
                        : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
-                  } ${locked ? "opacity-50 cursor-not-allowed" : ""}`}>
-                  {on ? "★ " : ""}{g.name}
+                  } ${locked && !on ? "opacity-40 cursor-not-allowed" : ""}`}>
+                  <img src={ARCHETYPE_PORTRAITS[g.archetype]} alt="" width={18} height={18}
+                    className="h-4 w-4 rounded-full object-cover" loading="lazy" />
+                  {on ? "★ " : ""}{g.name}{g.mission ? " ⏳" : ""}
                 </button>
               );
             })}
