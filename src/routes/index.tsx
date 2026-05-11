@@ -63,7 +63,7 @@ function GamePage() {
           locId={activeLoc}
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
-          onPerform={(id) => g.perform(activeLoc, id, selectedGirl)}
+          onPerform={(id, girlId, intensity) => g.perform(activeLoc, id, girlId ?? selectedGirl, intensity)}
           onOpenRoster={() => setRosterOpen(true)}
         />
       ) : (
