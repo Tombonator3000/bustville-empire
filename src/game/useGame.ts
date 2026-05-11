@@ -934,6 +934,9 @@ export function useGame() {
         + roleQ;
 
       let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
+      // consume inventory at stage entry
+      if (nextStage.id === "casting") next.auditionVouchers -= 1;
+      if (nextStage.id === "shooting") { next.filmstock -= 1; next.costumes -= 1; }
 
       if (failed && p.reworks < 2) {
         const reworkCost = Math.floor(nextCost * 0.5);
