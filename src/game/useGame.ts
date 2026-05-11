@@ -766,12 +766,32 @@ export function useGame() {
       if (idx === -1) return s;
       const p = s.productions[idx];
       if (p.stageIdx > 1) return log(s, "Casting er låst etter innspilling startet.");
-      // Don't allow girls busy with mission
       const target = s.girls.find((x) => x.id === girlId);
       if (target?.mission) return log(s, `${target.name} er opptatt med ${target.mission.label}.`);
       const has = p.girlIds.includes(girlId);
       const newCast = has ? p.girlIds.filter((x) => x !== girlId) : [...p.girlIds, girlId];
-      return { ...s, productions: s.productions.map((x, i) => i === idx ? { ...x, girlIds: newCast } : x) };
+      const newRoles = { ...(p.roles ?? {}) };
+      if (has) delete newRoles[girlId];
+      else newRoles[girlId] = newRoles[girlId] ?? "shooting";
+      return { ...s, productions: s.productions.map((x, i) =>
+        i === idx ? { ...x, girlIds: newCast, roles: newRoles } : x) };
+    });
+  }, []);
+
+  const setCastRole = useCallback((id: string, girlId: string,
+    role: "casting" | "shooting" | "editing" | "release") => {
+    setState((s) => {
+      const idx = s.productions.findIndex((p) => p.id === id);
+      if (idx === -1) return s;
+      const p = s.productions[idx];
+      if (!p.girlIds.includes(girlId)) return s;
+      // Lock role changes once that stage has already been completed
+      const stageDoneIdx = STAGE_ORDER.indexOf(role);
+      if (stageDoneIdx >= 0 && p.stageIdx > stageDoneIdx)
+        return log(s, `${role}-rollen kan ikke endres — steget er allerede ferdig.`);
+      const newRoles = { ...(p.roles ?? {}), [girlId]: role };
+      return { ...s, productions: s.productions.map((x, i) =>
+        i === idx ? { ...x, roles: newRoles } : x) };
     });
   }, []);
 
