@@ -48,19 +48,24 @@ export interface MapHotspot {
 
 export const HOTSPOTS: Record<DistrictId, MapHotspot[]> = {
   park: [
-    { id: "trailer",   x: 6,  y: 38, w: 26, h: 30, label: "Din Trailer" },
-    { id: "moonshine", x: 32, y: 60, w: 22, h: 32, label: "Moonshine-skjul" },
-    { id: "bar",       x: 38, y: 12, w: 26, h: 28, label: "Dirty Dan's" },
-    { id: "sheriff",   x: 40, y: 50, w: 22, h: 22, label: "Sheriff Buck" },
-    { id: "gas",       x: 68, y: 60, w: 28, h: 32, label: "Bensinstasjon" },
-    { id: "forest",    x: 70, y: 8,  w: 28, h: 30, label: "Skogen" },
+    { id: "trailer",   x: 4,  y: 38, w: 22, h: 28, label: "Din Trailer" },
+    { id: "moonshine", x: 28, y: 62, w: 20, h: 28, label: "Moonshine-skjul" },
+    { id: "bar",       x: 36, y: 10, w: 22, h: 26, label: "Dirty Dan's" },
+    { id: "sheriff",   x: 38, y: 48, w: 18, h: 18, label: "Sheriff Buck" },
+    { id: "gas",       x: 60, y: 62, w: 22, h: 28, label: "Bensinstasjon" },
+    { id: "forest",    x: 62, y: 8,  w: 22, h: 28, label: "Skogen" },
+    { id: "clinic",    x: 84, y: 50, w: 14, h: 22, label: "Doc Lonnies" },
   ],
   downtown: [
-    { id: "loft",   x: 6,  y: 20, w: 24, h: 36, label: "Loft Studio" },
-    { id: "velvet", x: 32, y: 32, w: 28, h: 36, label: "Klubb Velvet" },
-    { id: "bank",   x: 62, y: 50, w: 22, h: 30, label: "Bustville Bank" },
-    { id: "studio", x: 8,  y: 62, w: 24, h: 32, label: "Pro Studio" },
-    { id: "hq",     x: 70, y: 12, w: 26, h: 32, label: "Empire HQ" },
+    { id: "loft",     x: 4,  y: 18, w: 20, h: 30, label: "Loft Studio" },
+    { id: "velvet",   x: 26, y: 30, w: 22, h: 30, label: "Klubb Velvet" },
+    { id: "bank",     x: 52, y: 50, w: 18, h: 26, label: "Bustville Bank" },
+    { id: "studio",   x: 6,  y: 62, w: 20, h: 28, label: "Pro Studio" },
+    { id: "hq",       x: 72, y: 8,  w: 22, h: 28, label: "Empire HQ" },
+    { id: "electro",  x: 30, y: 64, w: 18, h: 26, label: "Sparky's Camera" },
+    { id: "boutique", x: 50, y: 14, w: 18, h: 24, label: "Glitter & Garter" },
+    { id: "casting",  x: 74, y: 42, w: 18, h: 24, label: "Open Mic Casting" },
+    { id: "distrib",  x: 78, y: 72, w: 20, h: 24, label: "Reel Republic" },
   ],
 };
 
