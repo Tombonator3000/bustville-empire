@@ -901,6 +901,11 @@ export function useGame() {
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
+      // Inventory gates for new shops
+      if (nextStage.id === "casting" && s.auditionVouchers < 1)
+        return log(s, "🎟️ Trenger 1 audition-voucher fra Open Mic Casting.");
+      if (nextStage.id === "shooting" && (s.filmstock < 1 || s.costumes < 1))
+        return log(s, "📼👗 Trenger 1 filmstock (Sparky's) og 1 kostyme (Glitter & Garter).");
 
       // Role-tuned cast contribution for this stage's roll.
       const role = nextStage.id as "casting" | "shooting" | "editing" | "release";
