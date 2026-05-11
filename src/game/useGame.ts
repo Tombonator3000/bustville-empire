@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
-  RANDOM_EVENTS, type Archetype, type Girl,
+  RANDOM_EVENTS, GIRL_MISSIONS, type Archetype, type Girl, type MissionDef,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
+
+export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
 export interface PlayerStats {
   charisma: number;
@@ -116,11 +118,10 @@ export function useGame() {
   const reset = useCallback(() => setState(INITIAL), []);
 
   // === TIME ENGINE ============================================
-  // Advance time by N hours, drain stamina, maybe roll week-end
+  // Advance time by N hours, drain stamina, complete missions, tick productions
   function advance(s: GameState, hours: number): GameState {
     let next = { ...s };
     next.stamina = Math.max(0, next.stamina - hours * 4);
-    // tick productions
     next.productions = next.productions.map((p) =>
       p.stageIdx >= STAGE_ORDER.length ? p : { ...p, hoursLeft: Math.max(0, p.hoursLeft - hours) }
     );
@@ -128,11 +129,8 @@ export function useGame() {
     while (next.hour >= 24) {
       next.hour -= 24;
       next.day += 1;
-      // daily heat decay
       next.heatLevel = Math.max(0, next.heatLevel - 3);
-      // weekly tick every 7 days
       if ((next.day - 1) % 7 === 0) next = weekTick(next);
-      // loan due?
       if (next.loan > 0 && next.day >= next.loanDueDay) {
         if (next.cash >= next.loan) {
           next = log(next, `🏦 Lån betalt automatisk: -$${next.loan}.`);
@@ -144,6 +142,21 @@ export function useGame() {
         }
       }
     }
+    // Complete any missions whose end time has passed
+    const nowAbs = absHour(next);
+    let payouts = 0, repGain = 0;
+    next.girls = next.girls.map((g) => {
+      if (g.mission && g.mission.endsAt <= nowAbs) {
+        payouts += g.mission.payout;
+        repGain += g.mission.rep;
+        const msg = `✅ ${g.mission.label}: +$${g.mission.payout}, +${g.mission.rep} rep`;
+        next = log(next, `${g.name}: ${msg}`);
+        return { ...g, mission: undefined, lastActivity: msg, lastActivityDay: next.day };
+      }
+      return g;
+    });
+    if (payouts) next.cash += payouts;
+    if (repGain) next.reputation += repGain;
     return next;
   }
 
