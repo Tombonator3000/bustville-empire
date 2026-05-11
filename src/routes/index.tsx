@@ -8,6 +8,8 @@ import {
 } from "@/game/locations";
 import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
+import { OptionsMenu } from "@/components/game/OptionsMenu";
+import { InventorySheet } from "@/components/game/InventorySheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 
