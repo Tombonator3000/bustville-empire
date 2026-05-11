@@ -10,9 +10,19 @@ export function loadHotspotOverrides(): Overrides {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
 }
 
+// Merge any new default hotspots into a saved override so newly added
+// locations always show up even if the user has customized positions.
+function mergeWithDefaults(district: DistrictId, saved: MapHotspot[] | undefined): MapHotspot[] {
+  const defs = HOTSPOTS[district];
+  if (!saved) return defs;
+  const present = new Set(saved.map((z) => z.id));
+  const missing = defs.filter((d) => !present.has(d.id));
+  return missing.length ? [...saved, ...missing] : saved;
+}
+
 export function getHotspotsFor(district: DistrictId): MapHotspot[] {
   const ov = loadHotspotOverrides();
-  return ov[district] ?? HOTSPOTS[district];
+  return mergeWithDefaults(district, ov[district]);
 }
 
 function saveOverrides(ov: Overrides) {
@@ -34,7 +44,7 @@ type Drag =
 export function HotspotEditor({ district, mapImage, onClose }: Props) {
   const [zones, setZones] = useState<MapHotspot[]>(() => {
     const ov = loadHotspotOverrides();
-    return JSON.parse(JSON.stringify(ov[district] ?? HOTSPOTS[district]));
+    return JSON.parse(JSON.stringify(mergeWithDefaults(district, ov[district])));
   });
   const [selected, setSelected] = useState<string | null>(zones[0]?.id ?? null);
   const [showExport, setShowExport] = useState(false);
