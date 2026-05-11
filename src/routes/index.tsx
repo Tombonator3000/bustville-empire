@@ -6,6 +6,8 @@ import {
   DISTRICTS, HOTSPOTS, LOCATION_DEFS, LOCATION_ACTIONS,
   type LocationId,
 } from "@/game/locations";
+import { ProductionsSheet } from "@/components/game/ProductionsSheet";
+import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 
 export const Route = createFileRoute("/")({
@@ -24,6 +26,7 @@ function GamePage() {
   const [selectedGirl, setSelectedGirl] = useState<string | undefined>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [prodOpen, setProdOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
@@ -43,6 +46,7 @@ function GamePage() {
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
+        onOpenProductions={() => setProdOpen(true)}
         onSwitch={g.switchDistrict}
       />
 
@@ -73,6 +77,16 @@ function GamePage() {
       {statsOpen && (
         <StatsSheet state={g.state} onClose={() => setStatsOpen(false)} onUpgrade={g.upgradeStat} />
       )}
+      {prodOpen && (
+        <ProductionsSheet
+          state={g.state}
+          onClose={() => setProdOpen(false)}
+          onStart={g.startProduction}
+          onAdvance={g.advanceProduction}
+          onAssign={g.assignToProduction}
+          onCancel={g.cancelProduction}
+        />
+      )}
 
       <footer className="mx-auto mt-4 max-w-7xl px-3 text-center text-[10px] text-muted-foreground">
         <button onClick={() => { if (confirm("Slett all progresjon?")) { g.reset(); setStarted(false); } }} className="underline hover:text-primary">
@@ -86,8 +100,8 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onSwitch }: {
-  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onSwitch: () => void;
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: {
+  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   return (
@@ -108,6 +122,9 @@ function HUD({ state, onOpenRoster, onOpenStats, onSwitch }: {
             Lv{loc.level} {loc.name}
           </span>
           <button onClick={onOpenStats} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">Boss</button>
+          <button onClick={onOpenProductions} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">
+            🎬 Filmer ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
+          </button>
           <button onClick={onOpenRoster} className="rounded bg-primary px-2 py-1 text-primary-foreground hover:brightness-110">
             💋 Roster ({state.girls.length})
           </button>
