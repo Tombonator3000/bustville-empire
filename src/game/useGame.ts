@@ -894,6 +894,7 @@ export function useGame() {
 
   return {
     state, loaded, reset,
+    saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
     startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
