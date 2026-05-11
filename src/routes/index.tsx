@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGame, dayName, timeStr, isOpen, absHour, type GameState } from "@/game/useGame";
 import { LOCATIONS, ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import {
-  DISTRICTS, HOTSPOTS, LOCATION_DEFS, LOCATION_ACTIONS,
+  DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS,
   type LocationId,
 } from "@/game/locations";
+import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
