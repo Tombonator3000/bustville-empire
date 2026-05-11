@@ -112,6 +112,28 @@ const INITIAL: GameState = {
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
+
+export interface SaveSlotMeta {
+  slot: number;
+  label: string;
+  savedAt: number;
+  day: number;
+  cash: number;
+}
+
+export function listSaveSlots(): SaveSlotMeta[] {
+  if (typeof window === "undefined") return [];
+  const out: SaveSlotMeta[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const raw = localStorage.getItem(`${STORAGE_KEY}:slot:${i}`);
+    if (!raw) continue;
+    try {
+      const m = JSON.parse(raw);
+      out.push({ slot: i, label: m.label ?? `Save ${i}`, savedAt: m.savedAt ?? 0, day: m.day ?? m.state?.day ?? 0, cash: m.cash ?? m.state?.cash ?? 0 });
+    } catch {}
+  }
+  return out;
+}
 const rand = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1));
 
@@ -169,6 +191,36 @@ export function useGame() {
   const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 60) });
 
   const reset = useCallback(() => setState(INITIAL), []);
+
+  const saveToSlot = useCallback((slot: number, label?: string) => {
+    const meta = { state, savedAt: Date.now(), label: label || `Save ${slot}`, day: state.day, cash: state.cash };
+    localStorage.setItem(`${STORAGE_KEY}:slot:${slot}`, JSON.stringify(meta));
+  }, [state]);
+
+  const loadFromSlot = useCallback((slot: number) => {
+    const raw = localStorage.getItem(`${STORAGE_KEY}:slot:${slot}`);
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      setState({ ...INITIAL, ...(parsed.state ?? parsed) });
+      return true;
+    } catch { return false; }
+  }, []);
+
+  const deleteSlot = useCallback((slot: number) => {
+    localStorage.removeItem(`${STORAGE_KEY}:slot:${slot}`);
+  }, []);
+
+  const exportSave = useCallback(() => JSON.stringify(state, null, 2), [state]);
+
+  const importSave = useCallback((json: string) => {
+    try {
+      const parsed = JSON.parse(json);
+      setState({ ...INITIAL, ...parsed });
+      return true;
+    } catch { return false; }
+  }, []);
+
 
   // === TIME ENGINE ============================================
   // Advance time by N hours, drain stamina, complete missions, tick productions
@@ -864,6 +916,7 @@ export function useGame() {
 
   return {
     state, loaded, reset,
+    saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
     startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,

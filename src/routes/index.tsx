@@ -8,6 +8,8 @@ import {
 } from "@/game/locations";
 import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
+import { OptionsMenu } from "@/components/game/OptionsMenu";
+import { InventorySheet } from "@/components/game/InventorySheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 
@@ -28,6 +30,8 @@ function GamePage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [invOpen, setInvOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
@@ -48,6 +52,8 @@ function GamePage() {
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
         onOpenProductions={() => setProdOpen(true)}
+        onOpenInventory={() => setInvOpen(true)}
+        onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
       />
 
@@ -92,6 +98,20 @@ function GamePage() {
           onUpgradeEquipment={g.upgradeEquipment}
         />
       )}
+      {invOpen && (
+        <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />
+      )}
+      {optionsOpen && (
+        <OptionsMenu
+          onClose={() => setOptionsOpen(false)}
+          onSave={g.saveToSlot}
+          onLoad={g.loadFromSlot}
+          onDelete={g.deleteSlot}
+          onExport={g.exportSave}
+          onImport={g.importSave}
+          onReset={() => { g.reset(); setStarted(false); }}
+        />
+      )}
 
       <footer className="mx-auto mt-4 max-w-7xl px-3 text-center text-[10px] text-muted-foreground">
         <button onClick={() => { if (confirm("Slett all progresjon?")) { g.reset(); setStarted(false); } }} className="underline hover:text-primary">
@@ -105,8 +125,10 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: {
-  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void; onSwitch: () => void;
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenOptions, onSwitch }: {
+  state: GameState;
+  onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void;
+  onOpenInventory: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   return (
@@ -126,6 +148,8 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: 
           <span className="hidden text-[10px] text-muted-foreground sm:inline">
             Lv{loc.level} {loc.name}
           </span>
+          <button onClick={onOpenInventory} title="Inventar"
+            className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">🎒 Lager</button>
           <button onClick={onOpenStats} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">Boss</button>
           <button onClick={onOpenProductions} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">
             🎬 Filmer ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
@@ -138,6 +162,8 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: 
               {state.district === "park" ? "→ Downtown" : "→ Park"}
             </button>
           )}
+          <button onClick={onOpenOptions} title="Meny / Lagre / Innstillinger"
+            className="rounded border border-border bg-background px-2 py-1 hover:border-primary">⚙️</button>
         </div>
       </div>
     </header>
