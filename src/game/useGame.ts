@@ -601,12 +601,14 @@ export function useGame() {
       if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
       const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
       const startQ = Math.min(mods.qualityCap, 10 + s.player.business * 2 + mods.eqSum);
+      const roles: Record<string, "casting" | "shooting" | "editing" | "release"> = {};
+      girlIds.forEach((id) => { roles[id] = "shooting"; });
       const prod: Production = {
         id: Math.random().toString(36).slice(2, 10),
         tierId, title,
         stageIdx: 0,
         hoursLeft: hours,
-        girlIds, quality: startQ,
+        girlIds, roles, quality: startQ,
         startedDay: s.day,
         reworks: 0,
       };
