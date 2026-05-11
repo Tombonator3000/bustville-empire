@@ -52,6 +52,8 @@ function GamePage() {
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
         onOpenProductions={() => setProdOpen(true)}
+        onOpenInventory={() => setInvOpen(true)}
+        onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
       />
 
