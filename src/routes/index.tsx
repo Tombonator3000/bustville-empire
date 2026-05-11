@@ -468,10 +468,11 @@ function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }
           </div>
 
           <button
+            disabled={!!selectedBlocked}
             onClick={() => onRun(girlId, intensity)}
-            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-bold uppercase text-primary-foreground hover:brightness-110 transition"
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-bold uppercase text-primary-foreground hover:brightness-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {action.emoji} Kjør {action.label}
+            {selectedBlocked ? "⛔ Velg en ledig stjerne" : `${action.emoji} Kjør ${action.label}`}
           </button>
         </div>
       )}
