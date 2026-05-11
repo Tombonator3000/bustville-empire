@@ -59,6 +59,11 @@ export interface GameState {
   studioLevel: number;     // 1-3
   equipment: { camera: number; lighting: number; editing: number }; // 0-3 each
   productions: Production[];
+  // shop inventory
+  filmstock: number;
+  costumes: number;
+  auditionVouchers: number;
+  distribBonus: number;    // % bonus applied to next release payout
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
