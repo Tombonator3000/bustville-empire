@@ -888,6 +888,7 @@ export function useGame() {
           cash: s.cash + gross,
           reputation: Math.max(0, s.reputation + repGain),
           backlog: flopped ? s.backlog : s.backlog + 1,
+          distribBonus: 0,
           productions: updated,
           girls,
         }, note);
