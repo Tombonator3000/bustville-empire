@@ -53,6 +53,8 @@ export interface GameState {
   // economy / risk
   heatLevel: number;       // 0-100 → razzia risk
   bribedUntilDay: number;
+  bribeStreak: number;     // diminishing returns counter
+  lastBribeDay: number;    // 0 if never
   loan: number;
   loanDueDay: number;
   distilleryLevel: number; // 1-3
@@ -116,7 +118,7 @@ const INITIAL: GameState = {
   won: false,
   district: "park",
   activeLocation: null,
-  heatLevel: 5, bribedUntilDay: 0,
+  heatLevel: 5, bribedUntilDay: 0, bribeStreak: 0, lastBribeDay: 0,
   loan: 0, loanDueDay: 0,
   distilleryLevel: 1, studioLevel: 1,
   equipment: { camera: 0, lighting: 0, editing: 0 },
@@ -489,10 +491,21 @@ export function useGame() {
 
       // Sheriff
       case "sheriff:bribe": {
-        if (next.cash < 200) return log(next, "Buck vil ha $200.");
+        const gap = next.lastBribeDay > 0 ? next.day - next.lastBribeDay : Infinity;
+        const streak = gap > 10 ? 0 : gap <= 5 ? next.bribeStreak : next.bribeStreak; // reset only after 10d gap
+        const cost = Math.ceil((200 + next.heatLevel * 8) * (1 + 0.5 * streak));
+        if (next.cash < cost) return log(next, `Buck vil ha $${cost}.`);
+        const heatDrop = Math.max(5, 25 - streak * 5);
+        const newStreak = gap <= 5 ? streak + 1 : gap > 10 ? 1 : streak + 1;
         next = advanceFn(next, action.hours);
-        return log({ ...next, cash: next.cash - 200, heatLevel: Math.max(0, next.heatLevel - 25), bribedUntilDay: next.day + 7 },
-          "💵 Buck blunker. Heat ned, beskyttet i 7 dager.");
+        return log({
+          ...next,
+          cash: next.cash - cost,
+          heatLevel: Math.max(0, next.heatLevel - heatDrop),
+          bribedUntilDay: next.day + 3,
+          bribeStreak: newStreak,
+          lastBribeDay: next.day,
+        }, `💵 Buck tok $${cost}. Heat -${heatDrop}, beskyttet i 3 dager.${streak > 0 ? ` (Bribe-streak ×${newStreak} — han blir grådig.)` : ""}`);
       }
       case "sheriff:snitch": {
         next = advanceFn(next, action.hours);
