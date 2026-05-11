@@ -50,27 +50,30 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
           <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
             {(Object.keys(EQUIPMENT_LABELS) as EquipmentKind[]).map((kind) => {
               const lvl = state.equipment[kind];
-              const max = lvl >= 3;
-              const cost = max ? 0 : EQUIPMENT_UPGRADE_COST(lvl, state.studioLevel);
               const meta = EQUIPMENT_LABELS[kind];
               return (
-                <button
+                <div
                   key={kind}
-                  disabled={max || state.cash < cost}
-                  onClick={() => onUpgradeEquipment(kind)}
                   title={meta.blurb}
-                  className="rounded-md border border-border bg-background/60 p-2 text-left text-[11px] transition hover:border-primary/60 disabled:opacity-40"
+                  className="rounded-md border border-border bg-background/60 p-2 text-left text-[11px]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold">{meta.emoji} {meta.label}</span>
                     <span className="text-accent">Lv {lvl}/3</span>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">
-                    {max ? "Maks" : `Oppgrader $${cost.toLocaleString()}`}
-                  </div>
-                </button>
+                </div>
               );
             })}
+          </div>
+          <div className="mt-2 rounded-md border border-dashed border-border bg-background/40 p-2 text-[10px] text-muted-foreground">
+            🛒 Oppgrader utstyret hos <span className="text-foreground">📷 Sparky's Camera Shack</span>.
+            Filmstock fra Sparky's, kostymer fra <span className="text-foreground">👗 Glitter & Garter</span>,
+            audition-vouchers fra <span className="text-foreground">🎟️ Open Mic Casting</span>.
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+            <span className="rounded bg-background/60 px-2 py-1 text-center">🎞️ {state.filmstock}</span>
+            <span className="rounded bg-background/60 px-2 py-1 text-center">👗 {state.costumes}</span>
+            <span className="rounded bg-background/60 px-2 py-1 text-center">🎟️ {state.auditionVouchers}</span>
           </div>
         </div>
 

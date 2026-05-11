@@ -59,6 +59,11 @@ export interface GameState {
   studioLevel: number;     // 1-3
   equipment: { camera: number; lighting: number; editing: number }; // 0-3 each
   productions: Production[];
+  // shop inventory
+  filmstock: number;
+  costumes: number;
+  auditionVouchers: number;
+  distribBonus: number;    // % bonus applied to next release payout
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -116,6 +121,7 @@ const INITIAL: GameState = {
   distilleryLevel: 1, studioLevel: 1,
   equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
+  filmstock: 0, costumes: 0, auditionVouchers: 0, distribBonus: 0,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -630,6 +636,105 @@ export function useGame() {
         return log({ ...next, reputation: next.reputation + 12 },
           "👑 Empire-møte. +12 rep. Folk hvisker navnet ditt.");
       }
+
+      // Electronics — Sparky's Camera Shack
+      case "electro:buyFilm": {
+        const cost = 300;
+        if (next.cash < cost) return log(next, `Filmstock: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, filmstock: next.filmstock + 5 },
+          "📼 +5 ruller filmstock. Klare for innspilling.");
+      }
+      case "electro:upgradeCamera":
+      case "electro:upgradeLighting":
+      case "electro:upgradeEditing": {
+        const kind: EquipmentKind = actionId === "electro:upgradeCamera" ? "camera"
+          : actionId === "electro:upgradeLighting" ? "lighting" : "editing";
+        const realKind: EquipmentKind = (actionId.replace("upgrade", "").toLowerCase() as EquipmentKind);
+        const k = (realKind in next.equipment ? realKind : kind) as EquipmentKind;
+        const lvl = next.equipment[k];
+        if (lvl >= 3) return log(next, `${EQUIPMENT_LABELS[k].label} er maks.`);
+        const c = EQUIPMENT_UPGRADE_COST(lvl, next.studioLevel);
+        if (next.cash < c) return log(next, `${EQUIPMENT_LABELS[k].label} Lv${lvl + 1}: $${c}.`);
+        return log({ ...next, cash: next.cash - c, equipment: { ...next.equipment, [k]: lvl + 1 } },
+          `${EQUIPMENT_LABELS[k].emoji} ${EQUIPMENT_LABELS[k].label} → Lv ${lvl + 1}.`);
+      }
+
+      // Boutique — Glitter & Garter
+      case "boutique:buyCostume": {
+        const cost = 240;
+        if (next.cash < cost) return log(next, `Kostymer: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, costumes: next.costumes + 3 },
+          "👗 +3 kostymer på lager.");
+      }
+      case "boutique:wardrobe": {
+        const cost = 180;
+        if (next.cash < cost) return log(next, `Garderobe-økt: $${cost}.`);
+        if (next.girls.length === 0) return log(next, "Ingen jenter å style.");
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => ({ ...g, popularity: Math.min(99, g.popularity + ri(2, 5)) })),
+        }, "💄 Garderobe-økt — alle jentene fikk +pop.");
+      }
+
+      // Casting — Open Mic Casting
+      case "casting:bookAudition": {
+        const cost = 180;
+        if (next.cash < cost) return log(next, `Audition-slot: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, auditionVouchers: next.auditionVouchers + 1 },
+          "🎟️ +1 audition-voucher. Bruk i Casting-steget.");
+      }
+      case "casting:openCall": {
+        const cost = 500;
+        if (next.cash < cost) return log(next, `Open call: $${cost}.`);
+        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
+        next = advanceFn(next, action.hours);
+        if (Math.random() < 0.7) {
+          const g = genGirl(next.player.charisma, next.locationLevel, 0);
+          return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
+            `📣 ${g.name} stakk seg ut i køen. ${g.archetype}.`);
+        }
+        return log({ ...next, cash: next.cash - cost },
+          "📣 Bare amatører i dag. Audition-vouchers var ikke verdt det.");
+      }
+
+      // Distribution — Reel Republic
+      case "distrib:signDeal": {
+        next = advanceFn(next, action.hours);
+        return log({ ...next, distribBonus: Math.min(50, next.distribBonus + 20) },
+          "🤝 Distribusjons-deal: +20% på neste utgivelse.");
+      }
+      case "distrib:presell": {
+        if (next.backlog < 1) return log(next, "Ingen filmer på lager å pre-selge.");
+        next = advanceFn(next, action.hours);
+        const $ = 800 + ri(0, 500) + next.player.business * 80;
+        return log({ ...next, cash: next.cash + $, backlog: next.backlog - 1 },
+          `💼 Pre-solgte 1 tittel: +$${$}.`);
+      }
+
+      // Clinic — Doc Lonnie's
+      case "clinic:heal": {
+        const cost = 120;
+        if (next.cash < cost) return log(next, `Sprøyte: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, stamina: next.maxStamina },
+          "💉 Vitamin-cocktail. Full stamina.");
+      }
+      case "clinic:detox": {
+        const cost = 300;
+        if (next.cash < cost) return log(next, `Detox: $${cost}.`);
+        const target = next.girls.find(g => g.id === girlId)
+          ?? next.girls.find(g => g.busyUntil && g.busyUntil > absHour(next));
+        if (!target) return log(next, "Ingen jente trenger detox.");
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => g.id === target.id ? { ...g, busyUntil: undefined } : g),
+        }, `🧴 ${target.name} er klar igjen.`);
+      }
     }
     return next;
   }
@@ -758,7 +863,8 @@ export function useGame() {
           0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220,
         );
         const flopped = Math.random() < flopChance;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult);
+        const distribMult = 1 + (s.distribBonus || 0) / 100;
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
@@ -782,6 +888,7 @@ export function useGame() {
           cash: s.cash + gross,
           reputation: Math.max(0, s.reputation + repGain),
           backlog: flopped ? s.backlog : s.backlog + 1,
+          distribBonus: 0,
           productions: updated,
           girls,
         }, note);
@@ -796,6 +903,11 @@ export function useGame() {
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
+      // Inventory gates for new shops
+      if (nextStage.id === "casting" && s.auditionVouchers < 1)
+        return log(s, "🎟️ Trenger 1 audition-voucher fra Open Mic Casting.");
+      if (nextStage.id === "shooting" && (s.filmstock < 1 || s.costumes < 1))
+        return log(s, "📼👗 Trenger 1 filmstock (Sparky's) og 1 kostyme (Glitter & Garter).");
 
       // Role-tuned cast contribution for this stage's roll.
       const role = nextStage.id as "casting" | "shooting" | "editing" | "release";
@@ -824,6 +936,9 @@ export function useGame() {
         + roleQ;
 
       let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
+      // consume inventory at stage entry
+      if (nextStage.id === "casting") next.auditionVouchers -= 1;
+      if (nextStage.id === "shooting") { next.filmstock -= 1; next.costumes -= 1; }
 
       if (failed && p.reworks < 2) {
         const reworkCost = Math.floor(nextCost * 0.5);

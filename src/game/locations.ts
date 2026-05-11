@@ -9,12 +9,18 @@ import velvetImg from "@/assets/loc-velvet.jpg";
 import bankImg from "@/assets/loc-bank.jpg";
 import studioImg from "@/assets/loc-studio.jpg";
 import hqImg from "@/assets/loc-hq.jpg";
+import electroImg from "@/assets/loc-electro.jpg";
+import boutiqueImg from "@/assets/loc-boutique.jpg";
+import castingImg from "@/assets/loc-casting.jpg";
+import distribImg from "@/assets/loc-distrib.jpg";
+import clinicImg from "@/assets/loc-clinic.jpg";
 import mapTrailer from "@/assets/map-trailerpark.jpg";
 import mapDowntown from "@/assets/map-downtown.jpg";
 
 export type LocationId =
   | "trailer" | "moonshine" | "bar" | "sheriff" | "gas" | "forest"
-  | "loft" | "velvet" | "bank" | "studio" | "hq";
+  | "loft" | "velvet" | "bank" | "studio" | "hq"
+  | "electro" | "boutique" | "casting" | "distrib" | "clinic";
 
 export type DistrictId = "park" | "downtown";
 
@@ -42,19 +48,24 @@ export interface MapHotspot {
 
 export const HOTSPOTS: Record<DistrictId, MapHotspot[]> = {
   park: [
-    { id: "trailer",   x: 6,  y: 38, w: 26, h: 30, label: "Din Trailer" },
-    { id: "moonshine", x: 32, y: 60, w: 22, h: 32, label: "Moonshine-skjul" },
-    { id: "bar",       x: 38, y: 12, w: 26, h: 28, label: "Dirty Dan's" },
-    { id: "sheriff",   x: 40, y: 50, w: 22, h: 22, label: "Sheriff Buck" },
-    { id: "gas",       x: 68, y: 60, w: 28, h: 32, label: "Bensinstasjon" },
-    { id: "forest",    x: 70, y: 8,  w: 28, h: 30, label: "Skogen" },
+    { id: "trailer",   x: 4,  y: 38, w: 22, h: 28, label: "Din Trailer" },
+    { id: "moonshine", x: 28, y: 62, w: 20, h: 28, label: "Moonshine-skjul" },
+    { id: "bar",       x: 36, y: 10, w: 22, h: 26, label: "Dirty Dan's" },
+    { id: "sheriff",   x: 38, y: 48, w: 18, h: 18, label: "Sheriff Buck" },
+    { id: "gas",       x: 60, y: 62, w: 22, h: 28, label: "Bensinstasjon" },
+    { id: "forest",    x: 62, y: 8,  w: 22, h: 28, label: "Skogen" },
+    { id: "clinic",    x: 84, y: 50, w: 14, h: 22, label: "Doc Lonnies" },
   ],
   downtown: [
-    { id: "loft",   x: 6,  y: 20, w: 24, h: 36, label: "Loft Studio" },
-    { id: "velvet", x: 32, y: 32, w: 28, h: 36, label: "Klubb Velvet" },
-    { id: "bank",   x: 62, y: 50, w: 22, h: 30, label: "Bustville Bank" },
-    { id: "studio", x: 8,  y: 62, w: 24, h: 32, label: "Pro Studio" },
-    { id: "hq",     x: 70, y: 12, w: 26, h: 32, label: "Empire HQ" },
+    { id: "loft",     x: 4,  y: 18, w: 20, h: 30, label: "Loft Studio" },
+    { id: "velvet",   x: 26, y: 30, w: 22, h: 30, label: "Klubb Velvet" },
+    { id: "bank",     x: 52, y: 50, w: 18, h: 26, label: "Bustville Bank" },
+    { id: "studio",   x: 6,  y: 62, w: 20, h: 28, label: "Pro Studio" },
+    { id: "hq",       x: 72, y: 8,  w: 22, h: 28, label: "Empire HQ" },
+    { id: "electro",  x: 30, y: 64, w: 18, h: 26, label: "Sparky's Camera" },
+    { id: "boutique", x: 50, y: 14, w: 18, h: 24, label: "Glitter & Garter" },
+    { id: "casting",  x: 74, y: 42, w: 18, h: 24, label: "Open Mic Casting" },
+    { id: "distrib",  x: 78, y: 72, w: 20, h: 24, label: "Reel Republic" },
   ],
 };
 
@@ -124,6 +135,31 @@ export const LOCATION_DEFS: Record<LocationId, LocationDef> = {
     description: "Helikopter-platå. Neon-logo. Du tok over byen.",
     openHours: [0, 24], unlockLevel: 5,
   },
+  electro: {
+    id: "electro", name: "Sparky's Camera Shack", district: "downtown", image: electroImg,
+    description: "Brukte kameraer, lyspakker og redigeringsdekk. Sparky kan ordne nesten alt.",
+    openHours: [10, 20], unlockLevel: 3,
+  },
+  boutique: {
+    id: "boutique", name: "Glitter & Garter", district: "downtown", image: boutiqueImg,
+    description: "Kostymer, parykker og strass for hver scene. Madame Vi vet hva som selger.",
+    openHours: [11, 21], unlockLevel: 3,
+  },
+  casting: {
+    id: "casting", name: "Open Mic Casting", district: "downtown", image: castingImg,
+    description: "Kø av håpefulle. Book audition-slot, få et casting-voucher til neste film.",
+    openHours: [9, 19], unlockLevel: 3,
+  },
+  distrib: {
+    id: "distrib", name: "Reel Republic Distribution", district: "downtown", image: distribImg,
+    description: "Sigarrøyk og VHS-stabler. Mr. Halloran selger filmene dine til drive-ins og kabel-TV.",
+    openHours: [10, 18], unlockLevel: 3,
+  },
+  clinic: {
+    id: "clinic", name: "Doc Lonnie's Clinic", district: "park", image: clinicImg,
+    description: "Tvilsom lege, mirakuløse injeksjoner. Spør ikke.",
+    openHours: [8, 22],
+  },
 };
 
 export interface Action {
@@ -186,5 +222,27 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
   hq: [
     { id: "intl",   label: "Internasjonal Deal", emoji: "🌍", hours: 5 },
     { id: "empire", label: "Empire-møte", emoji: "👑", hours: 2, desc: "+stort rep." },
+  ],
+  electro: [
+    { id: "buyFilm",        label: "Kjøp filmstock (5)", emoji: "📼", hours: 1, desc: "-$300, +5 ruller. Trengs i Innspilling." },
+    { id: "upgradeCamera",  label: "Oppgrader kamera",   emoji: "📷", hours: 0, desc: "Bedre kvalitet & risiko." },
+    { id: "upgradeLighting",label: "Oppgrader lys",      emoji: "💡", hours: 0 },
+    { id: "upgradeEditing", label: "Oppgrader redigering",emoji: "🎞️", hours: 0 },
+  ],
+  boutique: [
+    { id: "buyCostume", label: "Kjøp kostymer (3)", emoji: "👗", hours: 1, desc: "-$240, +3 kostymer. Brukes i Innspilling." },
+    { id: "wardrobe",   label: "Garderobe-økt",      emoji: "💄", hours: 2, desc: "Buff jentenes pop midlertidig." },
+  ],
+  casting: [
+    { id: "bookAudition", label: "Book audition",     emoji: "🎟️", hours: 2, desc: "-$180, +1 audition-voucher (kreves i Casting-steget)." },
+    { id: "openCall",     label: "Hold open call",    emoji: "📣", hours: 4, desc: "-$500, sjanse for ny jente fra køen." },
+  ],
+  distrib: [
+    { id: "signDeal",  label: "Signer distribusjons-deal", emoji: "🤝", hours: 2, desc: "Engangs-bonus på neste utgivelse." },
+    { id: "presell",   label: "Pre-sell katalog",          emoji: "💼", hours: 2, desc: "Få cash på backlog." },
+  ],
+  clinic: [
+    { id: "heal",    label: "Vitamin-sprøyte",     emoji: "💉", hours: 1, desc: "-$120, full stamina." },
+    { id: "detox",   label: "Detox en stjerne",    emoji: "🧴", hours: 3, desc: "-$300, fjerner cooldown på en jente." },
   ],
 };
