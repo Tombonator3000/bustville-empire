@@ -866,7 +866,7 @@ export function useGame() {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
-    startProduction, advanceProduction, assignToProduction, cancelProduction, archiveProduction,
+    startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
     startMission, cancelMission,
     upgradeEquipment,
   };
