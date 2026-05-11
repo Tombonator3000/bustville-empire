@@ -135,6 +135,31 @@ export const LOCATION_DEFS: Record<LocationId, LocationDef> = {
     description: "Helikopter-platå. Neon-logo. Du tok over byen.",
     openHours: [0, 24], unlockLevel: 5,
   },
+  electro: {
+    id: "electro", name: "Sparky's Camera Shack", district: "downtown", image: electroImg,
+    description: "Brukte kameraer, lyspakker og redigeringsdekk. Sparky kan ordne nesten alt.",
+    openHours: [10, 20], unlockLevel: 3,
+  },
+  boutique: {
+    id: "boutique", name: "Glitter & Garter", district: "downtown", image: boutiqueImg,
+    description: "Kostymer, parykker og strass for hver scene. Madame Vi vet hva som selger.",
+    openHours: [11, 21], unlockLevel: 3,
+  },
+  casting: {
+    id: "casting", name: "Open Mic Casting", district: "downtown", image: castingImg,
+    description: "Kø av håpefulle. Book audition-slot, få et casting-voucher til neste film.",
+    openHours: [9, 19], unlockLevel: 3,
+  },
+  distrib: {
+    id: "distrib", name: "Reel Republic Distribution", district: "downtown", image: distribImg,
+    description: "Sigarrøyk og VHS-stabler. Mr. Halloran selger filmene dine til drive-ins og kabel-TV.",
+    openHours: [10, 18], unlockLevel: 3,
+  },
+  clinic: {
+    id: "clinic", name: "Doc Lonnie's Clinic", district: "park", image: clinicImg,
+    description: "Tvilsom lege, mirakuløse injeksjoner. Spør ikke.",
+    openHours: [8, 22],
+  },
 };
 
 export interface Action {
