@@ -100,8 +100,8 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onSwitch }: {
-  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onSwitch: () => void;
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: {
+  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   return (
