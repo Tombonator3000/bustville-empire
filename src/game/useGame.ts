@@ -341,12 +341,13 @@ export function useGame() {
   }, []);
 
   // === ACTIONS ===============================================
-  const perform = useCallback((locId: LocationId, actionId: string, girlId?: string) => {
-    setState((s) => doAction(s, locId, actionId, girlId, advance));
+  const perform = useCallback((locId: LocationId, actionId: string, girlId?: string, intensity: Intensity = "standard") => {
+    setState((s) => doAction(s, locId, actionId, girlId, intensity, advance));
   }, []);
 
   function doAction(
     s: GameState, locId: LocationId, actionId: string, girlId: string | undefined,
+    intensity: Intensity,
     advanceFn: (s: GameState, h: number) => GameState,
   ): GameState {
     const action = LOCATION_ACTIONS[locId].find((a) => a.id === actionId);
@@ -354,10 +355,16 @@ export function useGame() {
     const girl = girlId ? s.girls.find((g) => g.id === girlId) : undefined;
     const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
     const hustleMult = 1 + s.player.hustle * 0.05;
+    const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
+    const heatBonus = intensity === "intense" ? 3 : 0;
     let next = s;
 
     const earn = (base: number) =>
-      Math.floor(base * girlMult * hustleMult * (0.85 + Math.random() * 0.3));
+      Math.floor(base * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
+    // Apply intensity-driven heat once at the end of any cash-earning action
+    const finish = (st: GameState) => heatBonus > 0
+      ? { ...st, heatLevel: Math.min(100, st.heatLevel + heatBonus) }
+      : st;
     const checkStam = (h: number) =>
       next.stamina >= h * 4 || (next.log[0] = "For sliten — sov i traileren.", false);
 
