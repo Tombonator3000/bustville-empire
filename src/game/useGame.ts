@@ -53,6 +53,8 @@ export interface GameState {
   // economy / risk
   heatLevel: number;       // 0-100 → razzia risk
   bribedUntilDay: number;
+  bribeStreak: number;     // diminishing returns counter
+  lastBribeDay: number;    // 0 if never
   loan: number;
   loanDueDay: number;
   distilleryLevel: number; // 1-3
