@@ -599,13 +599,15 @@ export function useGame() {
         ? castStats.reduce((a, g) => a + (g.beauty + g.performance + g.popularity) / 3, 0) / castStats.length
         : 0;
 
+      const mods = getStudioMods(s);
+
       // Release stage payout
       if (p.stageIdx === STAGE_ORDER.length - 1) {
         const qualityMult = (p.quality + castAvg) / 100;
         const hustleMult = 1 + s.player.hustle * 0.04;
-        const studioMult = 1 + (s.studioLevel - 1) * 0.15;
-        // Flop chance: low quality / bad rolls
-        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02);
+        const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
+        // Flop chance: low quality / bad rolls; equipment reduces flop risk
+        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015);
         const flopped = Math.random() < flopChance;
         let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5);
@@ -639,36 +641,38 @@ export function useGame() {
       // Pay next stage and enter it
       const nextIdx = p.stageIdx + 1;
       const nextStage = tier.stages[nextIdx];
-      if (s.cash < nextStage.cost) return log(s, `${nextStage.label} koster $${nextStage.cost}.`);
+      const nextCost = stageCost(nextStage, mods);
+      const nextHours = stageHours(nextStage, mods);
+      if (s.cash < nextCost) return log(s, `${nextStage.label} koster $${nextCost}.`);
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
 
       // === RISK ROLL ===
-      // Base success scaled by player stats, studio level, cast, and tier difficulty.
+      // Equipment-specific stage boost: lighting helps shooting, editing helps editing, camera helps shoot/edit.
       const stageBoost =
         (nextStage.id === "casting"  ? s.player.charisma * 3 : 0) +
-        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3 : 0) +
-        (nextStage.id === "editing"  ? s.player.business * 3 : 0) +
+        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3
+                                       + s.equipment.lighting * 4 + s.equipment.camera * 3 : 0) +
+        (nextStage.id === "editing"  ? s.player.business * 3 + s.equipment.editing * 4 + s.equipment.camera * 2 : 0) +
         (nextStage.id === "release"  ? s.player.hustle * 3 : 0);
-      const difficulty = tier.minLevel * 6; // harder tiers fail more
+      const difficulty = tier.minLevel * 6;
       const successPct = Math.max(35, Math.min(95, 65 + stageBoost - difficulty));
       const roll = Math.random() * 100;
       const failed = roll > successPct;
 
       const qBonus =
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
-        (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 : 0) +
-        (nextStage.id === "editing"  ? 4 + s.player.business : 0) +
+        (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 + s.equipment.lighting + s.equipment.camera : 0) +
+        (nextStage.id === "editing"  ? 4 + s.player.business + s.equipment.editing * 2 : 0) +
         (nextStage.id === "release"  ? 3 + s.player.hustle : 0);
 
-      let next = { ...s, cash: s.cash - nextStage.cost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
+      let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
 
       if (failed && p.reworks < 2) {
-        // REWORK: redo current stage with extra cost & time, quality drops
-        const reworkCost = Math.floor(nextStage.cost * 0.5);
+        const reworkCost = Math.floor(nextCost * 0.5);
         const updated = next.productions.map((x, i) => i === idx
-          ? { ...x, hoursLeft: Math.floor(tier.stages[p.stageIdx].hours * 0.7),
+          ? { ...x, hoursLeft: Math.max(1, Math.floor(stageHours(tier.stages[p.stageIdx], mods) * 0.7)),
               quality: Math.max(0, x.quality - 8), reworks: x.reworks + 1 }
           : x);
         next.cash = Math.max(0, next.cash - reworkCost);
@@ -676,15 +680,14 @@ export function useGame() {
           `⚠️ ${nextStage.label} feilet (rullet ${Math.round(roll)} mot ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
       }
 
-      // Success (or third strike — push through with quality penalty)
       const qDelta = failed ? -10 : qBonus;
       const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
       const updated = next.productions.map((x, i) => i === idx
-        ? { ...x, stageIdx: nextIdx, hoursLeft: nextStage.hours,
-            quality: Math.max(0, Math.min(100, x.quality + qDelta)) }
+        ? { ...x, stageIdx: nextIdx, hoursLeft: nextHours,
+            quality: Math.max(0, Math.min(mods.qualityCap, x.quality + qDelta)) }
         : x);
       return log({ ...next, productions: updated },
-        `${nextStage.emoji} "${p.title}" → ${nextStage.label}. ${flavor}`);
+        `${nextStage.emoji} "${p.title}" → ${nextStage.label} [$${nextCost}, ${nextHours}t]. ${flavor}`);
     });
   }, []);
 
