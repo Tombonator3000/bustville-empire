@@ -50,7 +50,7 @@ function GamePage() {
   const activeLoc = g.state.activeLocation;
 
   return (
-    <main className="min-h-screen pb-4">
+    <main className="relative min-h-screen w-full">
       <HUD
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
