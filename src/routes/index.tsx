@@ -87,6 +87,7 @@ function GamePage() {
           onAdvance={g.advanceProduction}
           onAssign={g.assignToProduction}
           onCancel={g.cancelProduction}
+          onUpgradeEquipment={g.upgradeEquipment}
         />
       )}
 
