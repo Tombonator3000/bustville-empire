@@ -111,8 +111,10 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: {
-  state: GameState; onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void; onSwitch: () => void;
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenOptions, onSwitch }: {
+  state: GameState;
+  onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void;
+  onOpenInventory: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   return (
@@ -132,6 +134,8 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: 
           <span className="hidden text-[10px] text-muted-foreground sm:inline">
             Lv{loc.level} {loc.name}
           </span>
+          <button onClick={onOpenInventory} title="Inventar"
+            className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">🎒 Lager</button>
           <button onClick={onOpenStats} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">Boss</button>
           <button onClick={onOpenProductions} className="rounded bg-secondary px-2 py-1 hover:bg-secondary/80">
             🎬 Filmer ({state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})
@@ -144,6 +148,8 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onSwitch }: 
               {state.district === "park" ? "→ Downtown" : "→ Park"}
             </button>
           )}
+          <button onClick={onOpenOptions} title="Meny / Lagre / Innstillinger"
+            className="rounded border border-border bg-background px-2 py-1 hover:border-primary">⚙️</button>
         </div>
       </div>
     </header>
