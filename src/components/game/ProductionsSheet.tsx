@@ -118,7 +118,8 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
           )}
           {state.productions.map((p) => (
             <ProductionCard key={p.id} p={p} girls={state.girls} mods={mods}
-              onAdvance={onAdvance} onAssign={onAssign} onCancel={onCancel} cash={state.cash} />
+              onAdvance={onAdvance} onAssign={onAssign} onSetRole={onSetRole}
+              onCancel={onCancel} cash={state.cash} />
           ))}
         </div>
       </div>
@@ -126,11 +127,12 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
   );
 }
 
-function ProductionCard({ p, girls, mods, onAdvance, onAssign, onCancel, cash }: {
+function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCancel, cash }: {
   p: Production; girls: Girl[]; cash: number;
   mods: ReturnType<typeof getStudioMods>;
   onAdvance: (id: string) => void;
   onAssign: (id: string, gid: string) => void;
+  onSetRole: (id: string, gid: string, role: CastRole) => void;
   onCancel: (id: string) => void;
 }) {
   const tier = getTier(p.tierId)!;
