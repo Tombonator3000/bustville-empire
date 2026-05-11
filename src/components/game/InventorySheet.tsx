@@ -29,6 +29,10 @@ export function InventorySheet({ state, onClose }: Props) {
             <Item icon="⭐" label="Omdømme" value={state.reputation} />
             <Item icon="⚡" label="Stamina" value={`${state.stamina} / ${state.maxStamina}`} />
             {state.backlog > 0 && <Item icon="📼" label="Backlog" sub="usolgte produksjoner" value={state.backlog} />}
+            <Item icon="🎞️" label="Filmstock" sub="ruller (Sparky's)" value={state.filmstock} />
+            <Item icon="👗" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
+            <Item icon="🎟️" label="Audition-vouchers" sub="Open Mic Casting" value={state.auditionVouchers} />
+            {state.distribBonus > 0 && <Item icon="🤝" label="Distribusjons-bonus" sub="neste utgivelse" value={`+${state.distribBonus}%`} />}
           </Section>
 
           {/* Status */}
