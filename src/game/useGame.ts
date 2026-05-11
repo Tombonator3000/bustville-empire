@@ -20,6 +20,13 @@ function enqueueToast(id: string, item: ToastItem) {
 
 export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
+export type Intensity = "chill" | "standard" | "intense";
+export const INTENSITIES: { id: Intensity; label: string; emoji: string; hint: string }[] = [
+  { id: "chill",    label: "Avslappet", emoji: "🌙", hint: "0.7× lønn, mindre heat. For trøtte stjerner." },
+  { id: "standard", label: "Standard",  emoji: "⚖️", hint: "Vanlig økt — balansert risiko." },
+  { id: "intense",  label: "Hardcore",  emoji: "🔥", hint: "1.45× lønn, +heat. Skru opp innsatsen." },
+];
+
 export interface PlayerStats {
   charisma: number;
   hustle: number;
@@ -341,12 +348,22 @@ export function useGame() {
   }, []);
 
   // === ACTIONS ===============================================
-  const perform = useCallback((locId: LocationId, actionId: string, girlId?: string) => {
-    setState((s) => doAction(s, locId, actionId, girlId, advance));
+  const perform = useCallback((locId: LocationId, actionId: string, girlId?: string, intensity: Intensity = "standard") => {
+    setState((s) => {
+      const action = LOCATION_ACTIONS[locId].find((a) => a.id === actionId);
+      const before = s;
+      const after = doAction(s, locId, actionId, girlId, intensity, advance);
+      // Intensity tax: hardcore tilts heat upward on any cash-earning timed action
+      if (intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
+        return { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
+      }
+      return after;
+    });
   }, []);
 
   function doAction(
     s: GameState, locId: LocationId, actionId: string, girlId: string | undefined,
+    intensity: Intensity,
     advanceFn: (s: GameState, h: number) => GameState,
   ): GameState {
     const action = LOCATION_ACTIONS[locId].find((a) => a.id === actionId);
@@ -354,10 +371,11 @@ export function useGame() {
     const girl = girlId ? s.girls.find((g) => g.id === girlId) : undefined;
     const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
     const hustleMult = 1 + s.player.hustle * 0.05;
+    const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
     let next = s;
 
     const earn = (base: number) =>
-      Math.floor(base * girlMult * hustleMult * (0.85 + Math.random() * 0.3));
+      Math.floor(base * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
     const checkStam = (h: number) =>
       next.stamina >= h * 4 || (next.log[0] = "For sliten — sov i traileren.", false);
 
