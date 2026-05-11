@@ -550,58 +550,98 @@ export function useGame() {
       if (p.stageIdx >= STAGE_ORDER.length) return log(s, "Allerede ferdig.");
       if (p.hoursLeft > 0) return log(s, `Vent ${p.hoursLeft}t til ${tier.stages[p.stageIdx].label} er ferdig.`);
 
-      const nextIdx = p.stageIdx + 1;
-      // If just finished the release stage → payout
+      // Cast averages (used by risk + payout)
+      const castStats = p.girlIds.map((gid) => s.girls.find((x) => x.id === gid)).filter(Boolean) as Girl[];
+      const castAvg = castStats.length
+        ? castStats.reduce((a, g) => a + (g.beauty + g.performance + g.popularity) / 3, 0) / castStats.length
+        : 0;
+
+      // Release stage payout
       if (p.stageIdx === STAGE_ORDER.length - 1) {
-        const girlBonus = p.girlIds.reduce((acc, gid) => {
-          const g = s.girls.find((x) => x.id === gid);
-          if (!g) return acc;
-          return acc + (g.beauty + g.performance + g.popularity) / 4;
-        }, 0);
-        const qualityMult = (p.quality + girlBonus) / 100;
+        const qualityMult = (p.quality + castAvg) / 100;
         const hustleMult = 1 + s.player.hustle * 0.04;
         const studioMult = 1 + (s.studioLevel - 1) * 0.15;
-        const gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
-        const repGain = tier.baseRep + Math.floor(qualityMult * 5);
+        // Flop chance: low quality / bad rolls
+        const flopChance = Math.max(0.02, 0.55 - p.quality / 120 - s.player.business * 0.02);
+        const flopped = Math.random() < flopChance;
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult);
+        let repGain = tier.baseRep + Math.floor(qualityMult * 5);
+        if (flopped) {
+          gross = Math.floor(gross * 0.3);
+          repGain = -Math.max(2, Math.floor(tier.baseRep / 3));
+        }
         const updated = s.productions.map((x, i) =>
-          i === idx ? { ...x, stageIdx: STAGE_ORDER.length } : x
+          i === idx ? { ...x, stageIdx: STAGE_ORDER.length, flopped, releasedGross: gross } : x
         );
+        const note = flopped
+          ? `💀 FLOPP! "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
+          : `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.`;
+        const girls = s.girls.map((g) => {
+          if (!p.girlIds.includes(g.id)) return g;
+          return flopped
+            ? { ...g, loyalty: Math.max(0, g.loyalty - 4), lastActivity: `Spilte i flopp "${p.title}"`, lastActivityDay: s.day }
+            : { ...g, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2),
+                lastActivity: `Slapp "${p.title}" 🎬`, lastActivityDay: s.day };
+        });
         return log({
           ...s,
           cash: s.cash + gross,
-          reputation: s.reputation + repGain,
-          backlog: s.backlog + 1,
+          reputation: Math.max(0, s.reputation + repGain),
+          backlog: flopped ? s.backlog : s.backlog + 1,
           productions: updated,
-          girls: s.girls.map((g) => p.girlIds.includes(g.id)
-            ? { ...g, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2) }
-            : g),
-        }, `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.`);
+          girls,
+        }, note);
       }
 
-      // pay next stage cost & enter it
+      // Pay next stage and enter it
+      const nextIdx = p.stageIdx + 1;
       const nextStage = tier.stages[nextIdx];
       if (s.cash < nextStage.cost) return log(s, `${nextStage.label} koster $${nextStage.cost}.`);
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
-      // Casting must have girl(s)
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
 
-      // quality bonus from stats
+      // === RISK ROLL ===
+      // Base success scaled by player stats, studio level, cast, and tier difficulty.
+      const stageBoost =
+        (nextStage.id === "casting"  ? s.player.charisma * 3 : 0) +
+        (nextStage.id === "shooting" ? s.player.lust * 2 + s.studioLevel * 5 + castAvg * 0.3 : 0) +
+        (nextStage.id === "editing"  ? s.player.business * 3 : 0) +
+        (nextStage.id === "release"  ? s.player.hustle * 3 : 0);
+      const difficulty = tier.minLevel * 6; // harder tiers fail more
+      const successPct = Math.max(35, Math.min(95, 65 + stageBoost - difficulty));
+      const roll = Math.random() * 100;
+      const failed = roll > successPct;
+
       const qBonus =
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
         (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 : 0) +
         (nextStage.id === "editing"  ? 4 + s.player.business : 0) +
         (nextStage.id === "release"  ? 3 + s.player.hustle : 0);
 
-      const updated = s.productions.map((x, i) => i === idx
-        ? { ...x, stageIdx: nextIdx, hoursLeft: nextStage.hours, quality: Math.min(100, x.quality + qBonus) }
+      let next = { ...s, cash: s.cash - nextStage.cost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
+
+      if (failed && p.reworks < 2) {
+        // REWORK: redo current stage with extra cost & time, quality drops
+        const reworkCost = Math.floor(nextStage.cost * 0.5);
+        const updated = next.productions.map((x, i) => i === idx
+          ? { ...x, hoursLeft: Math.floor(tier.stages[p.stageIdx].hours * 0.7),
+              quality: Math.max(0, x.quality - 8), reworks: x.reworks + 1 }
+          : x);
+        next.cash = Math.max(0, next.cash - reworkCost);
+        return log({ ...next, productions: updated },
+          `⚠️ ${nextStage.label} feilet (rullet ${Math.round(roll)} mot ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
+      }
+
+      // Success (or third strike — push through with quality penalty)
+      const qDelta = failed ? -10 : qBonus;
+      const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
+      const updated = next.productions.map((x, i) => i === idx
+        ? { ...x, stageIdx: nextIdx, hoursLeft: nextStage.hours,
+            quality: Math.max(0, Math.min(100, x.quality + qDelta)) }
         : x);
-      return log({
-        ...s,
-        cash: s.cash - nextStage.cost,
-        stamina: Math.max(0, s.stamina - nextStage.staminaCost),
-        productions: updated,
-      }, `${nextStage.emoji} "${p.title}" → ${nextStage.label}. ${nextStage.flavor}`);
+      return log({ ...next, productions: updated },
+        `${nextStage.emoji} "${p.title}" → ${nextStage.label}. ${flavor}`);
     });
   }, []);
 
@@ -611,6 +651,9 @@ export function useGame() {
       if (idx === -1) return s;
       const p = s.productions[idx];
       if (p.stageIdx > 1) return log(s, "Casting er låst etter innspilling startet.");
+      // Don't allow girls busy with mission
+      const target = s.girls.find((x) => x.id === girlId);
+      if (target?.mission) return log(s, `${target.name} er opptatt med ${target.mission.label}.`);
       const has = p.girlIds.includes(girlId);
       const newCast = has ? p.girlIds.filter((x) => x !== girlId) : [...p.girlIds, girlId];
       return { ...s, productions: s.productions.map((x, i) => i === idx ? { ...x, girlIds: newCast } : x) };
@@ -626,10 +669,56 @@ export function useGame() {
     });
   }, []);
 
+  const archiveProduction = useCallback((id: string) => {
+    setState((s) => ({ ...s, productions: s.productions.filter((x) => x.id !== id) }));
+  }, []);
+
+  // === GIRL MISSIONS =========================================
+  const startMission = useCallback((girlId: string, missionId: string) => {
+    setState((s) => {
+      const g = s.girls.find((x) => x.id === girlId);
+      if (!g) return s;
+      if (g.mission) return log(s, `${g.name} er allerede på oppdrag.`);
+      // Don't allow if currently cast in an active production
+      const inProd = s.productions.some((p) => p.stageIdx < STAGE_ORDER.length && p.girlIds.includes(girlId));
+      if (inProd) return log(s, `${g.name} er castet på et prosjekt.`);
+      const def = GIRL_MISSIONS.find((m) => m.id === missionId) as MissionDef | undefined;
+      if (!def) return s;
+      const stat = g[def.statKey];
+      if (stat < def.min) return log(s, `${g.name} har for lav ${def.statKey} (${stat}/${def.min}).`);
+      const statBonus = 0.6 + stat / 100;       // 0.6x–1.6x
+      const loyBonus  = 0.85 + g.loyalty / 200; // 0.85x–1.34x
+      const payout = Math.floor(def.basePay * statBonus * loyBonus * (0.9 + Math.random() * 0.2));
+      const rep = def.rep + (stat > 70 ? 1 : 0);
+      const endsAt = absHour(s) + def.hours;
+      const mission = { id: def.id, label: def.label, payout, rep, endsAt };
+      return log({
+        ...s,
+        girls: s.girls.map((x) => x.id === girlId
+          ? { ...x, mission, lastActivity: `${def.emoji} Startet ${def.label}`, lastActivityDay: s.day }
+          : x),
+      }, `${def.emoji} ${g.name} sendt på ${def.label} (~$${payout}, ${def.hours}t).`);
+    });
+  }, []);
+
+  const cancelMission = useCallback((girlId: string) => {
+    setState((s) => {
+      const g = s.girls.find((x) => x.id === girlId);
+      if (!g?.mission) return s;
+      return log({
+        ...s,
+        girls: s.girls.map((x) => x.id === girlId
+          ? { ...x, mission: undefined, lastActivity: `Avbrøt ${g.mission!.label}`, lastActivityDay: s.day }
+          : x),
+      }, `🚫 ${g.name} hentet hjem. Oppdrag avbrutt.`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     goTo, backToMap, switchDistrict, perform,
     fireGirl, trainGirl, giftGirl, upgradeStat,
-    startProduction, advanceProduction, assignToProduction, cancelProduction,
+    startProduction, advanceProduction, assignToProduction, cancelProduction, archiveProduction,
+    startMission, cancelMission,
   };
 }
