@@ -8,6 +8,8 @@ import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } fro
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
 import { genreMatchMult, getGenre } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
+import { BODY_PROCEDURES } from "./clinic";
+import { rollDrama } from "./drama";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
