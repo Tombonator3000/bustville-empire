@@ -476,8 +476,9 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
             <div className="mt-2 space-y-1.5">
               {actions.map((a) => {
                 const isSimple = SIMPLE.has(a.id);
+                const isWebcam = locId === "trailer" && a.id === "webcam";
                 const open = openId === a.id;
-                if (isSimple) {
+                if (isSimple || isWebcam) {
                   return (
                     <button
                       key={a.id}
@@ -487,10 +488,13 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
                       <span className="text-xl leading-none">{a.emoji}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold">{a.label}</span>
+                          <span className="font-bold">{a.label}{isWebcam && " ▸"}</span>
                           {a.hours > 0 && <span className="text-[10px] text-muted-foreground">~{a.hours}t</span>}
                         </div>
                         {a.desc && <div className="text-[10px] text-muted-foreground">{a.desc}</div>}
+                        {isWebcam && (
+                          <div className="text-[10px] text-accent/80">Velg jente, show-type & intensitet</div>
+                        )}
                       </div>
                     </button>
                   );
