@@ -581,8 +581,13 @@ export function useGame() {
       case "gas:hitchhike": {
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.5 && next.girls.length < 6) {
-          const g = genGirl(next.player.charisma, next.locationLevel, -2);
-          return log({ ...next, girls: [...next.girls, g] }, `👠 Du plukket opp ${g.name}. Hun har en historie.`);
+          const raw = genGirl(next.player.charisma, next.locationLevel, -2);
+          const g = withContract(raw, next.day, 4); // haikere = kort kontrakt
+          if (next.cash < g.contract!.signingBonus) {
+            return log(next, `👠 ${raw.name} ville ha $${g.contract!.signingBonus} kontant. Du hadde ikke nok — hun hoppet av.`);
+          }
+          return log({ ...next, cash: next.cash - g.contract!.signingBonus, girls: [...next.girls, g] },
+            `👠 ${g.name} signerte 4-ukers prøvekontrakt. Bonus $${g.contract!.signingBonus}.`);
         }
         const loss = 80;
         return log({ ...next, cash: Math.max(0, next.cash - loss) },
