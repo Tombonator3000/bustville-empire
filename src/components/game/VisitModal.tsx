@@ -58,14 +58,15 @@ export function VisitModal({
                 return (
                   <button key={v.id} onClick={() => !vLocked && setVisitId(v.id)}
                     disabled={vLocked}
-                    className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition ${
+                    className={`flex items-stretch gap-2 overflow-hidden rounded-lg border text-left transition ${
                       vLocked ? "cursor-not-allowed border-destructive/40 bg-destructive/5 opacity-60"
                         : on ? "border-primary bg-primary/15" : "border-border bg-secondary/40 hover:border-primary/60"
                     }`}>
-                    <span className="text-2xl leading-none">{v.emoji}</span>
-                    <div className="flex-1 min-w-0">
+                    <img src={v.cover} alt="" loading="lazy"
+                      className="h-20 w-24 shrink-0 object-cover" />
+                    <div className="flex-1 min-w-0 py-2 pr-3">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-bold truncate">{v.label}</span>
+                        <span className="font-bold truncate">{v.emoji} {v.label}</span>
                         <span className="whitespace-nowrap text-[10px] text-muted-foreground">~${v.basePay} · {v.hours}t · ${v.cost}</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground">{v.flavor}</div>
