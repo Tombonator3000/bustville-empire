@@ -225,23 +225,7 @@ export function effectiveSalary(g: Girl): number {
 /** Pakker en nyrekruttert stjerne med en 8-ukers kontrakt. */
 function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
   return { ...g, contract: genContract(g, day, lengthWeeks) };
-      }
-      case "distrib:fansRomance":
-      case "distrib:fansWild":
-      case "distrib:fansGlamour":
-      case "distrib:fansFetish": {
-        const cost = 400;
-        if (next.cash < cost) return log(next, `Fanboost: $${cost}.`);
-        const gid = (actionId.split(":")[1].replace("fans", "").toLowerCase()) as GenreId;
-        if (!GENRE_IDS.includes(gid)) return next;
-        next = advanceFn(next, action.hours);
-        const gain = 60;
-        const meta = getGenre(gid);
-        return log({
-          ...next, cash: next.cash - cost,
-          fans: { ...next.fans, [gid]: (next.fans[gid] ?? 0) + gain },
-        }, `${meta?.emoji ?? "📈"} Målrettet kampanje mot ${meta?.name ?? gid}-publikum: +${gain} fans (totalt ${(next.fans[gid] ?? 0) + gain}).`);
-      }
+}
 
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
