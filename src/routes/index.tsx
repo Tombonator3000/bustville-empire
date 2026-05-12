@@ -179,6 +179,7 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
             Lv{loc.level} {loc.name}
           </span>
           <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
+          <IconBtn onClick={onOpenGallery} title="Galleri" icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
           <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
           <IconBtn onClick={onOpenProductions}
             icon={<Clapperboard className="h-3.5 w-3.5" />}
