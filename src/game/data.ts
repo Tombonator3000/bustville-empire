@@ -166,12 +166,12 @@ export interface WebcamShowDef {
 }
 
 export const WEBCAM_SHOWS: WebcamShowDef[] = [
-  { id: "solo",     label: "Solo Tease",    emoji: "💋", level: 1, cost: 40,  basePay: 180,  rep: 1, hours: 2, hue: 320,
-    scene: "Solo Tease Show",  flavor: "Ringlys, lavendel-filter, 47 betalende seere.", cover: coverWebshowSolo },
-  { id: "lingerie", label: "Lingerie Show", emoji: "👙", level: 2, cost: 90,  basePay: 360,  rep: 2, hours: 3, hue: 280,
-    scene: "Lingerie Webcam",  flavor: "Silke, satin og chat-tipsene renner inn.", cover: coverWebshowLingerie },
-  { id: "toys",     label: "Toy Play",      emoji: "🪀", level: 3, cost: 160, basePay: 640,  rep: 3, hours: 3, hue: 0,
-    scene: "Toy Play Stream",  flavor: "Hardcore solo. Premium-kanalen koker.", cover: coverWebshowToys },
+  { id: "solo",     label: "Solo Stream",     emoji: "🎙️", level: 1, cost: 40,  basePay: 180,  rep: 1, hours: 2, hue: 320,
+    scene: "Solo Stream",         flavor: "Ringlys, lavendel-filter, 47 betalende seere.", cover: coverWebshowSolo },
+  { id: "lingerie", label: "Boudoir Show",    emoji: "🌙", level: 2, cost: 90,  basePay: 360,  rep: 2, hours: 3, hue: 280,
+    scene: "Boudoir Show",        flavor: "Silke, satin og chat-tipsene renner inn.", cover: coverWebshowLingerie },
+  { id: "toys",     label: "Premium Variety", emoji: "🎭", level: 3, cost: 160, basePay: 640,  rep: 3, hours: 3, hue: 0,
+    scene: "Premium Variety Show", flavor: "Premium-kanalen koker. Tipsene renner.", cover: coverWebshowToys },
 ];
 
 export const WEBCAM_UPGRADE_COST = (currentLevel: number) =>
