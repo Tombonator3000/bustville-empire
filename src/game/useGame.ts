@@ -600,9 +600,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, "Trenger $60 til lommelykt og lokkemat.");
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, -1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `🔦 Fant ${g.name} i skogen. ${g.archetype}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const g = withContract(raw, next.day, 4);
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `🔦 ${g.name} signerte 4-ukers kontrakt. Bonus $${g.contract!.signingBonus}.`);
       }
       case "forest:hideStash": {
         next = advanceFn(next, action.hours);
