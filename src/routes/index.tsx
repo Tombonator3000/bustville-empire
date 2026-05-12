@@ -585,9 +585,10 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
   );
 }
 
-function GirlCard({ g, selected, nowAbs, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
-  g: Girl; selected: boolean; nowAbs: number;
+function GirlCard({ g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission }: {
+  g: Girl; selected: boolean; nowAbs: number; currentDay: number;
   onSelect: () => void; onFire: (id: string) => void; onTrain: (id: string) => void; onGift: (id: string) => void;
+  onResign: (id: string, lengthWeeks?: 4 | 8 | 12) => void;
   onStartMission: (girlId: string, mid: string) => void; onCancelMission: (girlId: string) => void;
 }) {
   const portrait = ARCHETYPE_PORTRAITS[g.archetype];
