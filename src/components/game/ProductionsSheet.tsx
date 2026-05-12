@@ -5,7 +5,7 @@ import {
   EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST,
   type GameState, type EquipmentKind,
 } from "@/game/useGame";
-import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
+import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
 import { GENRES, getGenre } from "@/game/genres";
 
 interface Props {
@@ -118,19 +118,24 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
                 key={t.id}
                 disabled={blocked}
                 onClick={() => onStart(t.id, [], genreId)}
-                className={`rounded-lg border p-2.5 text-left transition ${
+                className={`group relative overflow-hidden rounded-lg border text-left transition ${
                   locked
                     ? "border-destructive/40 bg-destructive/10 opacity-50 cursor-not-allowed"
                     : "border-border bg-secondary/40 hover:border-primary/60 hover:bg-secondary/80"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">{t.name}</span>
-                  <span className="text-[10px] text-accent">~${t.basePayout.toLocaleString()}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{t.description}</p>
-                <div className="mt-1 text-[10px] text-muted-foreground">
-                  {locked ? `🔒 Lv ${t.minLevel}` : full ? "🚫 Kø full" : `Briefing: $${cost} · ${totalHours}t total`}
+                <img src={STUDIO_COVERS[t.id]} alt="" loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover:opacity-50" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/30" />
+                <div className="relative p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">{t.name}</span>
+                    <span className="text-[10px] text-accent">~${t.basePayout.toLocaleString()}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{t.description}</p>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {locked ? `🔒 Lv ${t.minLevel}` : full ? "🚫 Kø full" : `Briefing: $${cost} · ${totalHours}t total`}
+                  </div>
                 </div>
               </button>
             );
@@ -175,25 +180,31 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
   const isReleaseReady = canAdvance && p.stageIdx === STAGE_ORDER.length - 1;
 
   return (
-    <div className="rounded-lg border border-border bg-secondary/30 p-3">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="font-bold">{p.title}</p>
-          <p className="text-[10px] uppercase tracking-wider text-accent">
-            {tier.name} {p.genreId ? `· ${getGenre(p.genreId)?.emoji ?? ""} ${getGenre(p.genreId)?.name ?? ""} ` : ""}· Q{Math.round(p.quality)}/{mods.qualityCap}
-            {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
-          </p>
+    <div className="overflow-hidden rounded-lg border border-border bg-secondary/30">
+      <div className="relative h-20 overflow-hidden">
+        <img src={STUDIO_COVERS[p.tierId] ?? ""} alt="" loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-secondary/95 via-secondary/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-2">
+          <div>
+            <p className="font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{p.title}</p>
+            <p className="text-[10px] uppercase tracking-wider text-accent drop-shadow">
+              {tier.name} {p.genreId ? `· ${getGenre(p.genreId)?.emoji ?? ""} ${getGenre(p.genreId)?.name ?? ""} ` : ""}· Q{Math.round(p.quality)}/{mods.qualityCap}
+              {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
+            </p>
+          </div>
+          {isDone ? (
+            p.flopped
+              ? <span className="rounded bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase text-destructive-foreground">💀 Flopp</span>
+              : <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Hit</span>
+          ) : (
+            <button onClick={() => onCancel(p.id)} className="rounded bg-destructive/70 px-2 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
+              Avlys
+            </button>
+          )}
         </div>
-        {isDone ? (
-          p.flopped
-            ? <span className="rounded bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase text-destructive-foreground">💀 Flopp</span>
-            : <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Hit</span>
-        ) : (
-          <button onClick={() => onCancel(p.id)} className="rounded bg-destructive/70 px-2 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
-            Avlys
-          </button>
-        )}
       </div>
+      <div className="p-3 pt-2">
 
       {/* Stage track */}
       <div className="mt-2 grid grid-cols-5 gap-1">
@@ -314,6 +325,7 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
               : `Vent ${p.hoursLeft}t…`}
         </button>
       )}
+      </div>
     </div>
   );
 }

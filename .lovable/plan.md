@@ -1,73 +1,60 @@
-# Modularitet — status og refaktor-plan
+## Mål
+Lage et sett **originale, ikke-seksualiserte cover-bilder** som brukes som standard "plakat" i galleriet og i menyene for webshow, studio (produksjoner) og butikk — pluss fylle inn øvrig grafikk som mangler i gallery-flowen.
 
-## Kort svar
-Spillet er **delvis modulært**. Domene-laget (`src/game/*`) er allerede pent splittet i tema-filer (data, locations, productions, genres, rivals, clinic, drama, health). **To filer er imidlertid blitt for store** og er den reelle smerten hvis du vil bytte ut deler:
+Stil: stilisert plakat-/albumcover-estetikk (ingen nakenhet, ingen kropper i fokus). Tenk neon-noir, retro-pulp, 70-tallsfilmplakat, art deco, vinyl-sleeve. Symboler, typografi, lys, objekter, silhuetter mot farge — ikke personer i seksualisert positur. Passer trygt som "default" når et galleri-/show-/produksjons-objekt ikke har eget bilde enda.
 
-| Fil | Linjer | Problem |
-|---|---|---|
-| `src/game/useGame.ts` | **1530** | Én monolittisk hook med all spill-logikk (tid, navigasjon, actions, produksjoner, missions, webcam, visits, helse, utstyr). Endrer du én feature må du scrolle gjennom alt. |
-| `src/routes/index.tsx` | **965** | Inneholder 13 komponenter (HUD, MapView, LocationView, ActionRow, RosterSheet, GirlCard, StatsSheet, Splash, WinScreen, Pill, IconBtn osv.) i én rute-fil. |
+## Bilder som lages
 
-Resten (`data.ts`, `locations.ts`, `productions.ts`, `clinic.ts`, `drama.ts`, `genres.ts`, `health.ts`, `rivals.ts`, samt `WebcamModal`, `VisitModal`, `GallerySheet`, `ClinicSheet`, `InventorySheet`, `ProductionsSheet`, `HotspotEditor`, `OptionsMenu`) er allerede i egne moduler på 100–330 linjer — det er sunt.
+**Webshow-covers (3 stk — `src/assets/cover-webshow-*.jpg`)**
+- `solo` — ringlys på stativ, mikrofon, lavendel-glød, "ON AIR"-skilt.
+- `lingerie` — silke-drapering, perler, satin-folder, varm rosa neon.
+- `toys` — abstrakt sammensetning av runde geometriske former, rød neon, retro-arkadefølelse.
 
-**Ja, det bør refaktoreres**, men det kan gjøres trygt og i etapper uten å endre spill-oppførsel.
+**Studio/produksjon-covers (4 stk — `src/assets/cover-studio-*.jpg`)** (én pr. TIER)
+- `quickie` — 35mm-filmstrip, klaffe, gaffer-tape, lo-fi grain.
+- `glamour` — art deco-vifte, champagneglass, gull/sort, marquee-bokstaver.
+- `feature` — kino-marquee i regn, taxi-lys, noir-silhuett av bygning.
+- `blockbuster` — Vegas-skyline, neon-palmer, helikopter-lys, technicolor.
 
----
+**Butikk/shop-cover (1 stk — `src/assets/cover-shop.jpg`)**
+- "Glitter & Garter"-vindusutstilling: parykker på mannequin-hoder, fjærboa på kleshenger, neon-skilt i vinduet, ingen personer.
 
-## Foreslått refaktor (3 etapper)
+**Visit/date-covers (6 stk — `src/assets/cover-visit-*.jpg`)** (én pr. VISIT_TYPES)
+- `trucker`, `drunk`, `bachelor`, `politician`, `scout`, `vipsuite` — alle som stilleben/objektkomposisjoner (truck-ratt + termos, ølflaske + kortstokk, partyhatter + konfetti, etui + lommeur, solbriller + storyboard, champagne + diamant).
 
-### Etappe 1 — Splitt `routes/index.tsx` (raskest gevinst, lav risiko)
+**Generiske gallery-fallbacks (4 stk — `src/assets/cover-scene-*.jpg`)** brukt når en scene ikke har en mer spesifikk match
+- `mission` — kart, kompass, billettstump.
+- `training` — speil, lysstoffrør, dans-stang som silhuett bak forheng.
+- `production` — clapperboard + rull.
+- `default` — generisk neon-rammet "Bustville"-plakat.
 
-Flytt komponenter til egne filer. Rute-filen blir kun "skjelett" som komponerer dem:
+Totalt: **18 nye JPG-filer** i `src/assets/`, generert med `imagegen.generate_image` (premium for de som har tekst i seg, ellers standard), 3:2 / 16:9 alt etter bruk.
 
-```text
-src/components/game/
-├── HUD.tsx              ← HUD + IconBtn + Pill  (~120 linjer)
-├── MapView.tsx          ← MapView                (~200 linjer)
-├── LocationView.tsx     ← LocationView + ActionRow (~250 linjer)
-├── RosterSheet.tsx      ← RosterSheet + GirlCard + Stat (~180 linjer)
-├── StatsSheet.tsx       ← StatsSheet            (~70 linjer)
-└── Splash.tsx           ← Splash + WinScreen     (~50 linjer)
-```
+## Kode-endringer
 
-Etter dette er `routes/index.tsx` ~120 linjer (kun `GamePage` + state-vriding + modal-toggles).
+1. **`src/game/data.ts`**
+   - Importere de nye cover-bildene.
+   - Legge til `cover: string` på `WebcamShowDef` og `VisitTypeDef` og fylle inn for hver oppføring.
+   - Eksportere `STUDIO_COVERS: Record<TierId, string>` og `SHOP_COVER`, `SCENE_FALLBACKS: Record<string, string>`.
 
-### Etappe 2 — Splitt `useGame.ts` etter domene
+2. **`src/components/game/GallerySheet.tsx`** — `ScenePlaceholder`
+   - Slå opp cover-bilde basert på `scene.kind` (`webcam-solo`, `visit-trucker`, `production-quickie`, `mission-*`, …) → bruke matchende cover som bakgrunn i stedet for hue-tintet portrett.
+   - Beholde portrett som lite badge nede i hjørnet (hvem scenen tilhører).
+   - Beholde fargetint via `scene.hue` som overlay-glød, ikke hovedbilde.
 
-Behold `useGame.ts` som **orkestrator** som setter sammen mindre hooks/moduler. Pure helpers flyttes til egne filer; setState-callbacks samles i feature-hooks:
+3. **`src/components/game/WebcamModal.tsx`** og **`VisitModal.tsx`**
+   - Vise cover-bildet som thumbnail ved hver show/visit-type.
 
-```text
-src/game/
-├── state.ts             ← GameState type, INITIAL, log(), absHour(), persist
-├── time.ts              ← advance(), weekTick(), rollEncounter() (rene funksjoner)
-├── recruiting.ts        ← rollRecruit(), contractTerms() (allerede halvveis)
-├── studio.ts            ← getStudioMods, stageCost, stageHours, EQUIPMENT_*
-├── hooks/
-│   ├── useNavigation.ts ← goTo, backToMap, switchDistrict
-│   ├── useActions.ts    ← perform + doAction (den store)
-│   ├── useGirls.ts      ← fire/train/gift/resign/upgradeStat
-│   ├── useProductions.ts← start/advance/assign/setRole/cancel/archive
-│   ├── useMissions.ts   ← startMission/cancelMission
-│   ├── useWebcam.ts     ← webcamShow + upgradeWebcamLevel
-│   ├── useVisits.ts     ← acceptVisit + upgradeTrailerLevel
-│   └── useSaves.ts      ← saveToSlot/loadFromSlot/delete/export/import
-└── useGame.ts           ← komponerer alt + eier setState  (~150 linjer)
-```
+4. **`src/components/game/ProductionsSheet.tsx`**
+   - Vise tier-cover som banner når man velger ny produksjon, og som thumbnail på hver aktiv produksjon.
 
-Mønster: hver feature-hook tar `setState` (eller en `dispatch`) som argument og returnerer sine callbacks. Da kan du **bytte ut webcam-logikken** ved å redigere `useWebcam.ts` alene — uten å åpne hovedfilen.
+5. **`src/components/game/InventorySheet.tsx`** (lett touch)
+   - Bruke `SHOP_COVER` som header-banner i shop/inventar-fanen.
 
-### Etappe 3 (valgfritt) — Reducer-mønster
+## QA
+- Etter generering: åpne hvert bilde, sjekke at det er trygt (objekter/typografi, ingen kropper i seksualisert framstilling), riktig stemning, leselig komposisjon.
+- Verifisere i preview: galleri viser nye covers, webcam/visit/productions-modaler viser thumbnails, shop-banner laster.
 
-Hvis du vil gå hele veien: bytt setState-spagetti med `useReducer` + actions. Hver feature-fil eksporterer rene `(state, action) => state`-reducere som komponeres. Bedre testbarhet og enklere å skrive om enkeltdeler. Gjør **kun** hvis du vil teste enheter eller dele logikk med f.eks. en server-versjon — ellers er etappe 2 nok.
-
----
-
-## Anbefaling
-
-- **Gjør etappe 1 først** (1 melding, ~30 min): index.tsx blir håndterbar med én gang.
-- **Gjør etappe 2 etterpå** (1–2 meldinger): krever litt mer testing men gjør det trygt å skifte ut features som webcam, visits, produksjoner uavhengig.
-- **Hopp over etappe 3** med mindre du planlegger enhetstesting eller multiplayer.
-
-Ingen oppførsel i spillet endres — det er kun filer som flyttes og imports som oppdateres. Save-format (`bustville-empire-v2`) forblir likt.
-
-Si fra hvilken etappe du vil starte med, så kjører jeg.
+## Ikke i scope nå
+- Nye portretter pr. enkeltjente (vi beholder `ARCHETYPE_PORTRAITS` slik de er — det er allerede 6 stk).
+- Endring av lokasjons- eller kart-bilder.
