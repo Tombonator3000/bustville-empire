@@ -188,6 +188,29 @@ function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl
   };
 }
 
+/** Genererer kontrakt-tilbud basert på stjernens kvalitet. */
+export function genContract(g: Girl, currentDay: number, lengthWeeks: 4 | 8 | 12 = 8): import("./data").Contract {
+  const rating = (g.beauty + g.performance + g.popularity) / 3; // 0-99
+  // Lengre kontrakt = høyere signing bonus + lavere ukentlig minimum (de "binder seg")
+  const lengthMult = lengthWeeks === 4 ? 0.6 : lengthWeeks === 8 ? 1 : 1.6;
+  const signingBonus = Math.round((200 + rating * 18) * lengthMult);
+  const minBase = Math.round(g.salary * (lengthWeeks === 12 ? 0.95 : lengthWeeks === 4 ? 1.25 : 1.1));
+  return {
+    signingBonus,
+    weeklyMin: minBase,
+    signedDay: currentDay,
+    lengthWeeks,
+    expiresDay: currentDay + lengthWeeks * 7,
+  };
+}
+
+/** Returnerer effektiv ukentlig lønn (kontrakt-min vs. salary). */
+export function effectiveSalary(g: Girl): number {
+  if (g.contract) return Math.max(g.salary, g.contract.weeklyMin);
+  return g.salary;
+}
+
+
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
   const [loaded, setLoaded] = useState(false);
