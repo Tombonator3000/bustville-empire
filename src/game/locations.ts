@@ -14,7 +14,8 @@ import boutiqueImg from "@/assets/loc-boutique.jpg";
 import castingImg from "@/assets/loc-casting.jpg";
 import distribImg from "@/assets/loc-distrib.jpg";
 import clinicImg from "@/assets/loc-clinic.jpg";
-import mapTrailer from "@/assets/map-trailerpark.jpg";
+import mapTrailerDay from "@/assets/map-trailerpark-day.jpg";
+import mapTrailerNight from "@/assets/map-trailerpark-night.jpg";
 import mapDowntown from "@/assets/map-downtown.jpg";
 
 export type LocationId =
@@ -28,12 +29,13 @@ export interface District {
   id: DistrictId;
   name: string;
   image: string;
+  nightImage?: string;
   unlockLevel: number;
   tagline: string;
 }
 
 export const DISTRICTS: District[] = [
-  { id: "park", name: "Bustville Trailer Park", image: mapTrailer, unlockLevel: 1,
+  { id: "park", name: "Bustville Trailer Park", image: mapTrailerDay, nightImage: mapTrailerNight, unlockLevel: 1,
     tagline: "Rust, røyk og rå muligheter." },
   { id: "downtown", name: "Downtown Bustville", image: mapDowntown, unlockLevel: 3,
     tagline: "Neon, kontrakter og kokain på regnskapsføreren." },
