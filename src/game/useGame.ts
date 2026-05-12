@@ -812,7 +812,7 @@ export function useGame() {
   }, []);
 
   // === PRODUCTION PIPELINE ====================================
-  const startProduction = useCallback((tierId: string, girlIds: string[]) => {
+  const startProduction = useCallback((tierId: string, girlIds: string[], genreId?: string) => {
     setState((s) => {
       const tier = getTier(tierId);
       if (!tier) return s;
@@ -839,13 +839,15 @@ export function useGame() {
         girlIds, roles, quality: startQ,
         startedDay: s.day,
         reworks: 0,
+        genreId,
       };
+      const genreLabel = genreId ? ` [${getGenre(genreId)?.name ?? genreId}]` : "";
       return log({
         ...s,
         cash: s.cash - cost,
         stamina: s.stamina - brief.staminaCost,
         productions: [...s.productions, prod],
-      }, `📝 "${title}" (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
+      }, `📝 "${title}"${genreLabel} (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
     });
   }, []);
 
