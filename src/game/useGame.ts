@@ -382,7 +382,18 @@ export function useGame() {
       next.news = [...weeklyNews, ...next.news].slice(0, 12);
       next = log(next, weeklyNews[0]);
     }
-    // Drama-tick: stjernedynamikk
+    // STD-tick: ukentlig loyalty-drain for syke jenter, og kronisk-varsel
+    const sickGirls = next.girls.filter(g => g.std);
+    if (sickGirls.length) {
+      next.girls = next.girls.map(g => {
+        if (!g.std) return g;
+        const def = STDS[g.std.id];
+        // Drain: kurerbar = -2, kronisk = -5
+        const drain = def.curable ? 2 : 5;
+        return { ...g, loyalty: Math.max(0, g.loyalty - drain) };
+      });
+      next = log(next, `🧪 ${sickGirls.length} stjerne(r) lider av smitte — loyalty drypper. Behandle hos Doc Lonnie.`);
+    }
     const drama = rollDrama(next.girls, absHour(next));
     if (drama) {
       next.girls = drama.girls;
