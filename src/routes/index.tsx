@@ -79,8 +79,9 @@ function GamePage() {
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
           onPerform={(id, girlId, intensity) => {
-            // Trailer webcam uses dedicated modal
+            // Trailer webcam + visit bruker dedikerte modaler
             if (activeLoc === "trailer" && id === "webcam") { setWebcamOpen(true); return; }
+            if (activeLoc === "trailer" && id === "visit")  { setVisitOpen(true);  return; }
             g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
           }}
           onOpenRoster={() => setRosterOpen(true)}
