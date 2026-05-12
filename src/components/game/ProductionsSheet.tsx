@@ -118,19 +118,24 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
                 key={t.id}
                 disabled={blocked}
                 onClick={() => onStart(t.id, [], genreId)}
-                className={`rounded-lg border p-2.5 text-left transition ${
+                className={`group relative overflow-hidden rounded-lg border text-left transition ${
                   locked
                     ? "border-destructive/40 bg-destructive/10 opacity-50 cursor-not-allowed"
                     : "border-border bg-secondary/40 hover:border-primary/60 hover:bg-secondary/80"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold">{t.name}</span>
-                  <span className="text-[10px] text-accent">~${t.basePayout.toLocaleString()}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{t.description}</p>
-                <div className="mt-1 text-[10px] text-muted-foreground">
-                  {locked ? `🔒 Lv ${t.minLevel}` : full ? "🚫 Kø full" : `Briefing: $${cost} · ${totalHours}t total`}
+                <img src={STUDIO_COVERS[t.id]} alt="" loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover:opacity-50" />
+                <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/30" />
+                <div className="relative p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">{t.name}</span>
+                    <span className="text-[10px] text-accent">~${t.basePayout.toLocaleString()}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{t.description}</p>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {locked ? `🔒 Lv ${t.minLevel}` : full ? "🚫 Kø full" : `Briefing: $${cost} · ${totalHours}t total`}
+                  </div>
                 </div>
               </button>
             );
