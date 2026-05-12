@@ -657,9 +657,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, `VIP-scout: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, +1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `💎 ${g.name} signerte: Bea ${g.beauty}/Perf ${g.performance}/Pop ${g.popularity}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, +1);
+        const g = withContract(raw, next.day, 12); // VIP-stjerner = lange kontrakter
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} forventer $${g.contract!.signingBonus} i signing bonus. Du har ikke nok.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `💎 ${g.name} signerte 12-ukers eksklusiv. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
       }
 
       // Bank
