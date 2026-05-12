@@ -207,6 +207,7 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
   gas: [
     { id: "sellTrucker", label: "Selg til trucker", emoji: "🚛", hours: 1 },
     { id: "supplies",    label: "Kjøp forsyninger", emoji: "🥫", hours: 1, desc: "-$60, +20 stamina." },
+    { id: "gasCondoms",  label: "Kjøp condoms (3)", emoji: "🧪", hours: 1, desc: "-$80. Skitne pakker bak disken — funker." },
     { id: "hitchhike",   label: "Plukk opp haiker", emoji: "👠", hours: 2, desc: "Risikabelt." },
   ],
   forest: [
