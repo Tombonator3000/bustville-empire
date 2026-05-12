@@ -233,9 +233,18 @@ function MapView({ state, district, onGoTo }: {
     return () => window.removeEventListener("hotspot-overrides-changed", refresh);
   }, [district.id]);
 
+  // Day/night opacity from current hour: day around 12, night around 0/24.
+  // Gradual fade between 5-9 (sunrise) and 17-21 (sunset).
+  const h = state.hour;
+  let nightOpacity = 1;
+  if (h >= 9 && h <= 17) nightOpacity = 0;
+  else if (h > 5 && h < 9) nightOpacity = 1 - (h - 5) / 4;
+  else if (h > 17 && h < 21) nightOpacity = (h - 17) / 4;
+  else nightOpacity = 1;
+
   return (
     <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
-      {/* Full-bleed background map */}
+      {/* Full-bleed background map (day) */}
       <img
         src={district.image}
         alt={district.name}
@@ -244,6 +253,18 @@ function MapView({ state, district, onGoTo }: {
         width={1920}
         height={1080}
       />
+      {/* Night overlay image, faded in by hour */}
+      {district.nightImage && (
+        <img
+          src={district.nightImage}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 pointer-events-none"
+          style={{ opacity: nightOpacity }}
+          width={1920}
+          height={1080}
+        />
+      )}
       <div className="absolute inset-0 scan-lines opacity-15 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/70 pointer-events-none" />
 
