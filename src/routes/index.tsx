@@ -233,18 +233,43 @@ function MapView({ state, district, onGoTo }: {
     return () => window.removeEventListener("hotspot-overrides-changed", refresh);
   }, [district.id]);
 
-  // Day/night opacity from current hour with smoothstep easing.
-  // Sunrise fade-out: 04:00 → 08:00. Day: 08:00 → 17:00. Sunset fade-in: 17:00 → 23:00. Night: 23:00 → 04:00.
+  // Day/night cycle driven by current hour with smoothstep easing.
+  //   night [0..1]   — 0 = full day, 1 = deep night
+  //   warmth [0..1]  — peaks at dawn (~6) and sunset (~19) for golden-hour tint
+  //   cool   [0..1]  — peaks around 1-3am for cold moonlight tint
   const h = state.hour;
   const smooth = (t: number) => {
     const x = Math.max(0, Math.min(1, t));
     return x * x * (3 - 2 * x);
   };
-  let nightOpacity = 1;
-  if (h >= 8 && h <= 17) nightOpacity = 0;
-  else if (h > 4 && h < 8) nightOpacity = 1 - smooth((h - 4) / 4);
-  else if (h > 17 && h < 23) nightOpacity = smooth((h - 17) / 6);
-  else nightOpacity = 1;
+  let night = 1;
+  if (h >= 8 && h <= 17) night = 0;
+  else if (h > 4 && h < 8) night = 1 - smooth((h - 4) / 4);
+  else if (h > 17 && h < 23) night = smooth((h - 17) / 6);
+  const nightOpacity = night;
+
+  // Bell curve helper around center c with half-width w
+  const bell = (x: number, c: number, w: number) => {
+    const d = Math.abs(x - c);
+    return d >= w ? 0 : smooth(1 - d / w);
+  };
+  // Warm golden hour: dawn around 6:00 (4→8) and dusk around 19:00 (17→21)
+  const warmth = Math.max(bell(h, 6, 2.5), bell(h, 19.5, 2.5));
+  // Cool deep-night: peaks around 1:30 (handle wrap by mapping)
+  const hh = h < 4 ? h + 24 : h; // 0..3 → 24..27
+  const cool = Math.max(bell(h, 1.5, 3), bell(hh, 25.5, 3));
+
+  // Day image filters: gently dim & desaturate as night approaches
+  const dayBrightness = 1 - 0.18 * night;
+  const dayContrast = 1 + 0.08 * night;
+  const daySaturate = 1 - 0.35 * night + 0.1 * warmth;
+  const dayFilter = `brightness(${dayBrightness}) contrast(${dayContrast}) saturate(${daySaturate})`;
+
+  // Night image: extra cool tint & contrast at deepest night
+  const nightBrightness = 0.85 + 0.15 * (1 - cool);
+  const nightContrast = 1 + 0.15 * cool;
+  const nightSaturate = 0.7 + 0.4 * cool;
+  const nightFilter = `brightness(${nightBrightness}) contrast(${nightContrast}) saturate(${nightSaturate})`;
 
   return (
     <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
