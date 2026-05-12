@@ -5,7 +5,7 @@ import {
   EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST,
   type GameState, type EquipmentKind,
 } from "@/game/useGame";
-import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
+import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
 import { GENRES, getGenre } from "@/game/genres";
 
 interface Props {
