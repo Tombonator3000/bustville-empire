@@ -1270,6 +1270,62 @@ export function useGame() {
     });
   }, []);
 
+  // === WEBCAM SHOWS ===========================================
+  const webcamShow = useCallback((showId: string, girlId?: string, intensity: Intensity = "standard") => {
+    setState((s) => {
+      const show = WEBCAM_SHOWS.find((w) => w.id === showId);
+      if (!show) return s;
+      if (show.level > s.webcamLevel)
+        return log(s, `🔒 ${show.label} er låst — oppgrader webcam-rigg.`);
+      if (s.cash < show.cost) return log(s, `${show.label}: $${show.cost}.`);
+      if (s.stamina < show.hours * 4) return log(s, "For sliten — sov i traileren.");
+      if (girlId) {
+        const g = s.girls.find((x) => x.id === girlId);
+        if (!g) return s;
+        const nowAbs = absHour(s);
+        if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
+        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t.`);
+      }
+      const girl = girlId ? s.girls.find((x) => x.id === girlId) : undefined;
+      const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
+      const hustleMult = 1 + s.player.hustle * 0.05;
+      const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
+      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
+      let next = advance(s, show.hours);
+      next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep };
+      if (intensity === "intense") next = { ...next, heatLevel: Math.min(100, next.heatLevel + 2) };
+      if (girlId) {
+        const cdBase = Math.max(2, show.hours);
+        const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
+        const until = absHour(next) + cd;
+        const scene: GalleryScene = {
+          id: `${girlId}-webcam-${show.id}-${absHour(next)}`,
+          day: next.day, title: show.scene, kind: `webcam-${show.id}`, emoji: show.emoji, hue: show.hue,
+        };
+        next = {
+          ...next,
+          girls: next.girls.map((g) => g.id === girlId
+            ? { ...g, busyUntil: until, gallery: [...(g.gallery ?? []), scene].slice(-40),
+                lastActivity: `${show.emoji} ${show.scene}: +$${earned}`, lastActivityDay: next.day }
+            : g),
+        };
+      }
+      return log(next, `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep.`);
+    });
+  }, []);
+
+  const upgradeWebcamLevel = useCallback(() => {
+    setState((s) => {
+      if (s.webcamLevel >= WEBCAM_SHOWS.length)
+        return log(s, "Webcam-rigg er maks oppgradert.");
+      const cost = WEBCAM_UPGRADE_COST(s.webcamLevel);
+      if (s.cash < cost) return log(s, `Oppgradering: $${cost}.`);
+      const nextShow = WEBCAM_SHOWS.find((w) => w.level === s.webcamLevel + 1);
+      return log({ ...s, cash: s.cash - cost, webcamLevel: s.webcamLevel + 1 },
+        `📡 Webcam-rigg → Lv ${s.webcamLevel + 1}. ${nextShow ? `Låste opp: ${nextShow.emoji} ${nextShow.label}.` : ""}`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
@@ -1278,5 +1334,6 @@ export function useGame() {
     startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
     startMission, cancelMission,
     upgradeEquipment,
+    webcamShow, upgradeWebcamLevel,
   };
 }
