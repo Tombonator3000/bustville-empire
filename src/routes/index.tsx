@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useGame, dayName, timeStr, isOpen, absHour, INTENSITIES, type GameState, type Intensity } from "@/game/useGame";
 import { LOCATIONS, ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import {
-  DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS,
+  DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS, isSpecialHotspot,
   type LocationId,
 } from "@/game/locations";
 import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
