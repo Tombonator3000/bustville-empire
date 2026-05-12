@@ -233,13 +233,17 @@ function MapView({ state, district, onGoTo }: {
     return () => window.removeEventListener("hotspot-overrides-changed", refresh);
   }, [district.id]);
 
-  // Day/night opacity from current hour: day around 12, night around 0/24.
-  // Gradual fade between 5-9 (sunrise) and 17-21 (sunset).
+  // Day/night opacity from current hour with smoothstep easing.
+  // Sunrise fade-out: 04:00 → 08:00. Day: 08:00 → 17:00. Sunset fade-in: 17:00 → 23:00. Night: 23:00 → 04:00.
   const h = state.hour;
+  const smooth = (t: number) => {
+    const x = Math.max(0, Math.min(1, t));
+    return x * x * (3 - 2 * x);
+  };
   let nightOpacity = 1;
-  if (h >= 9 && h <= 17) nightOpacity = 0;
-  else if (h > 5 && h < 9) nightOpacity = 1 - (h - 5) / 4;
-  else if (h > 17 && h < 21) nightOpacity = (h - 17) / 4;
+  if (h >= 8 && h <= 17) nightOpacity = 0;
+  else if (h > 4 && h < 8) nightOpacity = 1 - smooth((h - 4) / 4);
+  else if (h > 17 && h < 23) nightOpacity = smooth((h - 17) / 6);
   else nightOpacity = 1;
 
   return (
