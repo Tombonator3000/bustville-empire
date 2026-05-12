@@ -768,9 +768,12 @@ export function useGame() {
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.7) {
-          const g = genGirl(next.player.charisma, next.locationLevel, 0);
-          return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-            `📣 ${g.name} stakk seg ut i køen. ${g.archetype}.`);
+          const raw = genGirl(next.player.charisma, next.locationLevel, 0);
+          const g = withContract(raw, next.day, 8);
+          const upfront = cost + g.contract!.signingBonus;
+          if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus. Du har ikke råd.`);
+          return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+            `📣 ${g.name} signerte 8-ukers. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
         }
         return log({ ...next, cash: next.cash - cost },
           "📣 Bare amatører i dag. Audition-vouchers var ikke verdt det.");
