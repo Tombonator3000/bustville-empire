@@ -13,6 +13,7 @@ import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
 import { GallerySheet } from "@/components/game/GallerySheet";
 import { WebcamModal } from "@/components/game/WebcamModal";
+import { ClinicSheet } from "@/components/game/ClinicSheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 import {
@@ -41,6 +42,7 @@ function GamePage() {
   const [invOpen, setInvOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [webcamOpen, setWebcamOpen] = useState(false);
+  const [clinicOpen, setClinicOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
@@ -63,6 +65,7 @@ function GamePage() {
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
+        onOpenClinic={() => setClinicOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
       />
@@ -119,6 +122,9 @@ function GamePage() {
       {galleryOpen && (
         <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />
       )}
+      {clinicOpen && (
+        <ClinicSheet state={g.state} onClose={() => setClinicOpen(false)} onPerform={g.perform} />
+      )}
       {webcamOpen && (
         <WebcamModal
           state={g.state}
@@ -151,10 +157,10 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenGallery, onOpenOptions, onSwitch }: {
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenGallery, onOpenClinic, onOpenOptions, onSwitch }: {
   state: GameState;
   onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void;
-  onOpenInventory: () => void; onOpenGallery: () => void; onOpenOptions: () => void; onSwitch: () => void;
+  onOpenInventory: () => void; onOpenGallery: () => void; onOpenClinic: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
@@ -192,6 +198,10 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
           </span>
           <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
           <IconBtn onClick={onOpenGallery} title="Galleri" icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
+          <IconBtn onClick={onOpenClinic}
+            title="Klinikk: STD-status, kjøp condoms / antibiotika / steroider"
+            icon={<span className={state.girls.some(x => x.std) ? "text-destructive" : ""}>🩺</span>}
+            label={state.girls.some(x => x.std) ? `Klinikk (${state.girls.filter(x => x.std).length})` : "Klinikk"} />
           <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
           <IconBtn onClick={onOpenProductions}
             icon={<Clapperboard className="h-3.5 w-3.5" />}
