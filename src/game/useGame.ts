@@ -487,6 +487,12 @@ export function useGame() {
       if (intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
         after = { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
       }
+      // STD-risiko ved intense, jente-involvert, betalt scene
+      if (girlId && intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
+        const enc = rollEncounter(after, girlId, 0.07);
+        after = enc.state;
+        if (enc.tag) after = log(after, `Risikabel scene${enc.tag}`);
+      }
       // Apply cooldown to the working girl if action consumed time
       if (girlId && action && action.hours > 0 && after !== before) {
         const cdBase = Math.max(2, action.hours);
