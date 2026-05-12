@@ -136,6 +136,7 @@ const INITIAL: GameState = {
   campaignBonus: 0,
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
+  webcamLevel: 1,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
