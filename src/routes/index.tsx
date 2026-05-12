@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useGame, dayName, timeStr, isOpen, absHour, INTENSITIES, type GameState, type Intensity } from "@/game/useGame";
 import { LOCATIONS, ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import {
-  DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS,
+  DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS, isSpecialHotspot,
   type LocationId,
 } from "@/game/locations";
 import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
@@ -333,8 +333,10 @@ function MapView({ state, district, onGoTo, onSwitchDistrict }: {
         <Wrench className="h-3.5 w-3.5" /> Sone-editor
       </button>
 
-      {/* Road-exit to Downtown — hover hint on the road edge */}
+      {/* Road-exit to Downtown — hover hint on the road edge (editable in Sone-editor) */}
       {district.id === "park" && (() => {
+        const exit = hotspots.find((z) => z.id === "downtown_exit");
+        if (!exit) return null;
         const unlocked = state.locationLevel >= 3;
         return (
           <button
@@ -344,7 +346,7 @@ function MapView({ state, district, onGoTo, onSwitchDistrict }: {
               ${unlocked
                 ? "cursor-pointer border-accent/60 bg-accent/0 hover:bg-accent/15 hover:shadow-[0_0_28px_oklch(0.85_0.22_95/0.55)]"
                 : "cursor-not-allowed border-muted-foreground/30 bg-background/0 hover:bg-background/20"}`}
-            style={{ left: "0%", top: "78%", width: "16%", height: "22%" }}
+            style={{ left: `${exit.x}%`, top: `${exit.y}%`, width: `${exit.w}%`, height: `${exit.h}%` }}
             title={unlocked ? "Kjør til Downtown" : "Veien til Downtown åpner på Level 3"}
           >
             <div className={`pointer-events-none mb-2 max-w-[220px] rounded-md border bg-background/90 px-2 py-1.5 text-[10px] backdrop-blur opacity-0 transition-opacity group-hover:opacity-100
@@ -365,13 +367,15 @@ function MapView({ state, district, onGoTo, onSwitchDistrict }: {
 
       {/* Hotspots */}
       {hotspots.map((h) => {
-        const def = LOCATION_DEFS[h.id];
+        if (isSpecialHotspot(h.id)) return null;
+        const locId = h.id as LocationId;
+        const def = LOCATION_DEFS[locId];
         const locked = def.unlockLevel && state.locationLevel < def.unlockLevel;
-        const open = isOpen(h.id, state.hour);
+        const open = isOpen(locId, state.hour);
         return (
           <button
             key={h.id}
-            onClick={() => !locked && onGoTo(h.id)}
+            onClick={() => !locked && onGoTo(locId)}
             disabled={!!locked}
             className={`group absolute rounded-lg border-2 transition
               ${locked
@@ -393,6 +397,7 @@ function MapView({ state, district, onGoTo, onSwitchDistrict }: {
           </button>
         );
       })}
+
 
       {/* Floating event log */}
       <div className="absolute bottom-4 left-4 right-4 z-10 mx-auto max-w-2xl rounded-lg border border-border bg-background/80 p-2 text-xs backdrop-blur">

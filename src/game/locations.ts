@@ -41,8 +41,16 @@ export const DISTRICTS: District[] = [
     tagline: "Neon, kontrakter og kokain på regnskapsføreren." },
 ];
 
+// Special non-location hotspot ids used for map transitions (district exits, etc.)
+export type SpecialHotspotId = "downtown_exit";
+export type HotspotId = LocationId | SpecialHotspotId;
+
+export const SPECIAL_HOTSPOT_IDS: SpecialHotspotId[] = ["downtown_exit"];
+export const isSpecialHotspot = (id: HotspotId): id is SpecialHotspotId =>
+  (SPECIAL_HOTSPOT_IDS as string[]).includes(id);
+
 export interface MapHotspot {
-  id: LocationId;
+  id: HotspotId;
   // % positions on the district map (0-100)
   x: number; y: number; w: number; h: number;
   label: string;
@@ -57,6 +65,7 @@ export const HOTSPOTS: Record<DistrictId, MapHotspot[]> = {
     { id: "gas",       x: 65.21, y: 52.74, w: 18.88, h: 31.24, label: "Bensinstasjon" },
     { id: "forest",    x: 77.19, y: 2.14,  w: 22,    h: 28,    label: "Skogen" },
     { id: "clinic",    x: 25.93, y: 22.53, w: 11.14, h: 17.06, label: "Doc Lonnies" },
+    { id: "downtown_exit", x: 0, y: 78, w: 16, h: 22, label: "Vei til Downtown" },
   ],
   downtown: [
     { id: "loft",     x: 4,  y: 18, w: 20, h: 30, label: "Loft Studio" },
