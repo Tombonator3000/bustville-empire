@@ -89,6 +89,15 @@ export interface Contract {
   expiresDay: number;      // dag kontrakten utløper
 }
 
+export interface GalleryScene {
+  id: string;            // unique
+  day: number;
+  title: string;         // "Solo Tease Show"
+  kind: string;          // "webcam-solo" | "mission-club" | "production-feature" ...
+  emoji: string;         // for tile badge
+  hue: number;           // 0-360, for placeholder gradient
+}
+
 export interface Girl {
   id: string;
   name: string;
@@ -103,7 +112,34 @@ export interface Girl {
   lastActivityDay?: number;
   busyUntil?: number;        // absolute hour until girl is back from short-form work cooldown
   contract?: Contract;       // aktiv kontrakt (undefined = free agent / utgått)
+  gallery?: GalleryScene[];  // unlocked scenes from jobs/missions/productions
 }
+
+export interface WebcamShowDef {
+  id: string;
+  label: string;
+  emoji: string;
+  level: number;     // unlock level (1 = default unlocked)
+  cost: number;      // cash cost per show
+  basePay: number;
+  rep: number;
+  hours: number;
+  hue: number;       // gallery tint
+  scene: string;     // gallery scene title
+  flavor: string;
+}
+
+export const WEBCAM_SHOWS: WebcamShowDef[] = [
+  { id: "solo",     label: "Solo Tease",    emoji: "💋", level: 1, cost: 40,  basePay: 180,  rep: 1, hours: 2, hue: 320,
+    scene: "Solo Tease Show",  flavor: "Ringlys, lavendel-filter, 47 betalende seere." },
+  { id: "lingerie", label: "Lingerie Show", emoji: "👙", level: 2, cost: 90,  basePay: 360,  rep: 2, hours: 3, hue: 280,
+    scene: "Lingerie Webcam",  flavor: "Silke, satin og chat-tipsene renner inn." },
+  { id: "toys",     label: "Toy Play",      emoji: "🪀", level: 3, cost: 160, basePay: 640,  rep: 3, hours: 3, hue: 0,
+    scene: "Toy Play Stream",  flavor: "Hardcore solo. Premium-kanalen koker." },
+];
+
+export const WEBCAM_UPGRADE_COST = (currentLevel: number) =>
+  Math.floor(800 * Math.pow(currentLevel + 1, 1.4));
 
 export const CONTENT_TYPES = [
   { id: "webcam", name: "Webcam Show", cost: 40, minLevel: 1, basePay: 180, repGain: 1, stamina: 15,
