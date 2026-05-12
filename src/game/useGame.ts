@@ -1392,10 +1392,16 @@ export function useGame() {
       const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
       const hustleMult = 1 + s.player.hustle * 0.05;
       const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
-      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
+      const stdMult = girl ? payoutMult(girl, s.day) : 1;
+      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * stdMult * (0.85 + Math.random() * 0.3));
       let next = advance(s, show.hours);
       next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep };
       if (intensity === "intense") next = { ...next, heatLevel: Math.min(100, next.heatLevel + 2) };
+      // Toy/intense webcam med jente kan smitte (lav sjanse — ikke fysisk møte, men sett-personell osv.)
+      if (girlId && intensity === "intense" && show.id === "toys") {
+        const enc = rollEncounter(next, girlId, 0.05);
+        next = enc.state;
+      }
       if (girlId) {
         const cdBase = Math.max(2, show.hours);
         const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
