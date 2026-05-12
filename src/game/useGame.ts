@@ -310,13 +310,18 @@ export function useGame() {
     }
     // Complete any missions whose end time has passed — consolidated log + toast
     const nowAbs = absHour(next);
-    const completed: { name: string; label: string; payout: number; rep: number; toastId: string }[] = [];
+    const completed: { name: string; label: string; payout: number; rep: number; toastId: string; mid: string }[] = [];
     next.girls = next.girls.map((g) => {
       if (g.mission && g.mission.endsAt <= nowAbs) {
         const m = g.mission;
-        completed.push({ name: g.name, label: m.label, payout: m.payout, rep: m.rep,
+        completed.push({ name: g.name, label: m.label, payout: m.payout, rep: m.rep, mid: m.id,
           toastId: `mission:${g.id}:${m.endsAt}` });
+        const scene: GalleryScene = {
+          id: `${g.id}-mission-${m.id}-${nowAbs}`,
+          day: next.day, title: m.label, kind: `mission-${m.id}`, emoji: "💼", hue: (m.id.length * 47) % 360,
+        };
         return { ...g, mission: undefined,
+          gallery: [...(g.gallery ?? []), scene].slice(-40),
           lastActivity: `✅ ${m.label}: +$${m.payout}, +${m.rep} rep`,
           lastActivityDay: next.day };
       }
