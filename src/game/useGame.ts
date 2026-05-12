@@ -746,9 +746,20 @@ export function useGame() {
         const $ = 800 + ri(0, 500) + next.player.business * 80;
         return log({ ...next, cash: next.cash + $, backlog: next.backlog - 1 },
           `💼 Pre-solgte 1 tittel: +$${$}.`);
+      case "distrib:campaignS":
+      case "distrib:campaignM":
+      case "distrib:campaignL": {
+        const tier = actionId === "distrib:campaignS" ? { cost: 300, bonus: 20, emoji: "📣", name: "lokal" }
+                   : actionId === "distrib:campaignM" ? { cost: 800, bonus: 50, emoji: "📺", name: "regional" }
+                   :                                    { cost: 2000, bonus: 100, emoji: "🚀", name: "nasjonal" };
+        if (next.cash < tier.cost) return log(next, `${tier.emoji} Kampanje: $${tier.cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - tier.cost,
+          campaignBonus: Math.min(200, next.campaignBonus + tier.bonus),
+        }, `${tier.emoji} ${tier.name} kampanje aktivert: +${tier.bonus}% på neste utgivelse (totalt +${Math.min(200, next.campaignBonus + tier.bonus)}%).`);
       }
 
-      // Clinic — Doc Lonnie's
       case "clinic:heal": {
         const cost = 120;
         if (next.cash < cost) return log(next, `Sprøyte: $${cost}.`);
