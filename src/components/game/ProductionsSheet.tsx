@@ -86,17 +86,22 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
         {/* Genre picker */}
         <div className="mt-2 rounded-lg border border-border bg-secondary/30 p-2">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Velg genre — match med cast-arketyper gir bonus payout & lavere flopprisiko.
+            Velg genre — match med cast-arketyper + fanbase gir bonus payout & lavere flopprisiko.
           </div>
           <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {GENRES.map((g) => {
               const active = genreId === g.id;
+              const fans = state.fans?.[g.id] ?? 0;
+              const fanMult = 1 + Math.min(1, fans / 600);
               return (
                 <button key={g.id} onClick={() => setGenreId(g.id)} title={g.blurb}
                   className={`rounded-md border px-2 py-1.5 text-left text-[10px] transition ${
                     active ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
                   }`}>
-                  <div className="font-bold">{g.emoji} {g.name}</div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-bold">{g.emoji} {g.name}</span>
+                    <span className="font-mono text-accent text-[9px]">★{fans} ×{fanMult.toFixed(2)}</span>
+                  </div>
                   <div className="text-[9px] opacity-70">{g.matches.join(", ")}</div>
                 </button>
               );

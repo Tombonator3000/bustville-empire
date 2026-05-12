@@ -7,7 +7,7 @@ import {
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
-import { genreMatchMult, getGenre } from "./genres";
+import { genreMatchMult, getGenre, emptyFans, fanMultiplier, GENRE_IDS, type GenreId } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
 import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
@@ -78,6 +78,7 @@ export interface GameState {
   webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
   trailerLevel: number;    // 1-4, hvor mange visit-typer er låst opp
   condoms: number;         // forbrukbare beskyttelse — brukes auto i risikable scener
+  fans: Record<GenreId, number>; // genre-vektor: bygges av releases, drives marketing-mål
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -142,6 +143,7 @@ const INITIAL: GameState = {
   webcamLevel: 1,
   trailerLevel: 1,
   condoms: 2,
+  fans: emptyFans(),
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -224,7 +226,6 @@ export function effectiveSalary(g: Girl): number {
 function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
   return { ...g, contract: genContract(g, day, lengthWeeks) };
 }
-
 
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
@@ -910,6 +911,23 @@ export function useGame() {
           campaignBonus: Math.min(200, next.campaignBonus + tier.bonus),
         }, `${tier.emoji} ${tier.name} kampanje aktivert: +${tier.bonus}% på neste utgivelse (totalt +${Math.min(200, next.campaignBonus + tier.bonus)}%).`);
       }
+      case "distrib:fansRomance":
+      case "distrib:fansWild":
+      case "distrib:fansGlamour":
+      case "distrib:fansFetish": {
+        const cost = 400;
+        if (next.cash < cost) return log(next, `Fanboost: $${cost}.`);
+        const gid = (actionId.split(":")[1].replace("fans", "").toLowerCase()) as GenreId;
+        if (!GENRE_IDS.includes(gid)) return next;
+        next = advanceFn(next, action.hours);
+        const gain = 60;
+        const meta = getGenre(gid);
+        const newTotal = (next.fans[gid] ?? 0) + gain;
+        return log({
+          ...next, cash: next.cash - cost,
+          fans: { ...next.fans, [gid]: newTotal },
+        }, `${meta?.emoji ?? "📈"} Målrettet kampanje mot ${meta?.name ?? gid}-publikum: +${gain} fans (totalt ${newTotal}).`);
+      }
 
       case "clinic:heal": {
         const cost = 120;
@@ -1154,14 +1172,18 @@ export function useGame() {
         const marketMult = 0.55 + share * 0.6; // ~0.55..1.15
         // Marketing-kampanje engangs-bonus
         const campMult = 1 + (s.campaignBonus || 0) / 100;
+        // Fanbase-multiplier — genre-fans bygges av tidligere releases + målrettet marketing
+        const genreFans = p.genreId ? (s.fans[p.genreId as GenreId] ?? 0) : 0;
+        const fanMult = p.genreId ? fanMultiplier(genreFans) : 1;
         const flopChance = Math.max(
           0.02,
           0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220
-            - (genreMult - 1) * 0.3, // god genre-match reduserer flopp-risiko
+            - (genreMult - 1) * 0.3 // god genre-match reduserer flopp-risiko
+            - Math.min(0.15, genreFans / 4000), // stor fanbase = lavere flopp
         );
         const flopped = Math.random() < flopChance;
         const distribMult = 1 + (s.distribBonus || 0) / 100;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult);
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult * fanMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
@@ -1179,9 +1201,21 @@ export function useGame() {
           ? genreMult >= 1.15 ? " (perfekt cast-match!)" : genreMult <= 0.95 ? " (cast passet dårlig)" : ""
           : "";
         const campNote = (s.campaignBonus || 0) > 0 ? ` [kampanje +${s.campaignBonus}%]` : "";
+        // Fanbase-gevinst: bygger genre-vektoren over tid
+        const fanGain = p.genreId
+          ? Math.max(2, Math.floor((flopped ? 6 : 28) * (0.6 + qualityMult) * (1 + release.count * 0.15)))
+          : 0;
+        const newFans = { ...s.fans };
+        if (p.genreId) {
+          const gid = p.genreId as GenreId;
+          newFans[gid] = (newFans[gid] ?? 0) + fanGain;
+        }
+        const fanNote = p.genreId
+          ? ` · +${fanGain} ${getGenre(p.genreId)?.name ?? ""} fans${fanMult > 1.05 ? ` (fanbase ×${fanMult.toFixed(2)})` : ""}`
+          : "";
         const note = flopped
-          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
-          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
+          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.${fanNote}`
+          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}${fanNote}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           const scene: GalleryScene = {
@@ -1208,6 +1242,7 @@ export function useGame() {
           rivals: rivalsAfter,
           productions: updated,
           girls,
+          fans: newFans,
         }, note);
       }
 
@@ -1245,12 +1280,18 @@ export function useGame() {
       const roll = Math.random() * 100;
       const failed = roll > successPct;
 
+      // P4: cast-binding — sterk bonus når stjerne er tildelt riktig rolle, straff når den mangler
+      const roleAssignmentMod =
+        roleInfo.count === 0
+          ? (nextStage.id === "casting" ? -6 : nextStage.id === "shooting" ? -8 : -3)
+          : Math.min(8, roleInfo.count * 3);
+
       const qBonus =
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
         (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 + s.equipment.lighting + s.equipment.camera : 0) +
         (nextStage.id === "editing"  ? 4 + s.player.business + s.equipment.editing * 2 : 0) +
         (nextStage.id === "release"  ? 3 + s.player.hustle : 0)
-        + roleQ;
+        + roleQ + roleAssignmentMod;
 
       let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
       // consume inventory at stage entry
@@ -1272,7 +1313,7 @@ export function useGame() {
       const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
       const roleNote = roleInfo.count > 0
         ? ` (${roleInfo.count} i ${role}-rolle, +${Math.round(roleBonus)}%)`
-        : "";
+        : ` (⚠️ ingen ${role}-rolle, Q${roleAssignmentMod})`;
       const updated = next.productions.map((x, i) => i === idx
         ? { ...x, stageIdx: nextIdx, hoursLeft: nextHours,
             quality: Math.max(0, Math.min(mods.qualityCap, x.quality + qDelta)) }

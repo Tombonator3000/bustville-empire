@@ -255,6 +255,10 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "campaignS", label: "Marketing: lokalt",         emoji: "📣", hours: 1, desc: "-$300. +20% på neste utgivelse." },
     { id: "campaignM", label: "Marketing: regional",       emoji: "📺", hours: 2, desc: "-$800. +50% på neste utgivelse." },
     { id: "campaignL", label: "Marketing: nasjonal",       emoji: "🚀", hours: 3, desc: "-$2000. +100% på neste utgivelse." },
+    { id: "fansRomance", label: "Fanboost: Romance",       emoji: "💕", hours: 3, desc: "-$400. +60 Romance-fans (varig). Stor fanbase = høyere payout & lavere flopp på Romance-utgivelser." },
+    { id: "fansWild",    label: "Fanboost: Wild",          emoji: "🎉", hours: 3, desc: "-$400. +60 Wild-fans (varig)." },
+    { id: "fansGlamour", label: "Fanboost: Glamour",       emoji: "💎", hours: 3, desc: "-$400. +60 Glamour-fans (varig)." },
+    { id: "fansFetish",  label: "Fanboost: Fetish",        emoji: "⛓️", hours: 3, desc: "-$400. +60 Fetish-fans (varig)." },
   ],
   clinic: [
     { id: "heal",         label: "Vitamin-sprøyte",   emoji: "💉", hours: 1, desc: "-$120, full stamina." },
