@@ -66,6 +66,10 @@ export function InventorySheet({ state, onClose }: Props) {
             <Item icon="💋" label="Stjerner i roster" value={state.girls.length} />
             <Item icon="⏳" label="På oppdrag" value={state.girls.filter((g) => g.mission).length} />
             <Item icon="🎥" label="Aktive produksjoner" value={state.productions.filter((p) => !p.flopped && p.stageIdx < 5).length} />
+            {state.girls.some(g => g.std) && (
+              <Item icon="🧪" label="Syke stjerner" sub="trenger Doc Lonnie"
+                value={state.girls.filter(g => g.std).length} className="text-destructive" />
+            )}
           </Section>
 
           <p className="pt-2 text-center text-[10px] text-muted-foreground">
