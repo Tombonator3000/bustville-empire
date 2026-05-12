@@ -136,6 +136,14 @@ function GamePage() {
           onUpgrade={g.upgradeWebcamLevel}
         />
       )}
+      {visitOpen && (
+        <VisitModal
+          state={g.state}
+          onClose={() => setVisitOpen(false)}
+          onRun={(visitId, girlId, intensity) => g.acceptVisit(visitId, girlId, intensity)}
+          onUpgrade={g.upgradeTrailerLevel}
+        />
+      )}
       {optionsOpen && (
         <OptionsMenu
           onClose={() => setOptionsOpen(false)}
