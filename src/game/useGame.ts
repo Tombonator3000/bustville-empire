@@ -371,7 +371,15 @@ export function useGame() {
       next.news = [...weeklyNews, ...next.news].slice(0, 12);
       next = log(next, weeklyNews[0]);
     }
-    // razzia roll
+    // Drama-tick: stjernedynamikk
+    const drama = rollDrama(next.girls, absHour(next));
+    if (drama) {
+      next.girls = drama.girls;
+      next.cash += drama.cashDelta;
+      next.reputation = Math.max(0, next.reputation + drama.repDelta);
+      next.heatLevel = Math.min(100, next.heatLevel + drama.heatDelta);
+      next = log(next, drama.log);
+    }
     if (next.heatLevel > 40 && next.day >= next.bribedUntilDay && Math.random() < next.heatLevel / 200) {
       const loss = Math.min(next.cash, 200 + next.heatLevel * 10);
       const lostShine = Math.min(next.moonshine, 3);
