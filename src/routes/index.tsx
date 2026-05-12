@@ -723,6 +723,17 @@ function GirlCard({ g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, 
             </span>
           </div>
           <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          {g.std && (() => {
+            const supressed = g.std.suppressedUntilDay && currentDay < g.std.suppressedUntilDay;
+            const def = STDS[g.std.id];
+            return (
+              <div className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                supressed ? "bg-amber-500/20 text-amber-200" : def.curable ? "bg-orange-600/30 text-orange-100" : "bg-destructive/40 text-destructive-foreground"
+              }`}>
+                {def.emoji} {def.name}{supressed ? ` (undertrykt d.${g.std.suppressedUntilDay})` : ""}
+              </div>
+            );
+          })()}
           <div className="mt-1 text-[10px]">
             {g.contract ? (
               <span className="text-emerald-300/90">
