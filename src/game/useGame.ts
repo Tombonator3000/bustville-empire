@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
-  RANDOM_EVENTS, GIRL_MISSIONS, WEBCAM_SHOWS, WEBCAM_UPGRADE_COST,
+  RANDOM_EVENTS, GIRL_MISSIONS, WEBCAM_SHOWS, WEBCAM_UPGRADE_COST, VISIT_TYPES, VISIT_UPGRADE_COST,
   type Archetype, type Girl, type MissionDef, type GalleryScene,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
