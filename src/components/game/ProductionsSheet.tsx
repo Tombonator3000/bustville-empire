@@ -82,6 +82,31 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
 
         {/* New project */}
         <h3 className="mt-4 font-display text-sm uppercase tracking-widest text-accent">Start nytt prosjekt</h3>
+
+        {/* Genre picker */}
+        <div className="mt-2 rounded-lg border border-border bg-secondary/30 p-2">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Velg genre — match med cast-arketyper gir bonus payout & lavere flopprisiko.
+          </div>
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {GENRES.map((g) => {
+              const active = genreId === g.id;
+              return (
+                <button key={g.id} onClick={() => setGenreId(g.id)} title={g.blurb}
+                  className={`rounded-md border px-2 py-1.5 text-left text-[10px] transition ${
+                    active ? "border-primary bg-primary/20 text-foreground" : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
+                  }`}>
+                  <div className="font-bold">{g.emoji} {g.name}</div>
+                  <div className="text-[9px] opacity-70">{g.matches.join(", ")}</div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-1 text-[10px] text-muted-foreground">
+            Valgt: <span className="text-foreground">{getGenre(genreId)?.name}</span> — {getGenre(genreId)?.blurb}
+          </div>
+        </div>
+
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {TIERS.map((t) => {
             const locked = state.locationLevel < t.minLevel;
@@ -92,7 +117,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
               <button
                 key={t.id}
                 disabled={blocked}
-                onClick={() => onStart(t.id, [])}
+                onClick={() => onStart(t.id, [], genreId)}
                 className={`rounded-lg border p-2.5 text-left transition ${
                   locked
                     ? "border-destructive/40 bg-destructive/10 opacity-50 cursor-not-allowed"
