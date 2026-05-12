@@ -61,6 +61,7 @@ function GamePage() {
         onOpenStats={() => setStatsOpen(true)}
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
+        onOpenGallery={() => setGalleryOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
       />
@@ -71,8 +72,13 @@ function GamePage() {
           locId={activeLoc}
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
-          onPerform={(id, girlId, intensity) => g.perform(activeLoc, id, girlId ?? selectedGirl, intensity)}
+          onPerform={(id, girlId, intensity) => {
+            // Trailer webcam uses dedicated modal
+            if (activeLoc === "trailer" && id === "webcam") { setWebcamOpen(true); return; }
+            g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
+          }}
           onOpenRoster={() => setRosterOpen(true)}
+          onOpenWebcam={() => setWebcamOpen(true)}
         />
       ) : (
         <MapView state={g.state} district={district} onGoTo={g.goTo} onSwitchDistrict={g.switchDistrict} />
