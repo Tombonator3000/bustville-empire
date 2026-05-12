@@ -1264,12 +1264,18 @@ export function useGame() {
       const roll = Math.random() * 100;
       const failed = roll > successPct;
 
+      // P4: cast-binding — sterk bonus når stjerne er tildelt riktig rolle, straff når den mangler
+      const roleAssignmentMod =
+        roleInfo.count === 0
+          ? (nextStage.id === "casting" ? -6 : nextStage.id === "shooting" ? -8 : -3)
+          : Math.min(8, roleInfo.count * 3);
+
       const qBonus =
         (nextStage.id === "casting"  ? 4 + s.player.charisma : 0) +
         (nextStage.id === "shooting" ? 6 + s.player.lust + s.studioLevel * 2 + s.equipment.lighting + s.equipment.camera : 0) +
         (nextStage.id === "editing"  ? 4 + s.player.business + s.equipment.editing * 2 : 0) +
         (nextStage.id === "release"  ? 3 + s.player.hustle : 0)
-        + roleQ;
+        + roleQ + roleAssignmentMod;
 
       let next = { ...s, cash: s.cash - nextCost, stamina: Math.max(0, s.stamina - nextStage.staminaCost) };
       // consume inventory at stage entry
