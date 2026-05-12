@@ -547,13 +547,14 @@ function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }
 
 
 /* ========== ROSTER SHEET ========== */
-function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
+function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission }: {
   state: GameState; selected?: string;
   onClose: () => void;
   onSelect: (id: string) => void;
   onFire: (id: string) => void;
   onTrain: (id: string) => void;
   onGift: (id: string) => void;
+  onResign: (id: string, lengthWeeks?: 4 | 8 | 12) => void;
   onStartMission: (girlId: string, missionId: string) => void;
   onCancelMission: (girlId: string) => void;
 }) {
