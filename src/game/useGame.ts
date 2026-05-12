@@ -258,6 +258,11 @@ export function useGame() {
       next.hour -= 24;
       next.day += 1;
       next.heatLevel = Math.max(0, next.heatLevel - 3);
+      // Daglig overskrift (60% sjanse for å unngå spam)
+      if (Math.random() < 0.6) {
+        const headline = dailyHeadline(next.rivals);
+        next.news = [headline, ...next.news].slice(0, 12);
+      }
       if ((next.day - 1) % 7 === 0) next = weekTick(next);
       if (next.loan > 0 && next.day >= next.loanDueDay) {
         if (next.cash >= next.loan) {
