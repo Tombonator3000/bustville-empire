@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TIERS, STAGE_ORDER, getTier, CAST_ROLES, type Production, type CastRole } from "@/game/productions";
 import {
   getStudioMods, stageCost, stageHours,
@@ -5,11 +6,12 @@ import {
   type GameState, type EquipmentKind,
 } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
+import { GENRES, getGenre } from "@/game/genres";
 
 interface Props {
   state: GameState;
   onClose: () => void;
-  onStart: (tierId: string, girlIds: string[]) => void;
+  onStart: (tierId: string, girlIds: string[], genreId?: string) => void;
   onAdvance: (id: string) => void;
   onAssign: (id: string, girlId: string) => void;
   onSetRole: (id: string, girlId: string, role: CastRole) => void;
@@ -21,6 +23,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
   const mods = getStudioMods(state);
   const activeCount = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const full = activeCount >= mods.capacity;
+  const [genreId, setGenreId] = useState<string>("romance");
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
