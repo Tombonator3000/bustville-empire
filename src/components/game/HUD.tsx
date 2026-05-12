@@ -4,6 +4,7 @@ import { STAGE_ORDER } from "@/game/productions";
 import {
   DollarSign, Star, Zap, Flame, Wine, Calendar, Backpack, Crown,
   Clapperboard, Users, ArrowLeftRight, Settings, Image as ImageIcon,
+  Stethoscope,
 } from "lucide-react";
 
 export function HUD({
@@ -18,56 +19,51 @@ export function HUD({
   const loc = LOCATIONS[state.locationLevel - 1];
   const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
   const headline = state.news[0];
+  const sickCount = state.girls.filter(x => x.std).length;
+  const activeProds = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
+
   return (
-    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex w-full flex-wrap items-center gap-2 px-4 py-2 text-xs">
-        <h1 className="mr-2 font-display text-xl font-black uppercase neon-text">Bustville</h1>
-        <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash" value={state.cash.toLocaleString()} accent />
-        <Pill icon={<Star className="h-3.5 w-3.5" />} label="Rep" value={state.reputation.toString()} />
-        <Pill icon={<Zap className="h-3.5 w-3.5" />} label="Stam" value={`${state.stamina}/${state.maxStamina}`} />
-        <Pill icon={<Wine className="h-3.5 w-3.5" />} label="Moon" value={state.moonshine.toString()} />
-        <Pill icon={<Flame className="h-3.5 w-3.5" />} label="Heat" value={`${state.heatLevel}%`} hot={state.heatLevel > 40} />
-        {state.loan > 0 && <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Loan" value={`$${state.loan}`} hot />}
-        {state.campaignBonus > 0 && (
-          <span title="Marketing-kampanje aktiv — brukes opp ved neste release"
-            className="flex items-center gap-1 rounded-md border border-accent/60 bg-accent/15 px-2 py-1 font-mono text-accent">
-            📣 +{state.campaignBonus}%
-          </span>
-        )}
-        {topRival && (
-          <span title={`Topp-rival: ${topRival.name} (markedsandel ${Math.round(topRival.share)}%)`}
-            className="hidden items-center gap-1 rounded-md border border-border/60 bg-card/50 px-2 py-1 font-mono md:flex">
-            {topRival.emoji} <span className="text-[9px] uppercase text-muted-foreground">Rival</span>
-            <span className="font-bold">{Math.round(topRival.share)}%</span>
-          </span>
-        )}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1 rounded bg-card/60 px-2 py-1 font-mono">
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
+      {/* Row 1 — brand + resources */}
+      <div className="mx-auto flex w-full items-center gap-2 px-4 py-1.5 text-xs">
+        <h1 className="mr-1 font-display text-xl font-black uppercase neon-text leading-none">Bustville</h1>
+        <span className="hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground md:inline">
+          › Lv{loc.level} {loc.name}
+        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Cash" value={state.cash.toLocaleString()} accent />
+          <Pill icon={<Star className="h-3.5 w-3.5" />} label="Rep" value={state.reputation.toString()} />
+          <Pill icon={<Zap className="h-3.5 w-3.5" />} label="Stam" value={`${state.stamina}/${state.maxStamina}`} />
+          <Pill icon={<Wine className="h-3.5 w-3.5" />} label="Moon" value={state.moonshine.toString()} />
+          <Pill icon={<Flame className="h-3.5 w-3.5" />} label="Heat" value={`${state.heatLevel}%`} hot={state.heatLevel > 40} />
+          {state.loan > 0 && <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Loan" value={`$${state.loan}`} hot />}
+          <span className="flex items-center gap-1 rounded-md border border-border/60 bg-card/50 px-2 py-1 font-mono">
             <Calendar className="h-3.5 w-3.5 text-accent" />
-            {dayName(state.day)} d.{state.day} · {timeStr(state.hour)}
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{dayName(state.day)}</span>
+            <span className="font-bold">d.{state.day}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-bold">{timeStr(state.hour)}</span>
           </span>
-          <span className="hidden text-[10px] text-muted-foreground sm:inline">
-            Lv{loc.level} {loc.name}
-          </span>
-          <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
-          <IconBtn onClick={onOpenGallery} title="Galleri" icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
-          <IconBtn onClick={onOpenClinic}
-            title="Klinikk: STD-status, kjøp condoms / antibiotika / steroider"
-            icon={<span className={state.girls.some(x => x.std) ? "text-destructive" : ""}>🩺</span>}
-            label={state.girls.some(x => x.std) ? `Klinikk (${state.girls.filter(x => x.std).length})` : "Klinikk"} />
-          <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
-          <IconBtn onClick={onOpenProductions}
-            icon={<Clapperboard className="h-3.5 w-3.5" />}
-            label={`Filmer (${state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length})`} />
-          <button onClick={onOpenRoster}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 font-bold text-primary-foreground shadow-sm hover:brightness-110">
-            <Users className="h-3.5 w-3.5" /> Roster ({state.girls.length})
-          </button>
+        </div>
+      </div>
+
+      {/* Row 2 — navigation */}
+      <div className="mx-auto flex w-full flex-wrap items-center gap-1.5 border-t border-border/40 bg-background/60 px-4 py-1.5 text-xs">
+        <NavBtn onClick={onOpenRoster} icon={<Users className="h-3.5 w-3.5" />} label={`Roster ${state.girls.length}`} primary />
+        <NavBtn onClick={onOpenProductions}
+          icon={<Clapperboard className="h-3.5 w-3.5" />}
+          label={`Filmer${activeProds ? ` (${activeProds})` : ""}`} />
+        <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
+        <NavBtn onClick={onOpenInventory} icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
+        <NavBtn onClick={onOpenGallery} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
+        <NavBtn onClick={onOpenClinic}
+          icon={<Stethoscope className={`h-3.5 w-3.5 ${sickCount ? "text-destructive" : ""}`} />}
+          label={sickCount ? `Klinikk (${sickCount})` : "Klinikk"}
+          hot={sickCount > 0} />
+        <div className="ml-auto flex items-center gap-1.5">
           {state.locationLevel >= 3 && (
-            <button onClick={onSwitch} className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 font-bold text-accent-foreground hover:brightness-110">
-              <ArrowLeftRight className="h-3.5 w-3.5" />
-              {state.district === "park" ? "Downtown" : "Park"}
-            </button>
+            <NavBtn onClick={onSwitch} icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
+              label={state.district === "park" ? "→ Downtown" : "→ Park"} accent />
           )}
           <button onClick={onOpenOptions} title="Meny / Lagre / Innstillinger"
             className="rounded-md border border-border bg-background p-1.5 hover:border-primary">
@@ -75,20 +71,49 @@ export function HUD({
           </button>
         </div>
       </div>
-      {headline && (
-        <div className="flex items-center gap-2 border-t border-border/40 bg-background/70 px-4 py-1 text-[10px] text-muted-foreground">
-          <span className="rounded bg-accent/20 px-1.5 py-0.5 font-bold uppercase tracking-widest text-accent">News</span>
-          <span className="truncate">{headline}</span>
+
+      {/* Status strip — campaign + rival + news */}
+      {(state.campaignBonus > 0 || topRival || headline) && (
+        <div className="flex items-center gap-3 border-t border-border/40 bg-background/70 px-4 py-1 text-[10px]">
+          {state.campaignBonus > 0 && (
+            <span title="Marketing-kampanje aktiv — brukes opp ved neste release"
+              className="flex items-center gap-1 rounded border border-accent/60 bg-accent/15 px-1.5 py-0.5 font-mono text-accent whitespace-nowrap">
+              📣 +{state.campaignBonus}%
+            </span>
+          )}
+          {topRival && (
+            <span title={`Topp-rival: ${topRival.name}`}
+              className="hidden items-center gap-1 font-mono text-muted-foreground md:flex whitespace-nowrap">
+              {topRival.emoji} <span className="uppercase tracking-wider">Rival</span>
+              <span className="font-bold text-foreground">{Math.round(topRival.share)}%</span>
+            </span>
+          )}
+          {headline && (
+            <div className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
+              <span className="rounded bg-accent/20 px-1.5 py-0.5 font-bold uppercase tracking-widest text-accent shrink-0">News</span>
+              <span className="truncate">{headline}</span>
+            </div>
+          )}
         </div>
       )}
     </header>
   );
 }
 
-function IconBtn({ onClick, icon, label, title }: { onClick: () => void; icon: React.ReactNode; label: string; title?: string }) {
+function NavBtn({ onClick, icon, label, primary, accent, hot, title }: {
+  onClick: () => void; icon: React.ReactNode; label: string;
+  primary?: boolean; accent?: boolean; hot?: boolean; title?: string;
+}) {
+  const base = "flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition";
+  const cls = primary
+    ? "bg-primary text-primary-foreground font-bold hover:brightness-110"
+    : accent
+    ? "bg-accent text-accent-foreground font-bold hover:brightness-110"
+    : hot
+    ? "bg-destructive/30 text-destructive-foreground border border-destructive/60 hover:bg-destructive/50"
+    : "bg-secondary/70 hover:bg-secondary";
   return (
-    <button onClick={onClick} title={title}
-      className="flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 font-medium hover:bg-secondary/70">
+    <button onClick={onClick} title={title} className={`${base} ${cls}`}>
       {icon} {label}
     </button>
   );

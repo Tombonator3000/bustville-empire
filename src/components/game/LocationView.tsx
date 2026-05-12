@@ -21,8 +21,8 @@ export function LocationView({ state, locId, selectedGirl, onBack, onPerform, on
         <ArrowLeft className="h-3.5 w-3.5" /> Tilbake til kartet
       </button>
 
-      <div className="grid gap-3 lg:grid-cols-[1.8fr_1fr]">
-        <div className="relative h-[calc(100vh-9rem)] min-h-[420px] overflow-hidden rounded-xl border border-border neon-border">
+      <div className="grid gap-3 lg:grid-cols-12">
+        <div className="relative h-[calc(100vh-12rem)] min-h-[420px] overflow-hidden rounded-xl border border-border neon-border lg:col-span-7">
           <img src={getLocationImage(locId, def.image)} alt={def.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1024} height={768} />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
@@ -31,11 +31,17 @@ export function LocationView({ state, locId, selectedGirl, onBack, onPerform, on
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="rounded-xl border border-border bg-card/60 p-3">
-            <h3 className="font-display text-sm uppercase tracking-widest text-accent">Handlinger</h3>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
-              {selectedGirl ? "🎯 Stjerne valgt — bonus aktivert. Trykk en jobb for å justere innstillinger." : "Tips: trykk en jobb for å velge hvilken stjerne + intensitet."}
+        <div className="space-y-3 lg:col-span-5 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-1">
+          <div className="rounded-xl border border-border bg-card/60">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-xl border-b border-border/60 bg-card/95 px-3 py-2 backdrop-blur">
+              <h3 className="font-display text-sm uppercase tracking-widest text-accent">Handlinger</h3>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${selectedGirl ? "bg-primary/20 text-primary" : "bg-secondary/60 text-muted-foreground"}`}>
+                {selectedGirl ? `★ ${state.girls.find(g => g.id === selectedGirl)?.name ?? "valgt"}` : "Ingen stjerne valgt"}
+              </span>
+            </div>
+            <div className="px-3 pt-2 pb-3">
+            <p className="text-[10px] text-muted-foreground">
+              {selectedGirl ? "🎯 Bonus aktivert. Trykk en jobb for å justere innstillinger." : "Tips: trykk en jobb for å velge stjerne + intensitet."}
             </p>
             <div className="mt-2 space-y-1.5">
               {actions.map((a) => {
@@ -81,6 +87,7 @@ export function LocationView({ state, locId, selectedGirl, onBack, onPerform, on
                   />
                 );
               })}
+            </div>
             </div>
           </div>
 

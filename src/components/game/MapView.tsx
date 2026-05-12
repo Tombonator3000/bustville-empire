@@ -53,7 +53,7 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   const nightFilter = `brightness(${nightBrightness}) contrast(${nightContrast}) saturate(${nightSaturate})`;
 
   return (
-    <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
+    <section className="relative h-[calc(100vh-6.25rem)] w-full overflow-hidden">
       <img
         src={district.image}
         alt={district.name}
@@ -93,19 +93,17 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
       <div className="absolute inset-0 scan-lines opacity-15 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/70 pointer-events-none" />
 
-      <div className="absolute left-4 top-4 z-10 flex items-start gap-3">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Klikk en bygning</p>
-          <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{district.name}</h2>
-          <p className="mt-0.5 text-xs text-foreground/80">{district.tagline}</p>
-        </div>
+      <div className="absolute left-4 top-4 z-10 max-w-xs rounded-lg border border-border/50 bg-background/60 px-3 py-1.5 backdrop-blur">
+        <p className="text-[9px] uppercase tracking-[0.3em] text-accent leading-tight">Klikk en bygning</p>
+        <h2 className="font-display text-2xl uppercase neon-text leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{district.name}</h2>
+        <p className="text-[10px] text-foreground/80 leading-tight">{district.tagline}</p>
       </div>
 
       <button
         onClick={() => setEditor(true)}
-        className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider backdrop-blur hover:border-primary"
+        className="absolute right-4 top-4 z-10 flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur hover:border-primary"
         title="Juster soner på kartet">
-        <Wrench className="h-3.5 w-3.5" /> Sone-editor
+        <Wrench className="h-3 w-3" /> Editor
       </button>
 
       {district.id === "park" && (() => {
@@ -170,16 +168,17 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
         );
       })}
 
-      <div className="absolute bottom-4 left-4 right-4 z-10 mx-auto max-w-2xl rounded-lg border border-border bg-background/80 p-2 text-xs backdrop-blur">
-        <div className="flex items-center gap-1.5 font-display text-[10px] uppercase tracking-widest text-accent">
+      <details className="group absolute bottom-4 right-4 z-10 w-72 rounded-lg border border-border bg-background/85 text-xs backdrop-blur open:shadow-[0_0_24px_oklch(0.7_0.28_350/0.25)]" open>
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 px-2.5 py-1.5 font-display text-[10px] uppercase tracking-widest text-accent hover:bg-secondary/40">
           <ScrollText className="h-3 w-3" /> Hendelser
-        </div>
-        <div className="mt-1 max-h-24 space-y-0.5 overflow-y-auto">
-          {state.log.slice(0, 6).map((line, i) => (
+          <span className="ml-auto text-muted-foreground transition group-open:rotate-180">▾</span>
+        </summary>
+        <div className="max-h-40 space-y-0.5 overflow-y-auto border-t border-border/50 px-2.5 py-1.5">
+          {state.log.slice(0, 8).map((line, i) => (
             <p key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>{line}</p>
           ))}
         </div>
-      </div>
+      </details>
 
       {editor && (
         <HotspotEditor district={district.id} mapImage={district.image} onClose={() => setEditor(false)} />
