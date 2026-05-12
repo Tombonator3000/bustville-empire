@@ -162,15 +162,16 @@ export interface WebcamShowDef {
   hue: number;       // gallery tint
   scene: string;     // gallery scene title
   flavor: string;
+  cover: string;     // stylized non-sexualized cover image
 }
 
 export const WEBCAM_SHOWS: WebcamShowDef[] = [
   { id: "solo",     label: "Solo Tease",    emoji: "💋", level: 1, cost: 40,  basePay: 180,  rep: 1, hours: 2, hue: 320,
-    scene: "Solo Tease Show",  flavor: "Ringlys, lavendel-filter, 47 betalende seere." },
+    scene: "Solo Tease Show",  flavor: "Ringlys, lavendel-filter, 47 betalende seere.", cover: coverWebshowSolo },
   { id: "lingerie", label: "Lingerie Show", emoji: "👙", level: 2, cost: 90,  basePay: 360,  rep: 2, hours: 3, hue: 280,
-    scene: "Lingerie Webcam",  flavor: "Silke, satin og chat-tipsene renner inn." },
+    scene: "Lingerie Webcam",  flavor: "Silke, satin og chat-tipsene renner inn.", cover: coverWebshowLingerie },
   { id: "toys",     label: "Toy Play",      emoji: "🪀", level: 3, cost: 160, basePay: 640,  rep: 3, hours: 3, hue: 0,
-    scene: "Toy Play Stream",  flavor: "Hardcore solo. Premium-kanalen koker." },
+    scene: "Toy Play Stream",  flavor: "Hardcore solo. Premium-kanalen koker.", cover: coverWebshowToys },
 ];
 
 export const WEBCAM_UPGRADE_COST = (currentLevel: number) =>
