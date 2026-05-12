@@ -71,7 +71,7 @@ function GamePage() {
           onOpenRoster={() => setRosterOpen(true)}
         />
       ) : (
-        <MapView state={g.state} district={district} onGoTo={g.goTo} />
+        <MapView state={g.state} district={district} onGoTo={g.goTo} onSwitchDistrict={g.switchDistrict} />
       )}
 
       {rosterOpen && (
