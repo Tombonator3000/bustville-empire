@@ -74,6 +74,7 @@ export interface GameState {
   campaignBonus: number;   // % marketing-kampanje-bonus, brukes opp ved neste release
   rivals: Rival[];
   news: string[];          // siste byens overskrifter (nyeste først)
+  webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
