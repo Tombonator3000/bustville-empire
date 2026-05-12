@@ -78,7 +78,6 @@ function GamePage() {
             g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
           }}
           onOpenRoster={() => setRosterOpen(true)}
-          onOpenWebcam={() => setWebcamOpen(true)}
         />
       ) : (
         <MapView state={g.state} district={district} onGoTo={g.goTo} onSwitchDistrict={g.switchDistrict} />
