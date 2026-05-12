@@ -240,6 +240,9 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
   distrib: [
     { id: "signDeal",  label: "Signer distribusjons-deal", emoji: "🤝", hours: 2, desc: "Engangs-bonus på neste utgivelse." },
     { id: "presell",   label: "Pre-sell katalog",          emoji: "💼", hours: 2, desc: "Få cash på backlog." },
+    { id: "campaignS", label: "Marketing: lokalt",         emoji: "📣", hours: 1, desc: "-$300. +20% på neste utgivelse." },
+    { id: "campaignM", label: "Marketing: regional",       emoji: "📺", hours: 2, desc: "-$800. +50% på neste utgivelse." },
+    { id: "campaignL", label: "Marketing: nasjonal",       emoji: "🚀", hours: 3, desc: "-$2000. +100% på neste utgivelse." },
   ],
   clinic: [
     { id: "heal",    label: "Vitamin-sprøyte",     emoji: "💉", hours: 1, desc: "-$120, full stamina." },
