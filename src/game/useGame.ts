@@ -210,6 +210,11 @@ export function effectiveSalary(g: Girl): number {
   return g.salary;
 }
 
+/** Pakker en nyrekruttert stjerne med en 8-ukers kontrakt. */
+function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
+  return { ...g, contract: genContract(g, day, lengthWeeks) };
+}
+
 
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
