@@ -143,6 +143,7 @@ const INITIAL: GameState = {
   webcamLevel: 1,
   trailerLevel: 1,
   condoms: 2,
+  fans: emptyFans(),
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
