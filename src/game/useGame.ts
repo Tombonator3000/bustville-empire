@@ -648,6 +648,13 @@ export function useGame() {
         return log({ ...next, cash: next.cash - 60, stamina: Math.min(next.maxStamina, next.stamina + 20) },
           "🥫 Energy-drikk og pølser. +20 stamina.");
       }
+      case "gas:gasCondoms": {
+        const cost = 80;
+        if (next.cash < cost) return log(next, `Condoms: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, condoms: next.condoms + 3 },
+          "🧪 +3 condoms i hanskerommet.");
+      }
       case "gas:hitchhike": {
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.5 && next.girls.length < 6) {
