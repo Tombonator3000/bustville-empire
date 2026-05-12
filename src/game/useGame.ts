@@ -6,6 +6,8 @@ import {
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
+import { genreMatchMult, getGenre } from "./genres";
+import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -66,6 +68,9 @@ export interface GameState {
   costumes: number;
   auditionVouchers: number;
   distribBonus: number;    // % bonus applied to next release payout
+  campaignBonus: number;   // % marketing-kampanje-bonus, brukes opp ved neste release
+  rivals: Rival[];
+  news: string[];          // siste byens overskrifter (nyeste først)
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -124,6 +129,9 @@ const INITIAL: GameState = {
   equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
   filmstock: 0, costumes: 0, auditionVouchers: 0, distribBonus: 0,
+  campaignBonus: 0,
+  rivals: INITIAL_RIVALS,
+  news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -250,6 +258,11 @@ export function useGame() {
       next.hour -= 24;
       next.day += 1;
       next.heatLevel = Math.max(0, next.heatLevel - 3);
+      // Daglig overskrift (60% sjanse for å unngå spam)
+      if (Math.random() < 0.6) {
+        const headline = dailyHeadline(next.rivals);
+        next.news = [headline, ...next.news].slice(0, 12);
+      }
       if ((next.day - 1) % 7 === 0) next = weekTick(next);
       if (next.loan > 0 && next.day >= next.loanDueDay) {
         if (next.cash >= next.loan) {
@@ -310,6 +323,13 @@ export function useGame() {
     if (ev.rep) next.reputation = Math.max(0, next.reputation + ev.rep);
     if (ev.stamina) next.stamina = Math.max(0, Math.min(next.maxStamina, next.stamina + ev.stamina));
     next = log(next, ev.text);
+    // Rival/marked-tick
+    const { rivals: newRivals, news: weeklyNews } = tickRivals(next.rivals, next.reputation);
+    next.rivals = newRivals;
+    if (weeklyNews.length) {
+      next.news = [...weeklyNews, ...next.news].slice(0, 12);
+      next = log(next, weeklyNews[0]);
+    }
     // razzia roll
     if (next.heatLevel > 40 && next.day >= next.bribedUntilDay && Math.random() < next.heatLevel / 200) {
       const loss = Math.min(next.cash, 200 + next.heatLevel * 10);
@@ -727,8 +747,20 @@ export function useGame() {
         return log({ ...next, cash: next.cash + $, backlog: next.backlog - 1 },
           `💼 Pre-solgte 1 tittel: +$${$}.`);
       }
+      case "distrib:campaignS":
+      case "distrib:campaignM":
+      case "distrib:campaignL": {
+        const tier = actionId === "distrib:campaignS" ? { cost: 300, bonus: 20, emoji: "📣", name: "lokal" }
+                   : actionId === "distrib:campaignM" ? { cost: 800, bonus: 50, emoji: "📺", name: "regional" }
+                   :                                    { cost: 2000, bonus: 100, emoji: "🚀", name: "nasjonal" };
+        if (next.cash < tier.cost) return log(next, `${tier.emoji} Kampanje: $${tier.cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - tier.cost,
+          campaignBonus: Math.min(200, next.campaignBonus + tier.bonus),
+        }, `${tier.emoji} ${tier.name} kampanje aktivert: +${tier.bonus}% på neste utgivelse (totalt +${Math.min(200, next.campaignBonus + tier.bonus)}%).`);
+      }
 
-      // Clinic — Doc Lonnie's
       case "clinic:heal": {
         const cost = 120;
         if (next.cash < cost) return log(next, `Sprøyte: $${cost}.`);
@@ -792,7 +824,7 @@ export function useGame() {
   }, []);
 
   // === PRODUCTION PIPELINE ====================================
-  const startProduction = useCallback((tierId: string, girlIds: string[]) => {
+  const startProduction = useCallback((tierId: string, girlIds: string[], genreId?: string) => {
     setState((s) => {
       const tier = getTier(tierId);
       if (!tier) return s;
@@ -819,13 +851,15 @@ export function useGame() {
         girlIds, roles, quality: startQ,
         startedDay: s.day,
         reworks: 0,
+        genreId,
       };
+      const genreLabel = genreId ? ` [${getGenre(genreId)?.name ?? genreId}]` : "";
       return log({
         ...s,
         cash: s.cash - cost,
         stamina: s.stamina - brief.staminaCost,
         productions: [...s.productions, prod],
-      }, `📝 "${title}" (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
+      }, `📝 "${title}"${genreLabel} (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`);
     });
   }, []);
 
@@ -871,24 +905,42 @@ export function useGame() {
         const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
         const release = roleScore("release"); // PR/promo cast cuts flop risk and boosts gross
         const promoMult = 1 + (release.score / 100) * 0.25 + release.count * 0.02;
+        // Genre × cast-arketype match
+        const castArchetypes = castStats.map((g) => g.archetype);
+        const genreMult = genreMatchMult(p.genreId, castArchetypes);
+        // Markedsandel vs. rivaler (0.5..1.0 multiplikator)
+        const share = playerMarketShare(s.rivals, s.reputation);
+        const marketMult = 0.55 + share * 0.6; // ~0.55..1.15
+        // Marketing-kampanje engangs-bonus
+        const campMult = 1 + (s.campaignBonus || 0) / 100;
         const flopChance = Math.max(
           0.02,
-          0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220,
+          0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220
+            - (genreMult - 1) * 0.3, // god genre-match reduserer flopp-risiko
         );
         const flopped = Math.random() < flopChance;
         const distribMult = 1 + (s.distribBonus || 0) / 100;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult);
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
           repGain = -Math.max(2, Math.floor(tier.baseRep / 3));
         }
+        // Spillerens hit reduserer rivalenes andel
+        const rivalsAfter = flopped ? s.rivals : s.rivals.map((r) => ({
+          ...r, share: Math.max(5, r.share - 1 - Math.floor(qualityMult * 2)),
+        }));
         const updated = s.productions.map((x, i) =>
           i === idx ? { ...x, stageIdx: STAGE_ORDER.length, flopped, releasedGross: gross } : x
         );
+        const genreTag = p.genreId ? ` ${getGenre(p.genreId)?.emoji ?? ""}` : "";
+        const matchNote = p.genreId
+          ? genreMult >= 1.15 ? " (perfekt cast-match!)" : genreMult <= 0.95 ? " (cast passet dårlig)" : ""
+          : "";
+        const campNote = (s.campaignBonus || 0) > 0 ? ` [kampanje +${s.campaignBonus}%]` : "";
         const note = flopped
-          ? `💀 FLOPP! "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
-          : `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.${release.count ? ` (PR-team x${release.count})` : ""}`;
+          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
+          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           return flopped
@@ -902,6 +954,8 @@ export function useGame() {
           reputation: Math.max(0, s.reputation + repGain),
           backlog: flopped ? s.backlog : s.backlog + 1,
           distribBonus: 0,
+          campaignBonus: 0,
+          rivals: rivalsAfter,
           productions: updated,
           girls,
         }, note);

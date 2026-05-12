@@ -135,6 +135,8 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
   onOpenInventory: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
+  const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
+  const headline = state.news[0];
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex w-full flex-wrap items-center gap-2 px-4 py-2 text-xs">
@@ -145,6 +147,19 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
         <Pill icon={<Wine className="h-3.5 w-3.5" />} label="Moon" value={state.moonshine.toString()} />
         <Pill icon={<Flame className="h-3.5 w-3.5" />} label="Heat" value={`${state.heatLevel}%`} hot={state.heatLevel > 40} />
         {state.loan > 0 && <Pill icon={<DollarSign className="h-3.5 w-3.5" />} label="Loan" value={`$${state.loan}`} hot />}
+        {state.campaignBonus > 0 && (
+          <span title="Marketing-kampanje aktiv — brukes opp ved neste release"
+            className="flex items-center gap-1 rounded-md border border-accent/60 bg-accent/15 px-2 py-1 font-mono text-accent">
+            📣 +{state.campaignBonus}%
+          </span>
+        )}
+        {topRival && (
+          <span title={`Topp-rival: ${topRival.name} (markedsandel ${Math.round(topRival.share)}%)`}
+            className="hidden items-center gap-1 rounded-md border border-border/60 bg-card/50 px-2 py-1 font-mono md:flex">
+            {topRival.emoji} <span className="text-[9px] uppercase text-muted-foreground">Rival</span>
+            <span className="font-bold">{Math.round(topRival.share)}%</span>
+          </span>
+        )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1 rounded bg-card/60 px-2 py-1 font-mono">
             <Calendar className="h-3.5 w-3.5 text-accent" />
@@ -174,6 +189,12 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
           </button>
         </div>
       </div>
+      {headline && (
+        <div className="flex items-center gap-2 border-t border-border/40 bg-background/70 px-4 py-1 text-[10px] text-muted-foreground">
+          <span className="rounded bg-accent/20 px-1.5 py-0.5 font-bold uppercase tracking-widest text-accent">News</span>
+          <span className="truncate">{headline}</span>
+        </div>
+      )}
     </header>
   );
 }
