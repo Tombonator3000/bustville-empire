@@ -870,7 +870,23 @@ export function useGame() {
       }, `🎁 ${g.name} fikk en gave.`);
     });
   }, []);
-  const upgradeStat = useCallback((stat: keyof PlayerStats) => {
+  const resignGirl = useCallback((id: string, lengthWeeks: 4 | 8 | 12 = 8) => {
+    setState((s) => {
+      const g = s.girls.find((x) => x.id === id);
+      if (!g) return s;
+      if (g.contract) return log(s, `${g.name} har allerede en aktiv kontrakt (utløp dag ${g.contract.expiresDay}).`);
+      const contract = genContract(g, s.day, lengthWeeks);
+      // Re-signing-rabatt for lojale stjerner
+      const loyaltyDiscount = Math.round(contract.signingBonus * (g.loyalty / 200));
+      const bonus = Math.max(50, contract.signingBonus - loyaltyDiscount);
+      if (s.cash < bonus) return log(s, `${g.name} vil ha $${bonus} for å re-signe.`);
+      return log({
+        ...s,
+        cash: s.cash - bonus,
+        girls: s.girls.map(x => x.id === id ? { ...x, contract: { ...contract, signingBonus: bonus } } : x),
+      }, `✍️ ${g.name} re-signerte ${lengthWeeks} uker. Bonus $${bonus}, min $${contract.weeklyMin}/uke.`);
+    });
+  }, []);
     setState((s) => {
       const cost = 300 + s.player[stat] * 250;
       if (s.cash < cost) return log(s, `Trenger $${cost}.`);
