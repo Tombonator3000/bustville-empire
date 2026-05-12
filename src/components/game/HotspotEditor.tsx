@@ -234,6 +234,10 @@ export function HotspotEditor({ district, mapImage, onClose }: Props) {
             </div>
           )}
 
+          {sel && !isSpecialHotspot(sel.id) && (
+            <LocationImagePicker locId={sel.id as LocationId} />
+          )}
+
           {showExport && (
             <div className="mt-3">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lim inn i src/game/locations.ts</p>
