@@ -88,6 +88,7 @@ export function LocationView({ state, locId, selectedGirl, onBack, onPerform, on
                 );
               })}
             </div>
+            </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card/60 p-3 text-xs">
