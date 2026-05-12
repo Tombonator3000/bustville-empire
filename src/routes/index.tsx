@@ -83,6 +83,7 @@ function GamePage() {
           onFire={g.fireGirl}
           onTrain={g.trainGirl}
           onGift={g.giftGirl}
+          onResign={g.resignGirl}
           onStartMission={g.startMission}
           onCancelMission={g.cancelMission}
         />
