@@ -57,21 +57,22 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
       <img
         src={district.image}
         alt={district.name}
-        className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-1000"
-        style={{ filter: dayFilter }}
+        className="absolute inset-0 h-full w-full object-cover will-change-[filter]"
+        style={{ filter: dayFilter, transition: "filter 1000ms linear" }}
         loading="eager"
-        width={1920}
-        height={1080}
       />
       {district.nightImage && (
         <img
           src={district.nightImage}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover transition-all duration-1000 pointer-events-none"
-          style={{ opacity: nightOpacity, filter: nightFilter }}
-          width={1920}
-          height={1080}
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none will-change-[opacity,filter]"
+          style={{
+            opacity: nightOpacity,
+            filter: nightFilter,
+            transition: "opacity 1000ms linear, filter 1000ms linear",
+          }}
         />
       )}
       <div
