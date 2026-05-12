@@ -13,6 +13,7 @@ import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
 import { GallerySheet } from "@/components/game/GallerySheet";
 import { WebcamModal } from "@/components/game/WebcamModal";
+import { VisitModal } from "@/components/game/VisitModal";
 import { ClinicSheet } from "@/components/game/ClinicSheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
@@ -42,6 +43,7 @@ function GamePage() {
   const [invOpen, setInvOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [webcamOpen, setWebcamOpen] = useState(false);
+  const [visitOpen, setVisitOpen] = useState(false);
   const [clinicOpen, setClinicOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
@@ -77,8 +79,9 @@ function GamePage() {
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
           onPerform={(id, girlId, intensity) => {
-            // Trailer webcam uses dedicated modal
+            // Trailer webcam + visit bruker dedikerte modaler
             if (activeLoc === "trailer" && id === "webcam") { setWebcamOpen(true); return; }
+            if (activeLoc === "trailer" && id === "visit")  { setVisitOpen(true);  return; }
             g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
           }}
           onOpenRoster={() => setRosterOpen(true)}
@@ -131,6 +134,14 @@ function GamePage() {
           onClose={() => setWebcamOpen(false)}
           onRun={(showId, girlId, intensity) => g.webcamShow(showId, girlId, intensity)}
           onUpgrade={g.upgradeWebcamLevel}
+        />
+      )}
+      {visitOpen && (
+        <VisitModal
+          state={g.state}
+          onClose={() => setVisitOpen(false)}
+          onRun={(visitId, girlId, intensity) => g.acceptVisit(visitId, girlId, intensity)}
+          onUpgrade={g.upgradeTrailerLevel}
         />
       )}
       {optionsOpen && (
