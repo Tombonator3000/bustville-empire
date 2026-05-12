@@ -940,6 +940,7 @@ export function useGame() {
             ? { ...g, std: { ...g.std, suppressedUntilDay: until } } : g),
         }, `💉 Steroid-blokker: ${target.name}s ${def.name} er undertrykt til dag ${until}.`);
       }
+      case "clinic:enhanceLips":
       case "clinic:enhanceFit":
       case "clinic:enhanceBoob":
       case "clinic:enhanceButt": {
