@@ -180,7 +180,7 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
         <div>
           <p className="font-bold">{p.title}</p>
           <p className="text-[10px] uppercase tracking-wider text-accent">
-            {tier.name} · Q{Math.round(p.quality)}/{mods.qualityCap}
+            {tier.name} {p.genreId ? `· ${getGenre(p.genreId)?.emoji ?? ""} ${getGenre(p.genreId)?.name ?? ""} ` : ""}· Q{Math.round(p.quality)}/{mods.qualityCap}
             {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
           </p>
         </div>
