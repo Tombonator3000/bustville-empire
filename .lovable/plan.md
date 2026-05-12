@@ -1,83 +1,69 @@
-# Bustville Empire → Lula-style Simulation Overhaul
 
-Akkurat nå er spillet ett dashboard med knapper. Lula: The Sexy Empire fungerer som en **klikkbar by-kartsimulering**: du beveger deg mellom lokasjoner (motel, bar, politi, videobutikk, studio), hver lokasjon har sine egne handlinger og NPCer, og økonomien drives av kjøp/salg, kontrakter og tid som går. Vi bygger om Bustville til samme modell.
+# Bustville vs. Lula: The Sexy Empire — gap-analyse & implementeringsplan
 
-## Ny spillstruktur
+Vi har allerede mye av Lula-DNAet (klikkbart bykart, lokasjons-scener, klokke/time-system, roster med stats, produksjons-pipeline, sheriff/heat, lån, oppgraderinger, butikker for filmstock/kostymer/audition). Under er det Lula har som vi **ikke** har — rangert etter spill-impact og implementerings-kost.
 
-### 1. Bykart (Trailer Park View)
-Erstatt nåværende dashboard med et **klikkbart isometrisk kart** av trailer-parken (Phase 1). Hver bygning er en knapp med ikon + hover-state. Lokasjoner:
+## Det vi mangler vs. Lula
 
-```
-[Din Trailer]  [Moonshine-skjul]  [Sheriff Buck's kontor]
-[Bar "Dirty Dan's"]  [Bensinstasjon]  [Cherry's trailer]
-[Skogen (scouting)]  [Veien ut → Phase 2: Downtown]
-```
+### Kjerne-mekanikker (høy impact)
+1. **Konkurrenter/rivaliserende studioer** — Lula har AI-rivaler som kaprer markedsandeler, stjeler stjerner og lager egne filmer. Vi har null konkurranse → ingen markedspress.
+2. **Filmgenre + publikums-matching** — i Lula velger du genre (romance, action, fetish…) og målgruppen reagerer ulikt. Vi har bare "tier" (Quickie/Glamour/Feature/Blockbuster). Genre+jente-arketype-synergi er savnet.
+3. **Awards / prisutdelinger** — sesongsluttsgalla, "Bustville Awards" med nominasjoner, statuetter og rep+salgs-boost. Lula har Golden G-strings.
+4. **Stjerne-kontrakter + agenter** — i dag signerer du jenter gratis og evig. Lula har eksklusiv-kontrakter, kontraktslengde, signing bonus, agenter som forhandler.
+5. **Stjerne-moral/drama-system** — sjalusi, romanser mellom stjerner, rusproblemer, krav om hovedroller. Vi har bare loyalty + cooldown.
 
-Topp-HUD beholdes: $cash, rep, stamina, dag/klokke, level.
+### Innhold/scener (medium impact)
+6. **Aksje-/børs-handel eller investeringer** — Lula har sekundære inntektskilder (eiendom, aksjer).
+7. **Marketing-kampanjer** — kjøp annonser før release (avis, TV, plakat) → påvirker åpningssalg.
+8. **Fan mail / fanklubb** — passive inntekter fra stjernenes popularitet.
+9. **Magazine covers / TV-talkshow-bookinger** — egne mini-aksjoner for å booste enkelt-stjerner.
+10. **Body upgrades på klinikken** — Doc Lonnie tilbyr i dag bare heling. Lula har "enhancements" som permanent øker beauty/popularity (med risiko/cooldown).
 
-### 2. Lokasjons-visning
-Klikk på bygning → full-screen bilde + handlingspanel (som Lula's motel/kontor-scener). Hver lokasjon har:
-- Bakgrunnsbilde (vi har allerede loc-trailer, loc-apartment osv. — genererer 4-5 nye for byggninger)
-- 2-4 handlinger spesifikke for stedet
-- NPC som dukker opp (sheriff, kunder, jenter)
-- "Tilbake til kart"-knapp
+### Spill-følelse (lav-medium impact)
+11. **Casino/poker mini-spill** — gambling for cash på Velvet eller Dirty Dan's.
+12. **Sesonger/år-system** — vi teller dag/uke, men ikke år. Lula har 4 sesonger som påvirker hva som selger.
+13. **Newspaper / Daily News-tikker** — kort overskrift hver morgen om byen + dine handlinger (Lula har Bustville Bugle vibe).
+14. **Achievements / milepæler** — i dag har vi bare "level 5 = vinn". Trenger mellom-mål (første $10k, første award, etc).
+15. **Save-slots / NG+** — bare ett localStorage-save nå.
 
-**Lokasjoner Phase 1:**
-- **Din Trailer** – Sov (regen stamina), Webcam Show, Ta imot besøk, Se på roster
-- **Moonshine-skjul** – Brygg, Lager (vis flasker), oppgrader destilleri
-- **Bar "Dirty Dan's"** – Selg moonshine (random pris), Rekrutter dansere, Hør rykter (events)
-- **Bensinstasjon** – Selg moonshine til truckere, kjøp forsyninger ($ for stamina-drikker)
-- **Sheriff's kontor** – Betal bestikkelse (reduserer razzia-risiko), eller risiker razzia
-- **Skogen** – Scout nye jenter (billigere men lavere kvalitet enn senere)
-- **Cherry's trailer** – Nabo som gir oppdrag/tips (event-trigger)
+### Vi har, men kan dypne
+- Heat/razzia: bra, men kunne hatt fengsel + bail-out (Lula har).
+- Roster-trening: kan utvides med spesialist-coacher (acting coach, fitness, charisma).
+- Random events: bare 11 stk og fyrer ved endWeek. Lula har lokasjons-trigget drama hver gang du går inn et sted.
 
-**Lokasjoner Phase 2 (Downtown - låst opp på Level 3):**
-- **Loft Studio** – Glamour shoots, OnlyFans
-- **Talent Agency** – Scout premium-jenter
-- **Klubb "Velvet"** – Nettverk, fest, rep-gain
-- **Bank** – Lån (Level 3+)
-- **Pro Studio / HQ** – Feature films, internasjonale deals
+## Anbefalt implementerings-rekkefølge
 
-### 3. Tidssystem (Lula-style)
-Lula bruker en klokke som tikker per handling. Vi gjør samme:
-- Hver handling koster **timer** (ikke bare stamina). 1 dag = 16 vakne timer.
-- "Sov" hopper til morgenen, regen stamina.
-- Visse handlinger kun tilgjengelig på visse tider (Bar åpen kveld, Bank åpen dag).
-- 7 dager = uke = lønn/royalties (eksisterende endWeek-logikk).
+Jeg foreslår 3 inkrement, hver leverbar separat:
 
-### 4. NPCer og dialog
-Enkle modal-dialoger når man interagerer (1-3 valg). Eksempel sheriff:
-> "Buck: 'Hørt du brygger igjen, gutt. $200 så glemmer jeg det.'"
-> [Betal $200] [Avslå – risiko] [Lyv (Charisma-sjekk)]
+### Inkrement A — "Markedet lever" (mest impact for minst kost)
+**Mål:** spillet føles ikke som solo-sandkasse lenger.
+1. **Rivaler** (2 AI-studioer): tikker i bakgrunnen ved endWeek, lager filmer, tar markedsandel. Vises som leaderboard-widget i HUD. Påvirker dine release-inntekter: `payout × (1 - rivalShare × 0.3)`.
+2. **Genre på produksjoner**: 4 genrer (Romance, Wild, Glamour, Fetish). Velges ved briefing. Hver genre matcher 1-2 arketyper → +25% kvalitet/payout ved match. Tom match → −15%.
+3. **Marketing-aksjon på distrib**: ny action `runCampaign` ($300/$800/$2000) → 1×/1.5×/2× release-multiplier.
+4. **Daily News-tikker** i HUD topp: rotere 1 linje per dag (mix av rival-nytt, awards-teasere, by-rykter).
 
-Charisma/Business/Hustle-stats påvirker sjekker.
+Filer: ny `src/game/rivals.ts`, ny `src/game/genres.ts`, utvid `productions.ts` (genre-felt), `useGame.ts` (endWeek-rival-tick, payout-formel, news-state), `LocationView`/`ProductionsSheet` (genre-velger), `HUD` (news-ticker).
 
-### 5. Roster og Stjerner
-Beholdes, men flyttes til en egen "Roster"-knapp i HUD (modal/sheet). Trene/sparke/gave fungerer som før.
+### Inkrement B — "Stjernene betyr noe" (drama + kontrakter)
+5. **Stjerne-kontrakter**: ved scout/signing tegnes kontrakt (4/8/12 uker, signing bonus $X, ukentlig minstelønn). Utløp → ny forhandling eller frigi.
+6. **Drama-events** på stjerner: sjalusi når to jobber sammen, rusproblemer ved 3+ intense oppdrag på rad, krav om hovedrolle ved høy popularity.
+7. **Body upgrades** i klinikken: +5 beauty for $1500 (1 dags cooldown), +5 performance for $1200, risiko 10% for "botched" → −popularity i 1 uke.
+8. **Talent agent** på Velvet: betal $400 → bedre scout-roll (filter på min beauty/performance).
 
-## Filendringer
+Filer: utvid `Girl`-typen (contract, drugUse, jealousyWith), nye events i `data.ts`, klinikk-actions i `useGame.ts`.
 
-**Nye filer:**
-- `src/game/locations.ts` – lokasjonsdata, handlinger per sted, åpningstider
-- `src/game/npcs.ts` – NPC-dialoger og sjekker
-- `src/components/game/MapView.tsx` – klikkbart kart
-- `src/components/game/LocationView.tsx` – fullscreen lokasjons-scene
-- `src/components/game/HUD.tsx` – topp-bar (cash/rep/tid/stamina)
-- `src/components/game/RosterSheet.tsx` – roster i Sheet
-- `src/components/game/DialogModal.tsx` – NPC-dialoger
-- 4-5 nye genererte bilder: `loc-bar.jpg`, `loc-sheriff.jpg`, `loc-gasstation.jpg`, `loc-moonshine.jpg`, `loc-forest.jpg`, `map-trailerpark.jpg` (isometrisk kart-bakgrunn)
+### Inkrement C — "Glansen og prestisjen"
+9. **Bustville Awards** hver 12. uke: nominasjoner basert på topp-kvalitet-produksjoner siste sesong. Vinn → +25 rep, +30% salg neste 2 uker, stjerner får +popularity.
+10. **Achievements-panel**: 12-15 milepæler med toast + permanente passive buffs.
+11. **Fanklubb-inntekt**: passiv $X per uke per stjerne med popularity ≥ 60.
+12. **Sesonger** (4 stk, 3 uker hver): hver sesong booster én genre (sommer = Wild, vinter = Romance).
 
-**Endrede filer:**
-- `src/game/useGame.ts` – legg til `currentLocation`, `hour`, `advanceTime()`, lokasjons-spesifikke handlinger
-- `src/game/data.ts` – beholdt, content types blir trigget fra lokasjoner
-- `src/routes/index.tsx` – orchestrerer Map↔Location-view-switching
+Filer: ny `src/game/awards.ts`, `src/game/achievements.ts`, ny `AwardsModal.tsx`, sesong-felt i state, sesong-multiplier i payout.
 
-## Tekniske detaljer
+## Hvis du må velge én ting først
+**Inkrement A** gir mest "Lula-følelse" raskest fordi rivaler + genre + marketing forvandler produksjons-pipelinen fra "klikk gjennom stages" til "strategiske valg per film".
 
-- State: `view: "map" | "location"`, `activeLocation: string | null`, `hour: number (0-23)`, `dayOfWeek`.
-- Kart implementeres som ett bakgrunnsbilde + absolute-positionerte `<button>` med `clip-path` for hot-spots, hver med hover glow.
-- Lokasjons-view: bakgrunnsbilde fyller skjerm, handlings-panel som "kort" nederst (mobil) eller høyre (desktop).
-- Random events fyres fortsatt ved `endWeek`, men også som lokasjons-trigger (sheriff dukker opp 15% sjanse i bar).
-- localStorage migration: ny versjonsnøkkel `bustville-empire-v2` så gamle saves resettes pent.
-
-Resultat: spillet føles som en faktisk by du beveger deg i, ikke et regneark. Sterk Lula-arv, men med vår neon-Bustville-stil.
+## Spørsmål før jeg starter
+- Vil du jeg skal starte rett på **Inkrement A**, eller plukke spesifikke punkter fra forskjellige inkrement?
+- Skal rivalene være statiske (2 faste, scriptet) eller prosedyralt navngitte med egne stjerner?
+- Awards og sesonger — beholde 7-dagers uke, eller utvide til 4-sesongers år?
