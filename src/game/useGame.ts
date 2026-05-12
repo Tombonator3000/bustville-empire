@@ -893,24 +893,42 @@ export function useGame() {
         const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
         const release = roleScore("release"); // PR/promo cast cuts flop risk and boosts gross
         const promoMult = 1 + (release.score / 100) * 0.25 + release.count * 0.02;
+        // Genre × cast-arketype match
+        const castArchetypes = castStats.map((g) => g.archetype);
+        const genreMult = genreMatchMult(p.genreId, castArchetypes);
+        // Markedsandel vs. rivaler (0.5..1.0 multiplikator)
+        const share = playerMarketShare(s.rivals, s.reputation);
+        const marketMult = 0.55 + share * 0.6; // ~0.55..1.15
+        // Marketing-kampanje engangs-bonus
+        const campMult = 1 + (s.campaignBonus || 0) / 100;
         const flopChance = Math.max(
           0.02,
-          0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220,
+          0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220
+            - (genreMult - 1) * 0.3, // god genre-match reduserer flopp-risiko
         );
         const flopped = Math.random() < flopChance;
         const distribMult = 1 + (s.distribBonus || 0) / 100;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult);
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
           repGain = -Math.max(2, Math.floor(tier.baseRep / 3));
         }
+        // Spillerens hit reduserer rivalenes andel
+        const rivalsAfter = flopped ? s.rivals : s.rivals.map((r) => ({
+          ...r, share: Math.max(5, r.share - 1 - Math.floor(qualityMult * 2)),
+        }));
         const updated = s.productions.map((x, i) =>
           i === idx ? { ...x, stageIdx: STAGE_ORDER.length, flopped, releasedGross: gross } : x
         );
+        const genreTag = p.genreId ? ` ${getGenre(p.genreId)?.emoji ?? ""}` : "";
+        const matchNote = p.genreId
+          ? genreMult >= 1.15 ? " (perfekt cast-match!)" : genreMult <= 0.95 ? " (cast passet dårlig)" : ""
+          : "";
+        const campNote = (s.campaignBonus || 0) > 0 ? ` [kampanje +${s.campaignBonus}%]` : "";
         const note = flopped
-          ? `💀 FLOPP! "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
-          : `🎉 "${p.title}" sluppet! +$${gross}, +${repGain} rep.${release.count ? ` (PR-team x${release.count})` : ""}`;
+          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
+          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           return flopped
@@ -924,6 +942,8 @@ export function useGame() {
           reputation: Math.max(0, s.reputation + repGain),
           backlog: flopped ? s.backlog : s.backlog + 1,
           distribBonus: 0,
+          campaignBonus: 0,
+          rivals: rivalsAfter,
           productions: updated,
           girls,
         }, note);
