@@ -220,8 +220,8 @@ function Pill({ icon, label, value, accent, hot }: { icon?: React.ReactNode; lab
 }
 
 /* ========== MAP ========== */
-function MapView({ state, district, onGoTo }: {
-  state: GameState; district: typeof DISTRICTS[number]; onGoTo: (id: LocationId) => void;
+function MapView({ state, district, onGoTo, onSwitchDistrict }: {
+  state: GameState; district: typeof DISTRICTS[number]; onGoTo: (id: LocationId) => void; onSwitchDistrict: () => void;
 }) {
   const [editor, setEditor] = useState(false);
   const [hotspots, setHotspots] = useState(() => getHotspotsFor(district.id));
