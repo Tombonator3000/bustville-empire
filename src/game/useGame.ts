@@ -435,6 +435,38 @@ export function useGame() {
     });
   }, []);
 
+  /**
+   * Bruker condom hvis tilgjengelig, ellers ruller smitterisiko.
+   * Returnerer { state, log? } — kalleren slår sammen log-strengen i sin egen melding.
+   */
+  function rollEncounter(s: GameState, girlId: string | undefined, baseChance: number): { state: GameState; tag: string } {
+    if (!girlId) return { state: s, tag: "" };
+    const g = s.girls.find(x => x.id === girlId);
+    if (!g) return { state: s, tag: "" };
+    // Ingen risiko hvis allerede smittet (én STD om gangen)
+    if (g.std) return { state: s, tag: "" };
+    // Condom beskytter
+    if (s.condoms > 0) {
+      return { state: { ...s, condoms: s.condoms - 1 }, tag: " 🧪✓" };
+    }
+    const newId = rollSTD(baseChance);
+    if (!newId) return { state: s, tag: "" };
+    const std: STDState = { id: newId, contractedDay: s.day };
+    const stdDef = STDS[newId];
+    enqueueToast(`std:${girlId}:${s.day}:${newId}`, {
+      kind: "error",
+      title: `${stdDef.emoji} ${g.name} fikk ${stdDef.name}`,
+      description: `${stdDef.effect} ${stdDef.curable ? "Behandles hos Doc Lonnie." : "Ikke kurerbar."}`,
+    });
+    return {
+      state: {
+        ...s,
+        girls: s.girls.map(x => x.id === girlId ? { ...x, std } : x),
+      },
+      tag: ` ${stdDef.emoji}!`,
+    };
+  }
+
   // === ACTIONS ===============================================
   const perform = useCallback((locId: LocationId, actionId: string, girlId?: string, intensity: Intensity = "standard") => {
     setState((s) => {
