@@ -575,8 +575,8 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
             </p>
           )}
           {state.girls.map((g) => (
-            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)}
-              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift}
+            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)} currentDay={state.day}
+              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift} onResign={onResign}
               onStartMission={onStartMission} onCancelMission={onCancelMission} />
           ))}
         </div>
