@@ -1315,18 +1315,34 @@ export function useGame() {
       if (!def) return s;
       const stat = g[def.statKey];
       if (stat < def.min) return log(s, `${g.name} har for lav ${def.statKey} (${stat}/${def.min}).`);
+      // STD-blokkering
+      if (isBlockedByStd(g, s.day, def.id)) {
+        const a = activeSTD(g, s.day)!;
+        return log(s, `${a.emoji} ${g.name} kan ikke ta ${def.label} med ${a.name}.`);
+      }
       const statBonus = 0.6 + stat / 100;       // 0.6x–1.6x
       const loyBonus  = 0.85 + g.loyalty / 200; // 0.85x–1.34x
-      const payout = Math.floor(def.basePay * statBonus * loyBonus * (0.9 + Math.random() * 0.2));
+      const stdMult   = payoutMult(g, s.day);    // 0..1 fra aktiv STD
+      const payout = Math.floor(def.basePay * statBonus * loyBonus * stdMult * (0.9 + Math.random() * 0.2));
       const rep = def.rep + (stat > 70 ? 1 : 0);
       const endsAt = absHour(s) + def.hours;
       const mission = { id: def.id, label: def.label, payout, rep, endsAt };
-      return log({
+      // Risiko: høy-eksponering oppdrag (vip, tour, onlyfans) → STD-roll
+      const riskByMission: Record<string, number> = { webcam: 0, club: 0.04, onlyfans: 0.06, vip: 0.14, tour: 0.10 };
+      const baseRisk = riskByMission[def.id] ?? 0;
+      let next: GameState = {
         ...s,
         girls: s.girls.map((x) => x.id === girlId
           ? { ...x, mission, lastActivity: `${def.emoji} Startet ${def.label}`, lastActivityDay: s.day }
           : x),
-      }, `${def.emoji} ${g.name} sendt på ${def.label} (~$${payout}, ${def.hours}t).`);
+      };
+      let extraTag = "";
+      if (baseRisk > 0) {
+        const enc = rollEncounter(next, girlId, baseRisk);
+        next = enc.state;
+        extraTag = enc.tag;
+      }
+      return log(next, `${def.emoji} ${g.name} sendt på ${def.label} (~$${payout}, ${def.hours}t).${extraTag}`);
     });
   }, []);
 
