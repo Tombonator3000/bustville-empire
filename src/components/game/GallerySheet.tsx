@@ -212,14 +212,20 @@ function TabBtn({ on, onClick, children }: { on: boolean; onClick: () => void; c
 
 function ScenePlaceholder({ girl, scene, large }: { girl: Girl; scene: GalleryScene; large?: boolean }) {
   const portrait = ARCHETYPE_PORTRAITS[girl.archetype];
+  const cover = coverFor(scene.kind);
   return (
     <div className="absolute inset-0">
-      <img src={portrait} alt={girl.name}
+      <img src={cover} alt={scene.title}
         className="absolute inset-0 h-full w-full object-cover"
-        style={{ filter: `hue-rotate(${scene.hue - 320}deg) saturate(1.2) contrast(1.05)` }}
         loading="lazy" />
-      <div className="absolute inset-0"
-        style={{ background: `linear-gradient(135deg, oklch(0.45 0.2 ${scene.hue} / 0.45), oklch(0.2 0.1 ${(scene.hue + 60) % 360} / 0.55))` }} />
+      {/* Fargetint som signaliserer scene-stemning */}
+      <div className="absolute inset-0 mix-blend-overlay opacity-60"
+        style={{ background: `linear-gradient(135deg, oklch(0.55 0.18 ${scene.hue} / 0.55), oklch(0.2 0.1 ${(scene.hue + 60) % 360} / 0.55))` }} />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background/80 to-transparent" />
+      {/* Liten "hvem"-badge nede til høyre */}
+      <div className={`absolute ${large ? "right-3 bottom-3 h-12 w-12" : "right-1.5 bottom-1.5 h-7 w-7"} overflow-hidden rounded-full ring-2 ring-background/80`}>
+        <img src={portrait} alt={girl.name} className="h-full w-full object-cover" loading="lazy" />
+      </div>
       {large && (
         <div className="absolute left-3 top-3 rounded bg-background/70 px-2 py-1 text-xs uppercase tracking-widest">
           {scene.emoji} {scene.kind}
