@@ -129,6 +129,9 @@ const INITIAL: GameState = {
   equipment: { camera: 0, lighting: 0, editing: 0 },
   productions: [],
   filmstock: 0, costumes: 0, auditionVouchers: 0, distribBonus: 0,
+  campaignBonus: 0,
+  rivals: INITIAL_RIVALS,
+  news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
