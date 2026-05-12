@@ -140,6 +140,7 @@ const INITIAL: GameState = {
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
   webcamLevel: 1,
+  trailerLevel: 1,
   condoms: 2,
 };
 
