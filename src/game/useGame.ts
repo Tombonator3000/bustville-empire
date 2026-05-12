@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
-  RANDOM_EVENTS, GIRL_MISSIONS, type Archetype, type Girl, type MissionDef,
+  RANDOM_EVENTS, GIRL_MISSIONS, WEBCAM_SHOWS, WEBCAM_UPGRADE_COST,
+  type Archetype, type Girl, type MissionDef, type GalleryScene,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
