@@ -7,7 +7,7 @@ import {
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
-import { genreMatchMult, getGenre } from "./genres";
+import { genreMatchMult, getGenre, emptyFans, fanMultiplier, GENRE_IDS, type GenreId } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
 import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
