@@ -902,7 +902,44 @@ export function useGame() {
           girls: next.girls.map(g => g.id === target.id ? { ...g, busyUntil: undefined } : g),
         }, `🧴 ${target.name} er klar igjen.`);
       }
-      case "clinic:enhanceLips":
+      case "clinic:buyCondoms": {
+        const cost = 200;
+        if (next.cash < cost) return log(next, `Condoms: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, condoms: next.condoms + 10 },
+          "🧪 +10 condoms i kofferten. Doc Lonnie blunker.");
+      }
+      case "clinic:antibiotics": {
+        const cost = 400;
+        if (!girlId) return log(next, "Velg en stjerne for behandling.");
+        const target = next.girls.find(g => g.id === girlId);
+        if (!target) return log(next, "Stjerne ikke funnet.");
+        if (!target.std) return log(next, `${target.name} er allerede frisk.`);
+        const def = STDS[target.std.id];
+        if (!def.curable) return log(next, `${def.emoji} ${def.name} kan ikke kurereres med antibiotika. Prøv steroider for å undertrykke.`);
+        if (next.cash < cost) return log(next, `Antibiotika: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => g.id === target.id ? { ...g, std: undefined } : g),
+        }, `💊 ${target.name} kurert for ${def.name}. Doc snur seg ikke under injeksjonen.`);
+      }
+      case "clinic:steroids": {
+        const cost = 700;
+        if (!girlId) return log(next, "Velg en stjerne.");
+        const target = next.girls.find(g => g.id === girlId);
+        if (!target) return log(next, "Stjerne ikke funnet.");
+        if (!target.std) return log(next, `${target.name} har ingenting å undertrykke.`);
+        if (next.cash < cost) return log(next, `Steroider: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        const until = next.day + 5;
+        const def = STDS[target.std.id];
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => g.id === target.id && g.std
+            ? { ...g, std: { ...g.std, suppressedUntilDay: until } } : g),
+        }, `💉 Steroid-blokker: ${target.name}s ${def.name} er undertrykt til dag ${until}.`);
+      }
       case "clinic:enhanceFit":
       case "clinic:enhanceBoob":
       case "clinic:enhanceButt": {
