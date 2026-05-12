@@ -325,6 +325,7 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
               : `Vent ${p.hoursLeft}t…`}
         </button>
       )}
+      </div>
     </div>
   );
 }
