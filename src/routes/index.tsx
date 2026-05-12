@@ -42,6 +42,7 @@ function GamePage() {
   const [invOpen, setInvOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [webcamOpen, setWebcamOpen] = useState(false);
+  const [clinicOpen, setClinicOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
