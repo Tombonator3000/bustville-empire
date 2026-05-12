@@ -76,6 +76,7 @@ export interface GameState {
   rivals: Rival[];
   news: string[];          // siste byens overskrifter (nyeste først)
   webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
+  trailerLevel: number;    // 1-4, hvor mange visit-typer er låst opp
   condoms: number;         // forbrukbare beskyttelse — brukes auto i risikable scener
 }
 
