@@ -198,17 +198,17 @@ export interface VisitTypeDef {
 
 export const VISIT_TYPES: VisitTypeDef[] = [
   { id: "trucker",  label: "Trucker-besøk",       emoji: "🚛", level: 1, cost: 10,  basePay: 220,  rep: 1, hours: 1, heat: 2, hue: 30,
-    scene: "Trucker on the Couch",     flavor: "Diesel, Marlboro og kontanter i en brun konvolutt.", cover: coverVisitTrucker },
-  { id: "drunk",    label: "Lokal fyllik",         emoji: "🍺", level: 1, cost: 5,   basePay: 140,  rep: 0, hours: 1, heat: 1, hue: 50,
-    scene: "Bourbon at Midnight",       flavor: "Han bruker mer på øl enn på deg, men betaler i tide.", cover: coverVisitDrunk },
-  { id: "bachelor", label: "Bachelor-pakke",       emoji: "🎉", level: 2, cost: 60,  basePay: 520,  rep: 2, hours: 2, heat: 3, hue: 290,
-    scene: "Bachelor Party Special",    flavor: "Seks fulle gutter, én stjerne, et batteri av iPhones.", cover: coverVisitBachelor, needsGirl: true, risky: true },
+    scene: "Trucker i sofaen",          flavor: "Diesel, Marlboro og kontanter i en brun konvolutt.", cover: coverVisitTrucker },
+  { id: "drunk",    label: "Lokal stamgjest",      emoji: "🍺", level: 1, cost: 5,   basePay: 140,  rep: 0, hours: 1, heat: 1, hue: 50,
+    scene: "Bourbon ved midnatt",       flavor: "Han bruker mer på øl enn på deg, men betaler i tide.", cover: coverVisitDrunk },
+  { id: "bachelor", label: "Utdrikningslag",       emoji: "🎉", level: 2, cost: 60,  basePay: 520,  rep: 2, hours: 2, heat: 3, hue: 290,
+    scene: "Utdrikningslag",            flavor: "Seks fulle gutter, én stjerne, et batteri av iPhones.", cover: coverVisitBachelor, needsGirl: true, risky: true },
   { id: "politician", label: "Lokalpolitiker",     emoji: "🎩", level: 3, cost: 120, basePay: 880,  rep: 3, hours: 2, heat: 5, hue: 220,
-    scene: "Senator's Secret Visit",    flavor: "Han kom inn med Bibel, går ut med leppestift på kragen.", cover: coverVisitPolitician, risky: true },
+    scene: "Senatorens diskré besøk",   flavor: "Han kom inn med Bibel, går ut med leppestift på kragen.", cover: coverVisitPolitician, risky: true },
   { id: "scout",    label: "LA-talentspeider",     emoji: "🕶️", level: 3, cost: 180, basePay: 600,  rep: 6, hours: 2, heat: 1, hue: 200,
-    scene: "Scout from Los Angeles",    flavor: "Han noterer alt, fra wallpaper til kroppsspråk. Rep-injeksjon.", cover: coverVisitScout, needsGirl: true },
+    scene: "Talentspeider fra LA",      flavor: "Han noterer alt, fra wallpaper til kroppsspråk. Rep-injeksjon.", cover: coverVisitScout, needsGirl: true },
   { id: "vipsuite", label: "VIP-suite (privat)",   emoji: "💎", level: 4, cost: 280, basePay: 1700, rep: 5, hours: 3, heat: 6, hue: 320,
-    scene: "VIP Suite Service",         flavor: "Champagne, kaviar og en bunke 100-dollar-sedler. Diskresjon ekstra.", cover: coverVisitVipsuite, needsGirl: true, risky: true },
+    scene: "VIP-suite",                 flavor: "Champagne, kaviar og en bunke 100-dollar-sedler. Diskresjon ekstra.", cover: coverVisitVipsuite, needsGirl: true, risky: true },
 ];
 
 export const VISIT_UPGRADE_COST = (currentLevel: number) =>
