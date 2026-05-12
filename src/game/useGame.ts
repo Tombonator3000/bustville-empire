@@ -11,6 +11,7 @@ import { genreMatchMult, getGenre } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
 import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
+import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -75,6 +76,7 @@ export interface GameState {
   rivals: Rival[];
   news: string[];          // siste byens overskrifter (nyeste først)
   webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
+  condoms: number;         // forbrukbare beskyttelse — brukes auto i risikable scener
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -137,6 +139,7 @@ const INITIAL: GameState = {
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
   webcamLevel: 1,
+  condoms: 2,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
