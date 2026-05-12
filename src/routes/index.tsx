@@ -198,6 +198,10 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
           </span>
           <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
           <IconBtn onClick={onOpenGallery} title="Galleri" icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
+          <IconBtn onClick={onOpenClinic}
+            title="Klinikk: STD-status, kjøp condoms / antibiotika / steroider"
+            icon={<span className={state.girls.some(x => x.std) ? "text-destructive" : ""}>🩺</span>}
+            label={state.girls.some(x => x.std) ? `Klinikk (${state.girls.filter(x => x.std).length})` : "Klinikk"} />
           <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
           <IconBtn onClick={onOpenProductions}
             icon={<Clapperboard className="h-3.5 w-3.5" />}
