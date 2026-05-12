@@ -10,6 +10,40 @@ import girlNextDoor from "@/assets/girl-nextdoor.jpg";
 import girlMilf from "@/assets/girl-milf.jpg";
 import girlExotic from "@/assets/girl-exotic.jpg";
 
+// Cover-bilder (stiliserte, non-sexualized plakater) brukt som default i galleri/menyer
+import coverWebshowSolo from "@/assets/cover-webshow-solo.jpg";
+import coverWebshowLingerie from "@/assets/cover-webshow-lingerie.jpg";
+import coverWebshowToys from "@/assets/cover-webshow-toys.jpg";
+import coverStudioQuickie from "@/assets/cover-studio-quickie.jpg";
+import coverStudioGlamour from "@/assets/cover-studio-glamour.jpg";
+import coverStudioFeature from "@/assets/cover-studio-feature.jpg";
+import coverStudioBlockbuster from "@/assets/cover-studio-blockbuster.jpg";
+import coverShop from "@/assets/cover-shop.jpg";
+import coverVisitTrucker from "@/assets/cover-visit-trucker.jpg";
+import coverVisitDrunk from "@/assets/cover-visit-drunk.jpg";
+import coverVisitBachelor from "@/assets/cover-visit-bachelor.jpg";
+import coverVisitPolitician from "@/assets/cover-visit-politician.jpg";
+import coverVisitScout from "@/assets/cover-visit-scout.jpg";
+import coverVisitVipsuite from "@/assets/cover-visit-vipsuite.jpg";
+import coverSceneMission from "@/assets/cover-scene-mission.jpg";
+import coverSceneTraining from "@/assets/cover-scene-training.jpg";
+import coverSceneProduction from "@/assets/cover-scene-production.jpg";
+import coverSceneDefault from "@/assets/cover-scene-default.jpg";
+
+export const STUDIO_COVERS: Record<string, string> = {
+  quickie: coverStudioQuickie,
+  glamour: coverStudioGlamour,
+  feature: coverStudioFeature,
+  blockbuster: coverStudioBlockbuster,
+};
+export const SHOP_COVER = coverShop;
+export const SCENE_FALLBACKS: Record<string, string> = {
+  mission: coverSceneMission,
+  training: coverSceneTraining,
+  production: coverSceneProduction,
+  default: coverSceneDefault,
+};
+
 export const ARCHETYPE_PORTRAITS: Record<string, string> = {
   "Amateur Sweetheart": girlAmateur,
   "Wild Party Girl": girlParty,
