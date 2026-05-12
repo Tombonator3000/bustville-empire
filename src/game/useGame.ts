@@ -911,6 +911,23 @@ export function useGame() {
           campaignBonus: Math.min(200, next.campaignBonus + tier.bonus),
         }, `${tier.emoji} ${tier.name} kampanje aktivert: +${tier.bonus}% på neste utgivelse (totalt +${Math.min(200, next.campaignBonus + tier.bonus)}%).`);
       }
+      case "distrib:fansRomance":
+      case "distrib:fansWild":
+      case "distrib:fansGlamour":
+      case "distrib:fansFetish": {
+        const cost = 400;
+        if (next.cash < cost) return log(next, `Fanboost: $${cost}.`);
+        const gid = (actionId.split(":")[1].replace("fans", "").toLowerCase()) as GenreId;
+        if (!GENRE_IDS.includes(gid)) return next;
+        next = advanceFn(next, action.hours);
+        const gain = 60;
+        const meta = getGenre(gid);
+        const newTotal = (next.fans[gid] ?? 0) + gain;
+        return log({
+          ...next, cash: next.cash - cost,
+          fans: { ...next.fans, [gid]: newTotal },
+        }, `${meta?.emoji ?? "📈"} Målrettet kampanje mot ${meta?.name ?? gid}-publikum: +${gain} fans (totalt ${newTotal}).`);
+      }
 
       case "clinic:heal": {
         const cost = 120;
