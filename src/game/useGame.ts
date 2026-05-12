@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import {
   LOCATIONS, ARCHETYPES, FIRST_NAMES, LAST_NAMES,
-  RANDOM_EVENTS, GIRL_MISSIONS, type Archetype, type Girl, type MissionDef,
+  RANDOM_EVENTS, GIRL_MISSIONS, WEBCAM_SHOWS, WEBCAM_UPGRADE_COST,
+  type Archetype, type Girl, type MissionDef, type GalleryScene,
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
@@ -73,6 +74,7 @@ export interface GameState {
   campaignBonus: number;   // % marketing-kampanje-bonus, brukes opp ved neste release
   rivals: Rival[];
   news: string[];          // siste byens overskrifter (nyeste først)
+  webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -134,6 +136,7 @@ const INITIAL: GameState = {
   campaignBonus: 0,
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
+  webcamLevel: 1,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -307,13 +310,18 @@ export function useGame() {
     }
     // Complete any missions whose end time has passed — consolidated log + toast
     const nowAbs = absHour(next);
-    const completed: { name: string; label: string; payout: number; rep: number; toastId: string }[] = [];
+    const completed: { name: string; label: string; payout: number; rep: number; toastId: string; mid: string }[] = [];
     next.girls = next.girls.map((g) => {
       if (g.mission && g.mission.endsAt <= nowAbs) {
         const m = g.mission;
-        completed.push({ name: g.name, label: m.label, payout: m.payout, rep: m.rep,
+        completed.push({ name: g.name, label: m.label, payout: m.payout, rep: m.rep, mid: m.id,
           toastId: `mission:${g.id}:${m.endsAt}` });
+        const scene: GalleryScene = {
+          id: `${g.id}-mission-${m.id}-${nowAbs}`,
+          day: next.day, title: m.label, kind: `mission-${m.id}`, emoji: "💼", hue: (m.id.length * 47) % 360,
+        };
         return { ...g, mission: undefined,
+          gallery: [...(g.gallery ?? []), scene].slice(-40),
           lastActivity: `✅ ${m.label}: +$${m.payout}, +${m.rep} rep`,
           lastActivityDay: next.day };
       }
@@ -1062,9 +1070,18 @@ export function useGame() {
           : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
+          const scene: GalleryScene = {
+            id: `${g.id}-prod-${p.id}`,
+            day: s.day,
+            title: flopped ? `Flopp: "${p.title}"` : `"${p.title}"`,
+            kind: `production-${p.tierId}`,
+            emoji: flopped ? "💀" : "🎬",
+            hue: flopped ? 12 : ((p.tierId.length * 67) % 360),
+          };
+          const withScene = { ...g, gallery: [...(g.gallery ?? []), scene].slice(-40) };
           return flopped
-            ? { ...g, loyalty: Math.max(0, g.loyalty - 4), lastActivity: `Spilte i flopp "${p.title}"`, lastActivityDay: s.day }
-            : { ...g, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2),
+            ? { ...withScene, loyalty: Math.max(0, g.loyalty - 4), lastActivity: `Spilte i flopp "${p.title}"`, lastActivityDay: s.day }
+            : { ...withScene, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2),
                 lastActivity: `Slapp "${p.title}" 🎬`, lastActivityDay: s.day };
         });
         return log({
@@ -1253,6 +1270,62 @@ export function useGame() {
     });
   }, []);
 
+  // === WEBCAM SHOWS ===========================================
+  const webcamShow = useCallback((showId: string, girlId?: string, intensity: Intensity = "standard") => {
+    setState((s) => {
+      const show = WEBCAM_SHOWS.find((w) => w.id === showId);
+      if (!show) return s;
+      if (show.level > s.webcamLevel)
+        return log(s, `🔒 ${show.label} er låst — oppgrader webcam-rigg.`);
+      if (s.cash < show.cost) return log(s, `${show.label}: $${show.cost}.`);
+      if (s.stamina < show.hours * 4) return log(s, "For sliten — sov i traileren.");
+      if (girlId) {
+        const g = s.girls.find((x) => x.id === girlId);
+        if (!g) return s;
+        const nowAbs = absHour(s);
+        if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
+        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t.`);
+      }
+      const girl = girlId ? s.girls.find((x) => x.id === girlId) : undefined;
+      const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
+      const hustleMult = 1 + s.player.hustle * 0.05;
+      const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
+      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
+      let next = advance(s, show.hours);
+      next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep };
+      if (intensity === "intense") next = { ...next, heatLevel: Math.min(100, next.heatLevel + 2) };
+      if (girlId) {
+        const cdBase = Math.max(2, show.hours);
+        const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
+        const until = absHour(next) + cd;
+        const scene: GalleryScene = {
+          id: `${girlId}-webcam-${show.id}-${absHour(next)}`,
+          day: next.day, title: show.scene, kind: `webcam-${show.id}`, emoji: show.emoji, hue: show.hue,
+        };
+        next = {
+          ...next,
+          girls: next.girls.map((g) => g.id === girlId
+            ? { ...g, busyUntil: until, gallery: [...(g.gallery ?? []), scene].slice(-40),
+                lastActivity: `${show.emoji} ${show.scene}: +$${earned}`, lastActivityDay: next.day }
+            : g),
+        };
+      }
+      return log(next, `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep.`);
+    });
+  }, []);
+
+  const upgradeWebcamLevel = useCallback(() => {
+    setState((s) => {
+      if (s.webcamLevel >= WEBCAM_SHOWS.length)
+        return log(s, "Webcam-rigg er maks oppgradert.");
+      const cost = WEBCAM_UPGRADE_COST(s.webcamLevel);
+      if (s.cash < cost) return log(s, `Oppgradering: $${cost}.`);
+      const nextShow = WEBCAM_SHOWS.find((w) => w.level === s.webcamLevel + 1);
+      return log({ ...s, cash: s.cash - cost, webcamLevel: s.webcamLevel + 1 },
+        `📡 Webcam-rigg → Lv ${s.webcamLevel + 1}. ${nextShow ? `Låste opp: ${nextShow.emoji} ${nextShow.label}.` : ""}`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
@@ -1261,5 +1334,6 @@ export function useGame() {
     startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
     startMission, cancelMission,
     upgradeEquipment,
+    webcamShow, upgradeWebcamLevel,
   };
 }

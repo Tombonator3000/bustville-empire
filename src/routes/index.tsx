@@ -10,11 +10,13 @@ import { HotspotEditor, getHotspotsFor, getLocationImage } from "@/components/ga
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
 import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
+import { GallerySheet } from "@/components/game/GallerySheet";
+import { WebcamModal } from "@/components/game/WebcamModal";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 import {
   DollarSign, Star, Zap, Flame, Wine, Calendar, Backpack, Crown,
-  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText,
+  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText, Image as ImageIcon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -36,6 +38,8 @@ function GamePage() {
   const [prodOpen, setProdOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [invOpen, setInvOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [webcamOpen, setWebcamOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
@@ -57,6 +61,7 @@ function GamePage() {
         onOpenStats={() => setStatsOpen(true)}
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
+        onOpenGallery={() => setGalleryOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
       />
@@ -67,7 +72,11 @@ function GamePage() {
           locId={activeLoc}
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
-          onPerform={(id, girlId, intensity) => g.perform(activeLoc, id, girlId ?? selectedGirl, intensity)}
+          onPerform={(id, girlId, intensity) => {
+            // Trailer webcam uses dedicated modal
+            if (activeLoc === "trailer" && id === "webcam") { setWebcamOpen(true); return; }
+            g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
+          }}
           onOpenRoster={() => setRosterOpen(true)}
         />
       ) : (
@@ -106,6 +115,17 @@ function GamePage() {
       {invOpen && (
         <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />
       )}
+      {galleryOpen && (
+        <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />
+      )}
+      {webcamOpen && (
+        <WebcamModal
+          state={g.state}
+          onClose={() => setWebcamOpen(false)}
+          onRun={(showId, girlId, intensity) => g.webcamShow(showId, girlId, intensity)}
+          onUpgrade={g.upgradeWebcamLevel}
+        />
+      )}
       {optionsOpen && (
         <OptionsMenu
           onClose={() => setOptionsOpen(false)}
@@ -130,10 +150,10 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenOptions, onSwitch }: {
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenGallery, onOpenOptions, onSwitch }: {
   state: GameState;
   onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void;
-  onOpenInventory: () => void; onOpenOptions: () => void; onSwitch: () => void;
+  onOpenInventory: () => void; onOpenGallery: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
@@ -170,6 +190,7 @@ function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInvent
             Lv{loc.level} {loc.name}
           </span>
           <IconBtn onClick={onOpenInventory} title="Inventar" icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
+          <IconBtn onClick={onOpenGallery} title="Galleri" icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
           <IconBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
           <IconBtn onClick={onOpenProductions}
             icon={<Clapperboard className="h-3.5 w-3.5" />}
@@ -455,8 +476,9 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
             <div className="mt-2 space-y-1.5">
               {actions.map((a) => {
                 const isSimple = SIMPLE.has(a.id);
+                const isWebcam = locId === "trailer" && a.id === "webcam";
                 const open = openId === a.id;
-                if (isSimple) {
+                if (isSimple || isWebcam) {
                   return (
                     <button
                       key={a.id}
@@ -466,10 +488,13 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
                       <span className="text-xl leading-none">{a.emoji}</span>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold">{a.label}</span>
+                          <span className="font-bold">{a.label}{isWebcam && " ▸"}</span>
                           {a.hours > 0 && <span className="text-[10px] text-muted-foreground">~{a.hours}t</span>}
                         </div>
                         {a.desc && <div className="text-[10px] text-muted-foreground">{a.desc}</div>}
+                        {isWebcam && (
+                          <div className="text-[10px] text-accent/80">Velg jente, show-type & intensitet</div>
+                        )}
                       </div>
                     </button>
                   );
