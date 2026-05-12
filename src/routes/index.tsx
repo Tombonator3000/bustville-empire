@@ -115,6 +115,17 @@ function GamePage() {
       {invOpen && (
         <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />
       )}
+      {galleryOpen && (
+        <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />
+      )}
+      {webcamOpen && (
+        <WebcamModal
+          state={g.state}
+          onClose={() => setWebcamOpen(false)}
+          onRun={(showId, girlId, intensity) => g.webcamShow(showId, girlId, intensity)}
+          onUpgrade={g.upgradeWebcamLevel}
+        />
+      )}
       {optionsOpen && (
         <OptionsMenu
           onClose={() => setOptionsOpen(false)}
