@@ -6,7 +6,7 @@ import {
   DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS, isSpecialHotspot,
   type LocationId,
 } from "@/game/locations";
-import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
+import { HotspotEditor, getHotspotsFor, getLocationImage } from "@/components/game/HotspotEditor";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
 import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
@@ -438,7 +438,7 @@ function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRos
 
       <div className="grid gap-3 lg:grid-cols-[1.8fr_1fr]">
         <div className="relative h-[calc(100vh-9rem)] min-h-[420px] overflow-hidden rounded-xl border border-border neon-border">
-          <img src={def.image} alt={def.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1024} height={768} />
+          <img src={getLocationImage(locId, def.image)} alt={def.name} className="absolute inset-0 h-full w-full object-cover" loading="eager" width={1024} height={768} />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <h2 className="font-display text-4xl uppercase neon-text drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">{def.name}</h2>

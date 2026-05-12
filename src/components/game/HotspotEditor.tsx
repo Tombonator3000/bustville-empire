@@ -1,13 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-import { HOTSPOTS, type DistrictId, type MapHotspot } from "@/game/locations";
+import { HOTSPOTS, isSpecialHotspot, LOCATION_DEFS, type DistrictId, type LocationId, type MapHotspot } from "@/game/locations";
 
 const LS_KEY = "bustville:hotspot-overrides:v1";
+const LS_IMG_KEY = "bustville:location-image-overrides:v1";
 
 type Overrides = Partial<Record<DistrictId, MapHotspot[]>>;
+type ImgOverrides = Partial<Record<LocationId, string>>;
 
 export function loadHotspotOverrides(): Overrides {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+}
+
+export function loadLocationImageOverrides(): ImgOverrides {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(LS_IMG_KEY) || "{}"); } catch { return {}; }
+}
+
+export function getLocationImage(id: LocationId, fallback: string): string {
+  const ov = loadLocationImageOverrides();
+  return ov[id] || fallback;
+}
+
+function saveImageOverrides(ov: ImgOverrides) {
+  try {
+    localStorage.setItem(LS_IMG_KEY, JSON.stringify(ov));
+  } catch (e) {
+    console.warn("Kunne ikke lagre bilde-override (kanskje for stort).", e);
+    alert("Bildet er for stort til å lagres lokalt. Prøv et mindre bilde.");
+    return;
+  }
+  window.dispatchEvent(new Event("location-image-overrides-changed"));
 }
 
 // Merge any new default hotspots into a saved override so newly added
@@ -211,6 +234,10 @@ export function HotspotEditor({ district, mapImage, onClose }: Props) {
             </div>
           )}
 
+          {sel && !isSpecialHotspot(sel.id) && (
+            <LocationImagePicker locId={sel.id as LocationId} />
+          )}
+
           {showExport && (
             <div className="mt-3">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lim inn i src/game/locations.ts</p>
@@ -228,4 +255,78 @@ export function HotspotEditor({ district, mapImage, onClose }: Props) {
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
+}
+
+function LocationImagePicker({ locId }: { locId: LocationId }) {
+  const def = LOCATION_DEFS[locId];
+  const [override, setOverride] = useState<string | undefined>(() => loadLocationImageOverrides()[locId]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setOverride(loadLocationImageOverrides()[locId]);
+  }, [locId]);
+
+  const handleFile = (file: File) => {
+    if (file.size > 4 * 1024 * 1024) {
+      alert("Bildet er over 4MB. Velg et mindre bilde.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const ov = loadLocationImageOverrides();
+      ov[locId] = dataUrl;
+      saveImageOverrides(ov);
+      setOverride(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearOverride = () => {
+    const ov = loadLocationImageOverrides();
+    delete ov[locId];
+    saveImageOverrides(ov);
+    setOverride(undefined);
+  };
+
+  const current = override || def.image;
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-border bg-background/40 p-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Lokasjons-bilde: {def.name}</p>
+      <div className="relative aspect-video w-full overflow-hidden rounded border border-border">
+        <img src={current} alt={def.name} className="h-full w-full object-cover" />
+        {override && (
+          <span className="absolute right-1 top-1 rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent-foreground">Override</span>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="flex-1 rounded bg-primary px-2 py-1 text-[11px] font-bold uppercase text-primary-foreground hover:opacity-90"
+        >
+          Velg bilde…
+        </button>
+        {override && (
+          <button
+            onClick={clearOverride}
+            className="rounded border border-border bg-background px-2 py-1 text-[11px] font-bold uppercase hover:bg-destructive/20"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-muted-foreground">Lagres lokalt i nettleseren. Maks ~4MB.</p>
+    </div>
+  );
 }
