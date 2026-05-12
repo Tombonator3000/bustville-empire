@@ -162,11 +162,11 @@ export function VisitModal({
                 {std.emoji} {selectedGirl!.name} har {std.name} — påvirker payout og kan blokkere VIP.
               </div>
             )}
-            {visit.condomHint || (visit.risky && intensity === "intense") ? (
+            {visit.risky && intensity === "intense" && (
               <div className="mt-1 text-[10px] text-amber-300">
-                🧪 Risiko-roll. Du har {state.condoms} condom(s) — brukes auto.
+                🧪 STD-risiko-roll. Du har {state.condoms} condom(s) — brukes auto.
               </div>
-            ) : null}
+            )}
           </div>
 
           <button
