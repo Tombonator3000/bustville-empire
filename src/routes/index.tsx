@@ -13,6 +13,7 @@ import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
 import { GallerySheet } from "@/components/game/GallerySheet";
 import { WebcamModal } from "@/components/game/WebcamModal";
+import { ClinicSheet } from "@/components/game/ClinicSheet";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 import {
