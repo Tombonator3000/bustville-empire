@@ -277,7 +277,8 @@ function MapView({ state, district, onGoTo }: {
       <img
         src={district.image}
         alt={district.name}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover transition-[filter] duration-1000"
+        style={{ filter: dayFilter }}
         loading="eager"
         width={1920}
         height={1080}
@@ -288,12 +289,30 @@ function MapView({ state, district, onGoTo }: {
           src={district.nightImage}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 pointer-events-none"
-          style={{ opacity: nightOpacity }}
+          className="absolute inset-0 h-full w-full object-cover transition-all duration-1000 pointer-events-none"
+          style={{ opacity: nightOpacity, filter: nightFilter }}
           width={1920}
           height={1080}
         />
       )}
+      {/* Warm golden-hour tint (dawn/dusk) */}
+      <div
+        className="absolute inset-0 pointer-events-none mix-blend-soft-light transition-opacity duration-1000"
+        style={{
+          opacity: warmth * 0.85,
+          background:
+            "linear-gradient(180deg, oklch(0.78 0.18 55 / 0.55) 0%, oklch(0.65 0.22 30 / 0.35) 55%, transparent 100%)",
+        }}
+      />
+      {/* Cool moonlight tint (deep night) */}
+      <div
+        className="absolute inset-0 pointer-events-none mix-blend-soft-light transition-opacity duration-1000"
+        style={{
+          opacity: cool * 0.7,
+          background:
+            "linear-gradient(180deg, oklch(0.45 0.12 250 / 0.6) 0%, oklch(0.35 0.14 270 / 0.45) 100%)",
+        }}
+      />
       <div className="absolute inset-0 scan-lines opacity-15 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/70 pointer-events-none" />
 
