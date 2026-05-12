@@ -14,12 +14,16 @@ export function InventorySheet({ state, onClose }: Props) {
     <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
       <aside onClick={(e) => e.stopPropagation()}
         className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-border bg-card/95 shadow-[0_0_60px_oklch(0.7_0.28_350/0.3)]">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3 backdrop-blur">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-accent">Lager</p>
-            <h2 className="font-display text-2xl uppercase neon-text">🎒 Inventar</h2>
+        <div className="relative h-32 shrink-0 overflow-hidden border-b border-border">
+          <img src={SHOP_COVER} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-card/10" />
+          <div className="relative flex h-full items-end justify-between gap-2 px-4 pb-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-accent drop-shadow">Lager · Glitter & Garter</p>
+              <h2 className="font-display text-2xl uppercase neon-text drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">🎒 Inventar</h2>
+            </div>
+            <button onClick={onClose} className="rounded border border-border bg-background/70 px-2 py-1 text-xs uppercase backdrop-blur hover:border-primary">Lukk ✕</button>
           </div>
-          <button onClick={onClose} className="rounded border border-border px-2 py-1 text-xs uppercase hover:border-primary">Lukk ✕</button>
         </div>
 
         <div className="space-y-4 p-4">
