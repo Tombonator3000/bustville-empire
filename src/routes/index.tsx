@@ -603,9 +603,20 @@ function GirlCard({ g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
             <span className="font-bold truncate">{g.name}</span>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">${g.salary}/uke</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              ${g.contract ? Math.max(g.salary, g.contract.weeklyMin) : g.salary}/uke
+            </span>
           </div>
           <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          <div className="mt-1 text-[10px]">
+            {g.contract ? (
+              <span className="text-emerald-300/90">
+                📜 Kontrakt: utløper d.{g.contract.expiresDay} ({Math.max(0, g.contract.expiresDay - currentDay)} dager igjen)
+              </span>
+            ) : (
+              <span className="text-amber-300">⚠️ Free agent — re-sign før hun stikker.</span>
+            )}
+          </div>
           <div className="mt-1.5 grid grid-cols-4 gap-1 text-[10px]">
             <Stat label="Bea" v={g.beauty} />
             <Stat label="Perf" v={g.performance} />
