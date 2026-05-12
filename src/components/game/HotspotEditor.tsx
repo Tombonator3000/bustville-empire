@@ -1,13 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-import { HOTSPOTS, type DistrictId, type MapHotspot } from "@/game/locations";
+import { HOTSPOTS, isSpecialHotspot, LOCATION_DEFS, type DistrictId, type LocationId, type MapHotspot } from "@/game/locations";
 
 const LS_KEY = "bustville:hotspot-overrides:v1";
+const LS_IMG_KEY = "bustville:location-image-overrides:v1";
 
 type Overrides = Partial<Record<DistrictId, MapHotspot[]>>;
+type ImgOverrides = Partial<Record<LocationId, string>>;
 
 export function loadHotspotOverrides(): Overrides {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+}
+
+export function loadLocationImageOverrides(): ImgOverrides {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(LS_IMG_KEY) || "{}"); } catch { return {}; }
+}
+
+export function getLocationImage(id: LocationId, fallback: string): string {
+  const ov = loadLocationImageOverrides();
+  return ov[id] || fallback;
+}
+
+function saveImageOverrides(ov: ImgOverrides) {
+  try {
+    localStorage.setItem(LS_IMG_KEY, JSON.stringify(ov));
+  } catch (e) {
+    console.warn("Kunne ikke lagre bilde-override (kanskje for stort).", e);
+    alert("Bildet er for stort til å lagres lokalt. Prøv et mindre bilde.");
+    return;
+  }
+  window.dispatchEvent(new Event("location-image-overrides-changed"));
 }
 
 // Merge any new default hotspots into a saved override so newly added
