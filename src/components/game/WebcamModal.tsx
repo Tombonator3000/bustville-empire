@@ -46,14 +46,15 @@ export function WebcamModal({
                 return (
                   <button key={s.id} onClick={() => !sLocked && setShowId(s.id)}
                     disabled={sLocked}
-                    className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition ${
+                    className={`flex items-stretch gap-2 overflow-hidden rounded-lg border text-left transition ${
                       sLocked ? "cursor-not-allowed border-destructive/40 bg-destructive/5 opacity-60"
                         : on ? "border-primary bg-primary/15" : "border-border bg-secondary/40 hover:border-primary/60"
                     }`}>
-                    <span className="text-2xl leading-none">{s.emoji}</span>
-                    <div className="flex-1">
+                    <img src={s.cover} alt="" loading="lazy"
+                      className="h-16 w-20 shrink-0 object-cover" />
+                    <div className="flex-1 py-2 pr-3">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-bold">{s.label}</span>
+                        <span className="font-bold">{s.emoji} {s.label}</span>
                         <span className="text-[10px] text-muted-foreground">~${s.basePay} · {s.hours}t · ${s.cost}</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground">{s.flavor}</div>
