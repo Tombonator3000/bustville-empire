@@ -1185,9 +1185,21 @@ export function useGame() {
           ? genreMult >= 1.15 ? " (perfekt cast-match!)" : genreMult <= 0.95 ? " (cast passet dårlig)" : ""
           : "";
         const campNote = (s.campaignBonus || 0) > 0 ? ` [kampanje +${s.campaignBonus}%]` : "";
+        // Fanbase-gevinst: bygger genre-vektoren over tid
+        const fanGain = p.genreId
+          ? Math.max(2, Math.floor((flopped ? 6 : 28) * (0.6 + qualityMult) * (1 + release.count * 0.15)))
+          : 0;
+        const newFans = { ...s.fans };
+        if (p.genreId) {
+          const gid = p.genreId as GenreId;
+          newFans[gid] = (newFans[gid] ?? 0) + fanGain;
+        }
+        const fanNote = p.genreId
+          ? ` · +${fanGain} ${getGenre(p.genreId)?.name ?? ""} fans${fanMult > 1.05 ? ` (fanbase ×${fanMult.toFixed(2)})` : ""}`
+          : "";
         const note = flopped
-          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.`
-          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
+          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.${fanNote}`
+          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}${fanNote}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           const scene: GalleryScene = {
@@ -1214,6 +1226,7 @@ export function useGame() {
           rivals: rivalsAfter,
           productions: updated,
           girls,
+          fans: newFans,
         }, note);
       }
 
