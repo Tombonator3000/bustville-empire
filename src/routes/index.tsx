@@ -71,7 +71,7 @@ function GamePage() {
           onOpenRoster={() => setRosterOpen(true)}
         />
       ) : (
-        <MapView state={g.state} district={district} onGoTo={g.goTo} />
+        <MapView state={g.state} district={district} onGoTo={g.goTo} onSwitchDistrict={g.switchDistrict} />
       )}
 
       {rosterOpen && (
@@ -220,8 +220,8 @@ function Pill({ icon, label, value, accent, hot }: { icon?: React.ReactNode; lab
 }
 
 /* ========== MAP ========== */
-function MapView({ state, district, onGoTo }: {
-  state: GameState; district: typeof DISTRICTS[number]; onGoTo: (id: LocationId) => void;
+function MapView({ state, district, onGoTo, onSwitchDistrict }: {
+  state: GameState; district: typeof DISTRICTS[number]; onGoTo: (id: LocationId) => void; onSwitchDistrict: () => void;
 }) {
   const [editor, setEditor] = useState(false);
   const [hotspots, setHotspots] = useState(() => getHotspotsFor(district.id));
@@ -333,19 +333,35 @@ function MapView({ state, district, onGoTo }: {
         <Wrench className="h-3.5 w-3.5" /> Sone-editor
       </button>
 
-      {/* Downtown lock notice */}
-      {district.id === "park" && state.locationLevel < 3 && (
-        <div className="absolute left-4 right-4 top-24 z-10 mx-auto max-w-2xl rounded-lg border border-accent/40 bg-background/85 px-3 py-2 text-xs backdrop-blur">
-          <p className="font-display text-[10px] uppercase tracking-widest text-accent">🔒 Låst i Downtown · Lv 3</p>
-          <p className="mt-0.5 text-muted-foreground">
-            Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med
-            <span className="text-foreground"> 🎥 Camera Shack</span>,
-            <span className="text-foreground"> 👗 Glitter & Garter</span>,
-            <span className="text-foreground"> 🎭 Casting</span> og
-            <span className="text-foreground"> 📼 Reel Republic</span>.
-          </p>
-        </div>
-      )}
+      {/* Road-exit to Downtown — hover hint on the road edge */}
+      {district.id === "park" && (() => {
+        const unlocked = state.locationLevel >= 3;
+        return (
+          <button
+            onClick={() => unlocked && onSwitchDistrict()}
+            disabled={!unlocked}
+            className={`group absolute z-10 flex items-end justify-center rounded-lg border-2 border-dashed transition
+              ${unlocked
+                ? "cursor-pointer border-accent/60 bg-accent/0 hover:bg-accent/15 hover:shadow-[0_0_28px_oklch(0.85_0.22_95/0.55)]"
+                : "cursor-not-allowed border-muted-foreground/30 bg-background/0 hover:bg-background/20"}`}
+            style={{ left: "0%", top: "78%", width: "16%", height: "22%" }}
+            title={unlocked ? "Kjør til Downtown" : "Veien til Downtown åpner på Level 3"}
+          >
+            <div className={`pointer-events-none mb-2 max-w-[220px] rounded-md border bg-background/90 px-2 py-1.5 text-[10px] backdrop-blur opacity-0 transition-opacity group-hover:opacity-100
+              ${unlocked ? "border-accent/60" : "border-muted-foreground/40"}`}>
+              {unlocked ? (
+                <p className="font-display uppercase tracking-widest text-accent">🛣️ Kjør til Downtown →</p>
+              ) : (
+                <>
+                  <p className="font-display uppercase tracking-widest text-muted-foreground">🔒 Veien er stengt · Lv 3</p>
+                  <p className="mt-0.5 text-muted-foreground">Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med 🎥 Camera Shack, 👗 Glitter & Garter, 🎭 Casting og 📼 Reel Republic.</p>
+                </>
+              )}
+            </div>
+          </button>
+        );
+      })()}
+
 
       {/* Hotspots */}
       {hotspots.map((h) => {
