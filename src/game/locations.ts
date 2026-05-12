@@ -245,7 +245,11 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "campaignL", label: "Marketing: nasjonal",       emoji: "🚀", hours: 3, desc: "-$2000. +100% på neste utgivelse." },
   ],
   clinic: [
-    { id: "heal",    label: "Vitamin-sprøyte",     emoji: "💉", hours: 1, desc: "-$120, full stamina." },
-    { id: "detox",   label: "Detox en stjerne",    emoji: "🧴", hours: 3, desc: "-$300, fjerner cooldown på en jente." },
+    { id: "heal",         label: "Vitamin-sprøyte",   emoji: "💉", hours: 1, desc: "-$120, full stamina." },
+    { id: "detox",        label: "Detox en stjerne",   emoji: "🧴", hours: 3, desc: "-$300, fjerner cooldown på en jente." },
+    { id: "enhanceLips",  label: "Lip Fillers",        emoji: "💋", hours: 2, desc: "-$600, +beauty. 2 dager restitusjon. Velg jente." },
+    { id: "enhanceFit",   label: "Personal Trainer",   emoji: "🏋️", hours: 3, desc: "-$800, +performance. 3 dager restitusjon." },
+    { id: "enhanceBoob",  label: "Boob Job",           emoji: "🍒", hours: 4, desc: "-$1800, +beauty solid. 5 dager restitusjon. Risiko 10%." },
+    { id: "enhanceButt",  label: "Butt Lift",          emoji: "🍑", hours: 5, desc: "-$2200, +popularity. 7 dager restitusjon. Risiko 12%." },
   ],
 };

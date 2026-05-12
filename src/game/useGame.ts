@@ -8,6 +8,8 @@ import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } fro
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
 import { genreMatchMult, getGenre } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
+import { BODY_PROCEDURES } from "./clinic";
+import { rollDrama } from "./drama";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -369,7 +371,15 @@ export function useGame() {
       next.news = [...weeklyNews, ...next.news].slice(0, 12);
       next = log(next, weeklyNews[0]);
     }
-    // razzia roll
+    // Drama-tick: stjernedynamikk
+    const drama = rollDrama(next.girls, absHour(next));
+    if (drama) {
+      next.girls = drama.girls;
+      next.cash += drama.cashDelta;
+      next.reputation = Math.max(0, next.reputation + drama.repDelta);
+      next.heatLevel = Math.min(100, next.heatLevel + drama.heatDelta);
+      next = log(next, drama.log);
+    }
     if (next.heatLevel > 40 && next.day >= next.bribedUntilDay && Math.random() < next.heatLevel / 200) {
       const loss = Math.min(next.cash, 200 + next.heatLevel * 10);
       const lostShine = Math.min(next.moonshine, 3);
@@ -835,6 +845,42 @@ export function useGame() {
           ...next, cash: next.cash - cost,
           girls: next.girls.map(g => g.id === target.id ? { ...g, busyUntil: undefined } : g),
         }, `🧴 ${target.name} er klar igjen.`);
+      }
+      case "clinic:enhanceLips":
+      case "clinic:enhanceFit":
+      case "clinic:enhanceBoob":
+      case "clinic:enhanceButt": {
+        const procId = actionId.replace("clinic:enhance", "").toLowerCase();
+        const proc = BODY_PROCEDURES.find(p => p.id === procId);
+        if (!proc) return log(next, "Ukjent prosedyre.");
+        if (!girlId) return log(next, `Velg en stjerne for ${proc.label}.`);
+        const target = next.girls.find(g => g.id === girlId);
+        if (!target) return log(next, "Stjerne ikke funnet.");
+        if (target.busyUntil && target.busyUntil > absHour(next)) return log(next, `${target.name} er ikke klar enda.`);
+        if (target.mission) return log(next, `${target.name} er på oppdrag.`);
+        if (next.cash < proc.cost) return log(next, `${proc.label}: $${proc.cost}.`);
+        next = advanceFn(next, action.hours);
+        // Komplikasjon
+        if (Math.random() < proc.risk) {
+          const dmg = ri(3, 8);
+          return log({
+            ...next, cash: next.cash - proc.cost,
+            girls: next.girls.map(g => g.id === target.id
+              ? { ...g, busyUntil: absHour(next) + (proc.restDays + 3) * 24, loyalty: Math.max(0, g.loyalty - dmg) }
+              : g),
+          }, `🚑 ${proc.label} på ${target.name} gikk galt! Ekstra ${proc.restDays + 3} dager restitusjon, −${dmg} loy. Doc-rapport: "Hun blir bra. Sannsynligvis."`);
+        }
+        const inc = ri(proc.inc[0], proc.inc[1]);
+        return log({
+          ...next, cash: next.cash - proc.cost,
+          girls: next.girls.map(g => g.id === target.id
+            ? {
+                ...g,
+                [proc.stat]: Math.min(99, (g as any)[proc.stat] + inc),
+                busyUntil: absHour(next) + proc.restDays * 24,
+              }
+            : g),
+        }, `${proc.emoji} ${target.name}: ${proc.label} +${inc} ${proc.stat}. Restitusjon ${proc.restDays} dager.`);
       }
     }
     return next;
