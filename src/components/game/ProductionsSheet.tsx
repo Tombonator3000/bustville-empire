@@ -180,25 +180,31 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
   const isReleaseReady = canAdvance && p.stageIdx === STAGE_ORDER.length - 1;
 
   return (
-    <div className="rounded-lg border border-border bg-secondary/30 p-3">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="font-bold">{p.title}</p>
-          <p className="text-[10px] uppercase tracking-wider text-accent">
-            {tier.name} {p.genreId ? `· ${getGenre(p.genreId)?.emoji ?? ""} ${getGenre(p.genreId)?.name ?? ""} ` : ""}· Q{Math.round(p.quality)}/{mods.qualityCap}
-            {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
-          </p>
+    <div className="overflow-hidden rounded-lg border border-border bg-secondary/30">
+      <div className="relative h-20 overflow-hidden">
+        <img src={STUDIO_COVERS[p.tierId] ?? ""} alt="" loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-secondary/95 via-secondary/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-2">
+          <div>
+            <p className="font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{p.title}</p>
+            <p className="text-[10px] uppercase tracking-wider text-accent drop-shadow">
+              {tier.name} {p.genreId ? `· ${getGenre(p.genreId)?.emoji ?? ""} ${getGenre(p.genreId)?.name ?? ""} ` : ""}· Q{Math.round(p.quality)}/{mods.qualityCap}
+              {p.reworks > 0 && <span className="ml-1 text-destructive">· {p.reworks} rework</span>}
+            </p>
+          </div>
+          {isDone ? (
+            p.flopped
+              ? <span className="rounded bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase text-destructive-foreground">💀 Flopp</span>
+              : <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Hit</span>
+          ) : (
+            <button onClick={() => onCancel(p.id)} className="rounded bg-destructive/70 px-2 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
+              Avlys
+            </button>
+          )}
         </div>
-        {isDone ? (
-          p.flopped
-            ? <span className="rounded bg-destructive px-2 py-0.5 text-[10px] font-bold uppercase text-destructive-foreground">💀 Flopp</span>
-            : <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-accent-foreground">Hit</span>
-        ) : (
-          <button onClick={() => onCancel(p.id)} className="rounded bg-destructive/70 px-2 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
-            Avlys
-          </button>
-        )}
       </div>
+      <div className="p-3 pt-2">
 
       {/* Stage track */}
       <div className="mt-2 grid grid-cols-5 gap-1">
