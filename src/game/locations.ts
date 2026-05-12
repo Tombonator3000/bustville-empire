@@ -258,6 +258,9 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
   clinic: [
     { id: "heal",         label: "Vitamin-sprøyte",   emoji: "💉", hours: 1, desc: "-$120, full stamina." },
     { id: "detox",        label: "Detox en stjerne",   emoji: "🧴", hours: 3, desc: "-$300, fjerner cooldown på en jente." },
+    { id: "buyCondoms",   label: "Kjøp condoms (10)",  emoji: "🧪", hours: 1, desc: "-$200. Brukes auto i intense scener — beskytter 100%." },
+    { id: "antibiotics",  label: "Antibiotika-kur",    emoji: "💊", hours: 2, desc: "-$400. Kurerer Chlamydia/Gonorrhea på valgt jente." },
+    { id: "steroids",     label: "Steroid-blokker",    emoji: "💉", hours: 2, desc: "-$700. Undertrykker enhver STD i 5 dager (også Herpes/HIV)." },
     { id: "enhanceLips",  label: "Lip Fillers",        emoji: "💋", hours: 2, desc: "-$600, +beauty. 2 dager restitusjon. Velg jente." },
     { id: "enhanceFit",   label: "Personal Trainer",   emoji: "🏋️", hours: 3, desc: "-$800, +performance. 3 dager restitusjon." },
     { id: "enhanceBoob",  label: "Boob Job",           emoji: "🍒", hours: 4, desc: "-$1800, +beauty solid. 5 dager restitusjon. Risiko 10%." },
