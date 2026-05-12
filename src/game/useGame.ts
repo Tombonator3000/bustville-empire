@@ -323,6 +323,13 @@ export function useGame() {
     if (ev.rep) next.reputation = Math.max(0, next.reputation + ev.rep);
     if (ev.stamina) next.stamina = Math.max(0, Math.min(next.maxStamina, next.stamina + ev.stamina));
     next = log(next, ev.text);
+    // Rival/marked-tick
+    const { rivals: newRivals, news: weeklyNews } = tickRivals(next.rivals, next.reputation);
+    next.rivals = newRivals;
+    if (weeklyNews.length) {
+      next.news = [...weeklyNews, ...next.news].slice(0, 12);
+      next = log(next, weeklyNews[0]);
+    }
     // razzia roll
     if (next.heatLevel > 40 && next.day >= next.bribedUntilDay && Math.random() < next.heatLevel / 200) {
       const loss = Math.min(next.cash, 200 + next.heatLevel * 10);
