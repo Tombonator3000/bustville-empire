@@ -188,6 +188,34 @@ function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl
   };
 }
 
+/** Genererer kontrakt-tilbud basert på stjernens kvalitet. */
+export function genContract(g: Girl, currentDay: number, lengthWeeks: 4 | 8 | 12 = 8): import("./data").Contract {
+  const rating = (g.beauty + g.performance + g.popularity) / 3; // 0-99
+  // Lengre kontrakt = høyere signing bonus + lavere ukentlig minimum (de "binder seg")
+  const lengthMult = lengthWeeks === 4 ? 0.6 : lengthWeeks === 8 ? 1 : 1.6;
+  const signingBonus = Math.round((200 + rating * 18) * lengthMult);
+  const minBase = Math.round(g.salary * (lengthWeeks === 12 ? 0.95 : lengthWeeks === 4 ? 1.25 : 1.1));
+  return {
+    signingBonus,
+    weeklyMin: minBase,
+    signedDay: currentDay,
+    lengthWeeks,
+    expiresDay: currentDay + lengthWeeks * 7,
+  };
+}
+
+/** Returnerer effektiv ukentlig lønn (kontrakt-min vs. salary). */
+export function effectiveSalary(g: Girl): number {
+  if (g.contract) return Math.max(g.salary, g.contract.weeklyMin);
+  return g.salary;
+}
+
+/** Pakker en nyrekruttert stjerne med en 8-ukers kontrakt. */
+function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
+  return { ...g, contract: genContract(g, day, lengthWeeks) };
+}
+
+
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
   const [loaded, setLoaded] = useState(false);
@@ -313,10 +341,21 @@ export function useGame() {
 
   function weekTick(s: GameState): GameState {
     let next = { ...s };
-    const wages = next.girls.reduce((a, g) => a + g.salary, 0);
+    const wages = next.girls.reduce((a, g) => a + effectiveSalary(g), 0);
     const royalty = next.backlog * 180;
     next.cash += royalty - wages;
     next = log(next, `📅 Ukens lønn: -$${wages}. Royalties: +$${royalty}.`);
+    // Kontrakt-utløp: marker som free agent, gi liten loyalty-hit
+    const expiring = next.girls.filter(g => g.contract && next.day >= g.contract.expiresDay);
+    if (expiring.length) {
+      next.girls = next.girls.map(g => {
+        if (g.contract && next.day >= g.contract.expiresDay) {
+          return { ...g, contract: undefined, loyalty: Math.max(0, g.loyalty - 8) };
+        }
+        return g;
+      });
+      next = log(next, `📜 Kontrakt utløp: ${expiring.map(g => g.name).join(", ")}. Re-sign dem før de stikker.`);
+    }
     const pool = RANDOM_EVENTS.filter((e) => !e.minLevel || next.locationLevel >= e.minLevel);
     const ev = rand(pool);
     if (ev.cash) next.cash += ev.cash;
@@ -498,9 +537,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, `Drinks til en danser: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, -1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `💃 ${g.name} signerte over en drink. ${g.archetype}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const g = withContract(raw, next.day, 8);
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i signing bonus. Du har ikke råd.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `💃 ${g.name} signerte 8-ukers kontrakt. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
       }
       case "bar:drink": {
         if (next.cash < 30) return log(next, "Du har ikke råd til en runde.");
@@ -550,8 +592,13 @@ export function useGame() {
       case "gas:hitchhike": {
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.5 && next.girls.length < 6) {
-          const g = genGirl(next.player.charisma, next.locationLevel, -2);
-          return log({ ...next, girls: [...next.girls, g] }, `👠 Du plukket opp ${g.name}. Hun har en historie.`);
+          const raw = genGirl(next.player.charisma, next.locationLevel, -2);
+          const g = withContract(raw, next.day, 4); // haikere = kort kontrakt
+          if (next.cash < g.contract!.signingBonus) {
+            return log(next, `👠 ${raw.name} ville ha $${g.contract!.signingBonus} kontant. Du hadde ikke nok — hun hoppet av.`);
+          }
+          return log({ ...next, cash: next.cash - g.contract!.signingBonus, girls: [...next.girls, g] },
+            `👠 ${g.name} signerte 4-ukers prøvekontrakt. Bonus $${g.contract!.signingBonus}.`);
         }
         const loss = 80;
         return log({ ...next, cash: Math.max(0, next.cash - loss) },
@@ -564,9 +611,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, "Trenger $60 til lommelykt og lokkemat.");
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, -1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `🔦 Fant ${g.name} i skogen. ${g.archetype}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const g = withContract(raw, next.day, 4);
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `🔦 ${g.name} signerte 4-ukers kontrakt. Bonus $${g.contract!.signingBonus}.`);
       }
       case "forest:hideStash": {
         next = advanceFn(next, action.hours);
@@ -618,9 +668,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, `VIP-scout: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, +1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `💎 ${g.name} signerte: Bea ${g.beauty}/Perf ${g.performance}/Pop ${g.popularity}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, +1);
+        const g = withContract(raw, next.day, 12); // VIP-stjerner = lange kontrakter
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} forventer $${g.contract!.signingBonus} i signing bonus. Du har ikke nok.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `💎 ${g.name} signerte 12-ukers eksklusiv. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
       }
 
       // Bank
@@ -726,9 +779,12 @@ export function useGame() {
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.7) {
-          const g = genGirl(next.player.charisma, next.locationLevel, 0);
-          return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-            `📣 ${g.name} stakk seg ut i køen. ${g.archetype}.`);
+          const raw = genGirl(next.player.charisma, next.locationLevel, 0);
+          const g = withContract(raw, next.day, 8);
+          const upfront = cost + g.contract!.signingBonus;
+          if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus. Du har ikke råd.`);
+          return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+            `📣 ${g.name} signerte 8-ukers. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
         }
         return log({ ...next, cash: next.cash - cost },
           "📣 Bare amatører i dag. Audition-vouchers var ikke verdt det.");
@@ -812,6 +868,23 @@ export function useGame() {
       return log({ ...s, cash: s.cash - 150,
         girls: s.girls.map((x) => x.id === id ? { ...x, loyalty: Math.min(99, x.loyalty + ri(6, 14)) } : x),
       }, `🎁 ${g.name} fikk en gave.`);
+    });
+  }, []);
+  const resignGirl = useCallback((id: string, lengthWeeks: 4 | 8 | 12 = 8) => {
+    setState((s) => {
+      const g = s.girls.find((x) => x.id === id);
+      if (!g) return s;
+      if (g.contract) return log(s, `${g.name} har allerede en aktiv kontrakt (utløp dag ${g.contract.expiresDay}).`);
+      const contract = genContract(g, s.day, lengthWeeks);
+      // Re-signing-rabatt for lojale stjerner
+      const loyaltyDiscount = Math.round(contract.signingBonus * (g.loyalty / 200));
+      const bonus = Math.max(50, contract.signingBonus - loyaltyDiscount);
+      if (s.cash < bonus) return log(s, `${g.name} vil ha $${bonus} for å re-signe.`);
+      return log({
+        ...s,
+        cash: s.cash - bonus,
+        girls: s.girls.map(x => x.id === id ? { ...x, contract: { ...contract, signingBonus: bonus } } : x),
+      }, `✍️ ${g.name} re-signerte ${lengthWeeks} uker. Bonus $${bonus}, min $${contract.weeklyMin}/uke.`);
     });
   }, []);
   const upgradeStat = useCallback((stat: keyof PlayerStats) => {
@@ -1138,7 +1211,7 @@ export function useGame() {
     state, loaded, reset,
     saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
     goTo, backToMap, switchDistrict, perform,
-    fireGirl, trainGirl, giftGirl, upgradeStat,
+    fireGirl, trainGirl, giftGirl, resignGirl, upgradeStat,
     startProduction, advanceProduction, assignToProduction, setCastRole, cancelProduction, archiveProduction,
     startMission, cancelMission,
     upgradeEquipment,

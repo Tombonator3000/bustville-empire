@@ -83,6 +83,7 @@ function GamePage() {
           onFire={g.fireGirl}
           onTrain={g.trainGirl}
           onGift={g.giftGirl}
+          onResign={g.resignGirl}
           onStartMission={g.startMission}
           onCancelMission={g.cancelMission}
         />
@@ -546,13 +547,14 @@ function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }
 
 
 /* ========== ROSTER SHEET ========== */
-function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
+function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission }: {
   state: GameState; selected?: string;
   onClose: () => void;
   onSelect: (id: string) => void;
   onFire: (id: string) => void;
   onTrain: (id: string) => void;
   onGift: (id: string) => void;
+  onResign: (id: string, lengthWeeks?: 4 | 8 | 12) => void;
   onStartMission: (girlId: string, missionId: string) => void;
   onCancelMission: (girlId: string) => void;
 }) {
@@ -573,8 +575,8 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
             </p>
           )}
           {state.girls.map((g) => (
-            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)}
-              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift}
+            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)} currentDay={state.day}
+              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift} onResign={onResign}
               onStartMission={onStartMission} onCancelMission={onCancelMission} />
           ))}
         </div>
@@ -583,9 +585,10 @@ function RosterSheet({ state, selected, onClose, onSelect, onFire, onTrain, onGi
   );
 }
 
-function GirlCard({ g, selected, nowAbs, onSelect, onFire, onTrain, onGift, onStartMission, onCancelMission }: {
-  g: Girl; selected: boolean; nowAbs: number;
+function GirlCard({ g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission }: {
+  g: Girl; selected: boolean; nowAbs: number; currentDay: number;
   onSelect: () => void; onFire: (id: string) => void; onTrain: (id: string) => void; onGift: (id: string) => void;
+  onResign: (id: string, lengthWeeks?: 4 | 8 | 12) => void;
   onStartMission: (girlId: string, mid: string) => void; onCancelMission: (girlId: string) => void;
 }) {
   const portrait = ARCHETYPE_PORTRAITS[g.archetype];
@@ -600,9 +603,20 @@ function GirlCard({ g, selected, nowAbs, onSelect, onFire, onTrain, onGift, onSt
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
             <span className="font-bold truncate">{g.name}</span>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">${g.salary}/uke</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              ${g.contract ? Math.max(g.salary, g.contract.weeklyMin) : g.salary}/uke
+            </span>
           </div>
           <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          <div className="mt-1 text-[10px]">
+            {g.contract ? (
+              <span className="text-emerald-300/90">
+                📜 Kontrakt: utløper d.{g.contract.expiresDay} ({Math.max(0, g.contract.expiresDay - currentDay)} dager igjen)
+              </span>
+            ) : (
+              <span className="text-amber-300">⚠️ Free agent — re-sign før hun stikker.</span>
+            )}
+          </div>
           <div className="mt-1.5 grid grid-cols-4 gap-1 text-[10px]">
             <Stat label="Bea" v={g.beauty} />
             <Stat label="Perf" v={g.performance} />
@@ -653,6 +667,16 @@ function GirlCard({ g, selected, nowAbs, onSelect, onFire, onTrain, onGift, onSt
               );
             })}
           </div>
+          {!g.contract && (
+            <div className="rounded border border-amber-400/40 bg-amber-400/10 p-1.5">
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-amber-300">Re-sign kontrakt</div>
+              <div className="grid grid-cols-3 gap-1">
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 4); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">4 uker</button>
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 8); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">8 uker</button>
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 12); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">12 uker</button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-1">
             <button onClick={(e) => { e.stopPropagation(); onTrain(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Train $200</button>
             <button onClick={(e) => { e.stopPropagation(); onGift(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Gift $150</button>

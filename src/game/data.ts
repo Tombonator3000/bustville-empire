@@ -81,6 +81,14 @@ export const LAST_NAMES = [
   "Sinclair", "Velvet", "Cross", "Ray", "Moon", "Lane", "West", "Hart",
 ];
 
+export interface Contract {
+  signingBonus: number;
+  weeklyMin: number;       // ukentlig minimum-lønn (overstyrer salary hvis høyere)
+  signedDay: number;
+  lengthWeeks: number;     // 4 / 8 / 12
+  expiresDay: number;      // dag kontrakten utløper
+}
+
 export interface Girl {
   id: string;
   name: string;
@@ -94,6 +102,7 @@ export interface Girl {
   lastActivity?: string;     // shown inline under the portrait
   lastActivityDay?: number;
   busyUntil?: number;        // absolute hour until girl is back from short-form work cooldown
+  contract?: Contract;       // aktiv kontrakt (undefined = free agent / utgått)
 }
 
 export const CONTENT_TYPES = [
