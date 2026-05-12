@@ -887,6 +887,7 @@ export function useGame() {
       }, `✍️ ${g.name} re-signerte ${lengthWeeks} uker. Bonus $${bonus}, min $${contract.weeklyMin}/uke.`);
     });
   }, []);
+  const upgradeStat = useCallback((stat: keyof PlayerStats) => {
     setState((s) => {
       const cost = 300 + s.player[stat] * 250;
       if (s.cash < cost) return log(s, `Trenger $${cost}.`);
