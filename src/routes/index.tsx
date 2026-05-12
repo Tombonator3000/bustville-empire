@@ -122,6 +122,9 @@ function GamePage() {
       {galleryOpen && (
         <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />
       )}
+      {clinicOpen && (
+        <ClinicSheet state={g.state} onClose={() => setClinicOpen(false)} onPerform={g.perform} />
+      )}
       {webcamOpen && (
         <WebcamModal
           state={g.state}
