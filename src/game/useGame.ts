@@ -1297,7 +1297,7 @@ export function useGame() {
       const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
       const roleNote = roleInfo.count > 0
         ? ` (${roleInfo.count} i ${role}-rolle, +${Math.round(roleBonus)}%)`
-        : "";
+        : ` (⚠️ ingen ${role}-rolle, Q${roleAssignmentMod})`;
       const updated = next.productions.map((x, i) => i === idx
         ? { ...x, stageIdx: nextIdx, hoursLeft: nextHours,
             quality: Math.max(0, Math.min(mods.qualityCap, x.quality + qDelta)) }
