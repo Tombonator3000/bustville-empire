@@ -667,6 +667,16 @@ function GirlCard({ g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, 
               );
             })}
           </div>
+          {!g.contract && (
+            <div className="rounded border border-amber-400/40 bg-amber-400/10 p-1.5">
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-amber-300">Re-sign kontrakt</div>
+              <div className="grid grid-cols-3 gap-1">
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 4); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">4 uker</button>
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 8); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">8 uker</button>
+                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 12); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">12 uker</button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-1">
             <button onClick={(e) => { e.stopPropagation(); onTrain(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Train $200</button>
             <button onClick={(e) => { e.stopPropagation(); onGift(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Gift $150</button>
