@@ -341,10 +341,21 @@ export function useGame() {
 
   function weekTick(s: GameState): GameState {
     let next = { ...s };
-    const wages = next.girls.reduce((a, g) => a + g.salary, 0);
+    const wages = next.girls.reduce((a, g) => a + effectiveSalary(g), 0);
     const royalty = next.backlog * 180;
     next.cash += royalty - wages;
     next = log(next, `📅 Ukens lønn: -$${wages}. Royalties: +$${royalty}.`);
+    // Kontrakt-utløp: marker som free agent, gi liten loyalty-hit
+    const expiring = next.girls.filter(g => g.contract && next.day >= g.contract.expiresDay);
+    if (expiring.length) {
+      next.girls = next.girls.map(g => {
+        if (g.contract && next.day >= g.contract.expiresDay) {
+          return { ...g, contract: undefined, loyalty: Math.max(0, g.loyalty - 8) };
+        }
+        return g;
+      });
+      next = log(next, `📜 Kontrakt utløp: ${expiring.map(g => g.name).join(", ")}. Re-sign dem før de stikker.`);
+    }
     const pool = RANDOM_EVENTS.filter((e) => !e.minLevel || next.locationLevel >= e.minLevel);
     const ev = rand(pool);
     if (ev.cash) next.cash += ev.cash;
