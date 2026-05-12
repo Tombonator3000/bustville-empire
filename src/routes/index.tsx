@@ -140,10 +140,10 @@ function GamePage() {
 }
 
 /* ========== HUD ========== */
-function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenOptions, onSwitch }: {
+function HUD({ state, onOpenRoster, onOpenStats, onOpenProductions, onOpenInventory, onOpenGallery, onOpenOptions, onSwitch }: {
   state: GameState;
   onOpenRoster: () => void; onOpenStats: () => void; onOpenProductions: () => void;
-  onOpenInventory: () => void; onOpenOptions: () => void; onSwitch: () => void;
+  onOpenInventory: () => void; onOpenGallery: () => void; onOpenOptions: () => void; onSwitch: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
