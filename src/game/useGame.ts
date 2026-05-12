@@ -1447,6 +1447,75 @@ export function useGame() {
     });
   }, []);
 
+  // === TRAILER VISITS =========================================
+  const acceptVisit = useCallback((visitId: string, girlId?: string, intensity: Intensity = "standard") => {
+    setState((s) => {
+      const v = VISIT_TYPES.find((x) => x.id === visitId);
+      if (!v) return s;
+      if (v.level > s.trailerLevel)
+        return log(s, `🔒 ${v.label} er låst — oppgrader trailer-tilbudet.`);
+      if (s.cash < v.cost) return log(s, `${v.label}: $${v.cost}.`);
+      if (s.stamina < v.hours * 4) return log(s, "For sliten — sov i traileren.");
+      if (v.needsGirl && !girlId) return log(s, `${v.label} krever en stjerne tilstede.`);
+      if (girlId) {
+        const g = s.girls.find((x) => x.id === girlId);
+        if (!g) return s;
+        const nowAbs = absHour(s);
+        if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
+        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t.`);
+        if (isBlockedByStd(g, s.day, "vip")) {
+          const a = activeSTD(g, s.day)!;
+          return log(s, `${a.emoji} ${g.name} kan ikke ta ${v.label} med ${a.name}.`);
+        }
+      }
+      const girl = girlId ? s.girls.find((x) => x.id === girlId) : undefined;
+      const girlMult  = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
+      const charisma  = 1 + s.player.charisma * 0.05;
+      const intMult   = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
+      const stdMult   = girl ? payoutMult(girl, s.day) : 1;
+      const earned    = Math.floor(v.basePay * girlMult * charisma * intMult * stdMult * (0.85 + Math.random() * 0.3));
+      const heatGain  = v.heat + (intensity === "intense" ? 2 : 0);
+      let next = advance(s, v.hours);
+      next = { ...next, cash: next.cash - v.cost + earned, reputation: next.reputation + v.rep,
+        heatLevel: Math.min(100, next.heatLevel + heatGain) };
+      // STD-roll på risikable visits ved intense
+      if (girlId && v.risky && intensity === "intense") {
+        const enc = rollEncounter(next, girlId, 0.09);
+        next = enc.state;
+      }
+      // Cooldown + scene + lastActivity
+      if (girlId) {
+        const cdBase = Math.max(2, v.hours);
+        const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
+        const until = absHour(next) + cd;
+        const scene: GalleryScene = {
+          id: `${girlId}-visit-${v.id}-${absHour(next)}`,
+          day: next.day, title: v.scene, kind: `visit-${v.id}`, emoji: v.emoji, hue: v.hue,
+        };
+        next = {
+          ...next,
+          girls: next.girls.map((g) => g.id === girlId
+            ? { ...g, busyUntil: until, gallery: [...(g.gallery ?? []), scene].slice(-40),
+                lastActivity: `${v.emoji} ${v.scene}: +$${earned}`, lastActivityDay: next.day }
+            : g),
+        };
+      }
+      return log(next, `${v.emoji} ${v.label}${girl ? ` m/ ${girl.name}` : ""}: +$${earned}, +${v.rep} rep, +${heatGain} heat.`);
+    });
+  }, []);
+
+  const upgradeTrailerLevel = useCallback(() => {
+    setState((s) => {
+      const maxLvl = Math.max(...VISIT_TYPES.map((v) => v.level));
+      if (s.trailerLevel >= maxLvl) return log(s, "Trailer-tilbudet er maks oppgradert.");
+      const cost = VISIT_UPGRADE_COST(s.trailerLevel);
+      if (s.cash < cost) return log(s, `Oppgradering: $${cost}.`);
+      const newType = VISIT_TYPES.find((v) => v.level === s.trailerLevel + 1);
+      return log({ ...s, cash: s.cash - cost, trailerLevel: s.trailerLevel + 1 },
+        `🛋️ Trailer-tilbud → Lv ${s.trailerLevel + 1}. ${newType ? `Låste opp: ${newType.emoji} ${newType.label}.` : ""}`);
+    });
+  }, []);
+
   return {
     state, loaded, reset,
     saveToSlot, loadFromSlot, deleteSlot, exportSave, importSave,
@@ -1456,5 +1525,6 @@ export function useGame() {
     startMission, cancelMission,
     upgradeEquipment,
     webcamShow, upgradeWebcamLevel,
+    acceptVisit, upgradeTrailerLevel,
   };
 }
