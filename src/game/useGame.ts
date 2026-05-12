@@ -1156,14 +1156,18 @@ export function useGame() {
         const marketMult = 0.55 + share * 0.6; // ~0.55..1.15
         // Marketing-kampanje engangs-bonus
         const campMult = 1 + (s.campaignBonus || 0) / 100;
+        // Fanbase-multiplier — genre-fans bygges av tidligere releases + målrettet marketing
+        const genreFans = p.genreId ? (s.fans[p.genreId as GenreId] ?? 0) : 0;
+        const fanMult = p.genreId ? fanMultiplier(genreFans) : 1;
         const flopChance = Math.max(
           0.02,
           0.55 - p.quality / 120 - s.player.business * 0.02 - mods.eqSum * 0.015 - release.score / 220
-            - (genreMult - 1) * 0.3, // god genre-match reduserer flopp-risiko
+            - (genreMult - 1) * 0.3 // god genre-match reduserer flopp-risiko
+            - Math.min(0.15, genreFans / 4000), // stor fanbase = lavere flopp
         );
         const flopped = Math.random() < flopChance;
         const distribMult = 1 + (s.distribBonus || 0) / 100;
-        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult);
+        let gross = Math.floor(tier.basePayout * (0.7 + qualityMult) * hustleMult * studioMult * promoMult * distribMult * genreMult * marketMult * campMult * fanMult);
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
           gross = Math.floor(gross * 0.3);
