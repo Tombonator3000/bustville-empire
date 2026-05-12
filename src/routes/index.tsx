@@ -6,7 +6,7 @@ import {
   DISTRICTS, LOCATION_DEFS, LOCATION_ACTIONS, isSpecialHotspot,
   type LocationId,
 } from "@/game/locations";
-import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
+import { HotspotEditor, getHotspotsFor, getLocationImage } from "@/components/game/HotspotEditor";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
 import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
