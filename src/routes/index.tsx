@@ -10,11 +10,13 @@ import { HotspotEditor, getHotspotsFor, getLocationImage } from "@/components/ga
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
 import { OptionsMenu } from "@/components/game/OptionsMenu";
 import { InventorySheet } from "@/components/game/InventorySheet";
+import { GallerySheet } from "@/components/game/GallerySheet";
+import { WebcamModal } from "@/components/game/WebcamModal";
 import { STAGE_ORDER } from "@/game/productions";
 import heroImg from "@/assets/bustville-hero.jpg";
 import {
   DollarSign, Star, Zap, Flame, Wine, Calendar, Backpack, Crown,
-  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText,
+  Clapperboard, Users, ArrowLeftRight, Settings, ArrowLeft, Wrench, ScrollText, Image as ImageIcon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
