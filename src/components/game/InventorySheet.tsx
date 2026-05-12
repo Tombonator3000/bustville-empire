@@ -1,5 +1,6 @@
 import type { GameState } from "@/game/useGame";
 import { EQUIPMENT_LABELS } from "@/game/useGame";
+import { SHOP_COVER } from "@/game/data";
 
 interface Props {
   state: GameState;
