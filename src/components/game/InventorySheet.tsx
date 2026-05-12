@@ -32,6 +32,9 @@ export function InventorySheet({ state, onClose }: Props) {
             <Item icon="🎞️" label="Filmstock" sub="ruller (Sparky's)" value={state.filmstock} />
             <Item icon="👗" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
             <Item icon="🎟️" label="Audition-vouchers" sub="Open Mic Casting" value={state.auditionVouchers} />
+            <Item icon="🧪" label="Condoms" sub="auto i intense scener — beskytter 100%"
+              value={state.condoms}
+              className={state.condoms === 0 ? "text-destructive" : state.condoms < 3 ? "text-accent" : ""} />
             {state.distribBonus > 0 && <Item icon="🤝" label="Distribusjons-bonus" sub="neste utgivelse" value={`+${state.distribBonus}%`} />}
           </Section>
 
@@ -63,6 +66,10 @@ export function InventorySheet({ state, onClose }: Props) {
             <Item icon="💋" label="Stjerner i roster" value={state.girls.length} />
             <Item icon="⏳" label="På oppdrag" value={state.girls.filter((g) => g.mission).length} />
             <Item icon="🎥" label="Aktive produksjoner" value={state.productions.filter((p) => !p.flopped && p.stageIdx < 5).length} />
+            {state.girls.some(g => g.std) && (
+              <Item icon="🧪" label="Syke stjerner" sub="trenger Doc Lonnie"
+                value={state.girls.filter(g => g.std).length} className="text-destructive" />
+            )}
           </Section>
 
           <p className="pt-2 text-center text-[10px] text-muted-foreground">

@@ -113,6 +113,7 @@ export interface Girl {
   busyUntil?: number;        // absolute hour until girl is back from short-form work cooldown
   contract?: Contract;       // aktiv kontrakt (undefined = free agent / utgått)
   gallery?: GalleryScene[];  // unlocked scenes from jobs/missions/productions
+  std?: import("./health").STDState; // smitte fra risikable scener
 }
 
 export interface WebcamShowDef {

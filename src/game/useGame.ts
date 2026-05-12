@@ -11,6 +11,7 @@ import { genreMatchMult, getGenre } from "./genres";
 import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
 import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
+import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -75,6 +76,7 @@ export interface GameState {
   rivals: Rival[];
   news: string[];          // siste byens overskrifter (nyeste først)
   webcamLevel: number;     // 1-3, hvor mange webcam-show typer låst opp
+  condoms: number;         // forbrukbare beskyttelse — brukes auto i risikable scener
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -137,6 +139,7 @@ const INITIAL: GameState = {
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
   webcamLevel: 1,
+  condoms: 2,
 };
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -379,7 +382,18 @@ export function useGame() {
       next.news = [...weeklyNews, ...next.news].slice(0, 12);
       next = log(next, weeklyNews[0]);
     }
-    // Drama-tick: stjernedynamikk
+    // STD-tick: ukentlig loyalty-drain for syke jenter, og kronisk-varsel
+    const sickGirls = next.girls.filter(g => g.std);
+    if (sickGirls.length) {
+      next.girls = next.girls.map(g => {
+        if (!g.std) return g;
+        const def = STDS[g.std.id];
+        // Drain: kurerbar = -2, kronisk = -5
+        const drain = def.curable ? 2 : 5;
+        return { ...g, loyalty: Math.max(0, g.loyalty - drain) };
+      });
+      next = log(next, `🧪 ${sickGirls.length} stjerne(r) lider av smitte — loyalty drypper. Behandle hos Doc Lonnie.`);
+    }
     const drama = rollDrama(next.girls, absHour(next));
     if (drama) {
       next.girls = drama.girls;
@@ -432,6 +446,38 @@ export function useGame() {
     });
   }, []);
 
+  /**
+   * Bruker condom hvis tilgjengelig, ellers ruller smitterisiko.
+   * Returnerer { state, log? } — kalleren slår sammen log-strengen i sin egen melding.
+   */
+  function rollEncounter(s: GameState, girlId: string | undefined, baseChance: number): { state: GameState; tag: string } {
+    if (!girlId) return { state: s, tag: "" };
+    const g = s.girls.find(x => x.id === girlId);
+    if (!g) return { state: s, tag: "" };
+    // Ingen risiko hvis allerede smittet (én STD om gangen)
+    if (g.std) return { state: s, tag: "" };
+    // Condom beskytter
+    if (s.condoms > 0) {
+      return { state: { ...s, condoms: s.condoms - 1 }, tag: " 🧪✓" };
+    }
+    const newId = rollSTD(baseChance);
+    if (!newId) return { state: s, tag: "" };
+    const std: STDState = { id: newId, contractedDay: s.day };
+    const stdDef = STDS[newId];
+    enqueueToast(`std:${girlId}:${s.day}:${newId}`, {
+      kind: "error",
+      title: `${stdDef.emoji} ${g.name} fikk ${stdDef.name}`,
+      description: `${stdDef.effect} ${stdDef.curable ? "Behandles hos Doc Lonnie." : "Ikke kurerbar."}`,
+    });
+    return {
+      state: {
+        ...s,
+        girls: s.girls.map(x => x.id === girlId ? { ...x, std } : x),
+      },
+      tag: ` ${stdDef.emoji}!`,
+    };
+  }
+
   // === ACTIONS ===============================================
   const perform = useCallback((locId: LocationId, actionId: string, girlId?: string, intensity: Intensity = "standard") => {
     setState((s) => {
@@ -451,6 +497,12 @@ export function useGame() {
       // Intensity tax: hardcore tilts heat upward on any cash-earning timed action
       if (intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
         after = { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
+      }
+      // STD-risiko ved intense, jente-involvert, betalt scene
+      if (girlId && intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
+        const enc = rollEncounter(after, girlId, 0.07);
+        after = enc.state;
+        if (enc.tag) after = log(after, `Risikabel scene${enc.tag}`);
       }
       // Apply cooldown to the working girl if action consumed time
       if (girlId && action && action.hours > 0 && after !== before) {
@@ -606,6 +658,13 @@ export function useGame() {
         next = advanceFn(next, action.hours);
         return log({ ...next, cash: next.cash - 60, stamina: Math.min(next.maxStamina, next.stamina + 20) },
           "🥫 Energy-drikk og pølser. +20 stamina.");
+      }
+      case "gas:gasCondoms": {
+        const cost = 80;
+        if (next.cash < cost) return log(next, `Condoms: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, condoms: next.condoms + 3 },
+          "🧪 +3 condoms i hanskerommet.");
       }
       case "gas:hitchhike": {
         next = advanceFn(next, action.hours);
@@ -853,6 +912,44 @@ export function useGame() {
           ...next, cash: next.cash - cost,
           girls: next.girls.map(g => g.id === target.id ? { ...g, busyUntil: undefined } : g),
         }, `🧴 ${target.name} er klar igjen.`);
+      }
+      case "clinic:buyCondoms": {
+        const cost = 200;
+        if (next.cash < cost) return log(next, `Condoms: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({ ...next, cash: next.cash - cost, condoms: next.condoms + 10 },
+          "🧪 +10 condoms i kofferten. Doc Lonnie blunker.");
+      }
+      case "clinic:antibiotics": {
+        const cost = 400;
+        if (!girlId) return log(next, "Velg en stjerne for behandling.");
+        const target = next.girls.find(g => g.id === girlId);
+        if (!target) return log(next, "Stjerne ikke funnet.");
+        if (!target.std) return log(next, `${target.name} er allerede frisk.`);
+        const def = STDS[target.std.id];
+        if (!def.curable) return log(next, `${def.emoji} ${def.name} kan ikke kurereres med antibiotika. Prøv steroider for å undertrykke.`);
+        if (next.cash < cost) return log(next, `Antibiotika: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => g.id === target.id ? { ...g, std: undefined } : g),
+        }, `💊 ${target.name} kurert for ${def.name}. Doc snur seg ikke under injeksjonen.`);
+      }
+      case "clinic:steroids": {
+        const cost = 700;
+        if (!girlId) return log(next, "Velg en stjerne.");
+        const target = next.girls.find(g => g.id === girlId);
+        if (!target) return log(next, "Stjerne ikke funnet.");
+        if (!target.std) return log(next, `${target.name} har ingenting å undertrykke.`);
+        if (next.cash < cost) return log(next, `Steroider: $${cost}.`);
+        next = advanceFn(next, action.hours);
+        const until = next.day + 5;
+        const def = STDS[target.std.id];
+        return log({
+          ...next, cash: next.cash - cost,
+          girls: next.girls.map(g => g.id === target.id && g.std
+            ? { ...g, std: { ...g.std, suppressedUntilDay: until } } : g),
+        }, `💉 Steroid-blokker: ${target.name}s ${def.name} er undertrykt til dag ${until}.`);
       }
       case "clinic:enhanceLips":
       case "clinic:enhanceFit":
@@ -1229,18 +1326,34 @@ export function useGame() {
       if (!def) return s;
       const stat = g[def.statKey];
       if (stat < def.min) return log(s, `${g.name} har for lav ${def.statKey} (${stat}/${def.min}).`);
+      // STD-blokkering
+      if (isBlockedByStd(g, s.day, def.id)) {
+        const a = activeSTD(g, s.day)!;
+        return log(s, `${a.emoji} ${g.name} kan ikke ta ${def.label} med ${a.name}.`);
+      }
       const statBonus = 0.6 + stat / 100;       // 0.6x–1.6x
       const loyBonus  = 0.85 + g.loyalty / 200; // 0.85x–1.34x
-      const payout = Math.floor(def.basePay * statBonus * loyBonus * (0.9 + Math.random() * 0.2));
+      const stdMult   = payoutMult(g, s.day);    // 0..1 fra aktiv STD
+      const payout = Math.floor(def.basePay * statBonus * loyBonus * stdMult * (0.9 + Math.random() * 0.2));
       const rep = def.rep + (stat > 70 ? 1 : 0);
       const endsAt = absHour(s) + def.hours;
       const mission = { id: def.id, label: def.label, payout, rep, endsAt };
-      return log({
+      // Risiko: høy-eksponering oppdrag (vip, tour, onlyfans) → STD-roll
+      const riskByMission: Record<string, number> = { webcam: 0, club: 0.04, onlyfans: 0.06, vip: 0.14, tour: 0.10 };
+      const baseRisk = riskByMission[def.id] ?? 0;
+      let next: GameState = {
         ...s,
         girls: s.girls.map((x) => x.id === girlId
           ? { ...x, mission, lastActivity: `${def.emoji} Startet ${def.label}`, lastActivityDay: s.day }
           : x),
-      }, `${def.emoji} ${g.name} sendt på ${def.label} (~$${payout}, ${def.hours}t).`);
+      };
+      let extraTag = "";
+      if (baseRisk > 0) {
+        const enc = rollEncounter(next, girlId, baseRisk);
+        next = enc.state;
+        extraTag = enc.tag;
+      }
+      return log(next, `${def.emoji} ${g.name} sendt på ${def.label} (~$${payout}, ${def.hours}t).${extraTag}`);
     });
   }, []);
 
@@ -1290,10 +1403,16 @@ export function useGame() {
       const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
       const hustleMult = 1 + s.player.hustle * 0.05;
       const intensityMult = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
-      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * (0.85 + Math.random() * 0.3));
+      const stdMult = girl ? payoutMult(girl, s.day) : 1;
+      const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * stdMult * (0.85 + Math.random() * 0.3));
       let next = advance(s, show.hours);
       next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep };
       if (intensity === "intense") next = { ...next, heatLevel: Math.min(100, next.heatLevel + 2) };
+      // Toy/intense webcam med jente kan smitte (lav sjanse — ikke fysisk møte, men sett-personell osv.)
+      if (girlId && intensity === "intense" && show.id === "toys") {
+        const enc = rollEncounter(next, girlId, 0.05);
+        next = enc.state;
+      }
       if (girlId) {
         const cdBase = Math.max(2, show.hours);
         const cd = intensity === "intense" ? Math.ceil(cdBase * 1.5) : intensity === "chill" ? Math.max(1, Math.floor(cdBase * 0.7)) : cdBase;
