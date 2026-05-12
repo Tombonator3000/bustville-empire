@@ -1,5 +1,26 @@
 import { useState, useMemo } from "react";
-import { ARCHETYPE_PORTRAITS, type Girl, type GalleryScene } from "@/game/data";
+import { ARCHETYPE_PORTRAITS, WEBCAM_SHOWS, VISIT_TYPES, STUDIO_COVERS, SCENE_FALLBACKS, type Girl, type GalleryScene } from "@/game/data";
+
+// Velg en passende cover basert på scene.kind. kind-format er typisk:
+//   "webcam-<id>", "visit-<id>", "production-<tierId>", "mission-<id>", "training", "date", etc.
+function coverFor(kind: string): string {
+  if (kind.startsWith("webcam-")) {
+    const id = kind.slice("webcam-".length);
+    return WEBCAM_SHOWS.find((s) => s.id === id)?.cover ?? SCENE_FALLBACKS.default;
+  }
+  if (kind.startsWith("visit-")) {
+    const id = kind.slice("visit-".length);
+    return VISIT_TYPES.find((v) => v.id === id)?.cover ?? SCENE_FALLBACKS.default;
+  }
+  if (kind.startsWith("production-")) {
+    const id = kind.slice("production-".length);
+    return STUDIO_COVERS[id] ?? SCENE_FALLBACKS.production;
+  }
+  if (kind.startsWith("mission-") || kind === "mission") return SCENE_FALLBACKS.mission;
+  if (kind === "training" || kind === "train") return SCENE_FALLBACKS.training;
+  if (kind === "date") return SCENE_FALLBACKS.default;
+  return SCENE_FALLBACKS.default;
+}
 
 const MAX_PHOTOS_PER_GIRL = 12;
 
