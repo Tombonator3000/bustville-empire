@@ -526,9 +526,12 @@ export function useGame() {
         if (next.cash < cost) return log(next, `Drinks til en danser: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const g = genGirl(next.player.charisma, next.locationLevel, -1);
-        return log({ ...next, cash: next.cash - cost, girls: [...next.girls, g] },
-          `💃 ${g.name} signerte over en drink. ${g.archetype}.`);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const g = withContract(raw, next.day, 8);
+        const upfront = cost + g.contract!.signingBonus;
+        if (next.cash < upfront) return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i signing bonus. Du har ikke råd.`);
+        return log({ ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          `💃 ${g.name} signerte 8-ukers kontrakt. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`);
       }
       case "bar:drink": {
         if (next.cash < 30) return log(next, "Du har ikke råd til en runde.");
