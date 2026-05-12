@@ -50,13 +50,13 @@ export interface MapHotspot {
 
 export const HOTSPOTS: Record<DistrictId, MapHotspot[]> = {
   park: [
-    { id: "trailer",   x: 4,  y: 38, w: 22, h: 28, label: "Din Trailer" },
-    { id: "moonshine", x: 28, y: 62, w: 20, h: 28, label: "Moonshine-skjul" },
-    { id: "bar",       x: 36, y: 10, w: 22, h: 26, label: "Dirty Dan's" },
-    { id: "sheriff",   x: 38, y: 48, w: 18, h: 18, label: "Sheriff Buck" },
-    { id: "gas",       x: 60, y: 62, w: 22, h: 28, label: "Bensinstasjon" },
-    { id: "forest",    x: 62, y: 8,  w: 22, h: 28, label: "Skogen" },
-    { id: "clinic",    x: 84, y: 50, w: 14, h: 22, label: "Doc Lonnies" },
+    { id: "trailer",   x: 67.41, y: 30.59, w: 32.59, h: 21.98, label: "Din Trailer" },
+    { id: "moonshine", x: 53.52, y: 7.83,  w: 18.26, h: 20.59, label: "Moonshine-skjul" },
+    { id: "bar",       x: 2.06,  y: 39.17, w: 22,    h: 26,    label: "Dirty Dan's" },
+    { id: "sheriff",   x: 29.32, y: 43.99, w: 12.79, h: 33.28, label: "Sheriff Buck" },
+    { id: "gas",       x: 65.21, y: 52.74, w: 18.88, h: 31.24, label: "Bensinstasjon" },
+    { id: "forest",    x: 77.19, y: 2.14,  w: 22,    h: 28,    label: "Skogen" },
+    { id: "clinic",    x: 25.93, y: 22.53, w: 11.14, h: 17.06, label: "Doc Lonnies" },
   ],
   downtown: [
     { id: "loft",     x: 4,  y: 18, w: 20, h: 30, label: "Loft Studio" },
