@@ -53,7 +53,7 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   const nightFilter = `brightness(${nightBrightness}) contrast(${nightContrast}) saturate(${nightSaturate})`;
 
   return (
-    <section className="relative h-[calc(100vh-3.25rem)] w-full overflow-hidden">
+    <section className="relative h-[calc(100vh-6.25rem)] w-full overflow-hidden">
       <img
         src={district.image}
         alt={district.name}
