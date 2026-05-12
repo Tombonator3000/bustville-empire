@@ -33,6 +33,17 @@ export const GENRES: GenreDef[] = [
   },
 ];
 
+export const GENRE_IDS: GenreId[] = ["romance", "wild", "glamour", "fetish"];
+
+export const emptyFans = (): Record<GenreId, number> => ({
+  romance: 0, wild: 0, glamour: 0, fetish: 0,
+});
+
+/** Fans → payout-multiplier. 0 fans = 1.0×, 600 fans = 2.0× (cap). */
+export function fanMultiplier(fans: number): number {
+  return 1 + Math.min(1, Math.max(0, fans) / 600);
+}
+
 export function getGenre(id?: string): GenreDef | undefined {
   return GENRES.find((g) => g.id === id);
 }
