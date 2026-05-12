@@ -249,6 +249,21 @@ export function useGame() {
     }
   }, [state, loaded]);
 
+  // Idle auto-tick: hvis spilleren er inaktiv, la klokken sive sakte fremover.
+  // 1 time hvert 25. sekund. Hopper over splash-skjerm og vinn-skjerm.
+  useEffect(() => {
+    if (!loaded) return;
+    const id = window.setInterval(() => {
+      setState((s) => {
+        if (s.won) return s;
+        if (s.day === 1 && s.hour === 8 && s.girls.length === 0) return s; // splash
+        return advance(s, 1);
+      });
+    }, 25000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   const log = (s: GameState, msg: string): GameState => ({ ...s, log: [msg, ...s.log].slice(0, 60) });
 
   const reset = useCallback(() => setState(INITIAL), []);
