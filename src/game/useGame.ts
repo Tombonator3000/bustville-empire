@@ -1070,9 +1070,18 @@ export function useGame() {
           : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}`;
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
+          const scene: GalleryScene = {
+            id: `${g.id}-prod-${p.id}`,
+            day: s.day,
+            title: flopped ? `Flopp: "${p.title}"` : `"${p.title}"`,
+            kind: `production-${p.tierId}`,
+            emoji: flopped ? "💀" : "🎬",
+            hue: flopped ? 12 : ((p.tierId.length * 67) % 360),
+          };
+          const withScene = { ...g, gallery: [...(g.gallery ?? []), scene].slice(-40) };
           return flopped
-            ? { ...g, loyalty: Math.max(0, g.loyalty - 4), lastActivity: `Spilte i flopp "${p.title}"`, lastActivityDay: s.day }
-            : { ...g, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2),
+            ? { ...withScene, loyalty: Math.max(0, g.loyalty - 4), lastActivity: `Spilte i flopp "${p.title}"`, lastActivityDay: s.day }
+            : { ...withScene, popularity: Math.min(99, g.popularity + 5), loyalty: Math.min(99, g.loyalty + 2),
                 lastActivity: `Slapp "${p.title}" 🎬`, lastActivityDay: s.day };
         });
         return log({
