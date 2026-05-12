@@ -1,6 +1,6 @@
 import trailerImg from "@/assets/loc-trailer.jpg";
 import moonshineImg from "@/assets/loc-moonshine.jpg";
-import barImg from "@/assets/loc-bar.jpg";
+import barImg from "@/assets/dirty-dans-bar.png";
 import sheriffImg from "@/assets/loc-sheriff.jpg";
 import gasImg from "@/assets/loc-gasstation.jpg";
 import forestImg from "@/assets/loc-forest.jpg";
