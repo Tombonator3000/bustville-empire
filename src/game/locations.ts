@@ -58,14 +58,14 @@ export interface MapHotspot {
 
 export const HOTSPOTS: Record<DistrictId, MapHotspot[]> = {
   park: [
-    { id: "trailer",   x: 67.41, y: 30.59, w: 32.59, h: 21.98, label: "Din Trailer" },
-    { id: "moonshine", x: 53.52, y: 7.83,  w: 18.26, h: 20.59, label: "Moonshine-skjul" },
-    { id: "bar",       x: 2.06,  y: 39.17, w: 22,    h: 26,    label: "Dirty Dan's" },
-    { id: "sheriff",   x: 29.32, y: 43.99, w: 12.79, h: 33.28, label: "Sheriff Buck" },
-    { id: "gas",       x: 65.21, y: 52.74, w: 18.88, h: 31.24, label: "Bensinstasjon" },
-    { id: "forest",    x: 77.19, y: 2.14,  w: 22,    h: 28,    label: "Skogen" },
-    { id: "clinic",    x: 25.93, y: 22.53, w: 11.14, h: 17.06, label: "Doc Lonnies" },
-    { id: "downtown_exit", x: 0, y: 78, w: 16, h: 22, label: "Vei til Downtown" },
+    { id: "trailer",       x: 71.42, y: 28.27, w: 28.58, h: 29.37, label: "Din Trailer" },
+    { id: "moonshine",     x: 54.43, y: 7.82,  w: 15.76, h: 21.14, label: "Moonshine-skjul" },
+    { id: "bar",           x: 3.01,  y: 40.18, w: 22,    h: 26,    label: "Dirty Dan's" },
+    { id: "sheriff",       x: 30.48, y: 46.46, w: 12.41, h: 27.77, label: "Sheriff Buck" },
+    { id: "gas",           x: 64.63, y: 57.71, w: 22,    h: 28,    label: "Bensinstasjon" },
+    { id: "forest",        x: 78,    y: 4.57,  w: 22,    h: 23.37, label: "Skogen" },
+    { id: "clinic",        x: 28.83, y: 22.39, w: 9.56,  h: 18.74, label: "Doc Lonnies" },
+    { id: "downtown_exit", x: 11.67, y: 15.24, w: 14.17, h: 13.25, label: "Vei til Downtown" },
   ],
   downtown: [
     { id: "loft",     x: 4,  y: 18, w: 20, h: 30, label: "Loft Studio" },
