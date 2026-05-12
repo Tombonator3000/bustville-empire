@@ -746,6 +746,7 @@ export function useGame() {
         const $ = 800 + ri(0, 500) + next.player.business * 80;
         return log({ ...next, cash: next.cash + $, backlog: next.backlog - 1 },
           `💼 Pre-solgte 1 tittel: +$${$}.`);
+      }
       case "distrib:campaignS":
       case "distrib:campaignM":
       case "distrib:campaignL": {
