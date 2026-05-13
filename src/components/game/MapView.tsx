@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { isOpen, type GameState } from "@/game/useGame";
+import { DOWNTOWN_UNLOCK_REQUIREMENTS, hasFirstHit, isOpen, meetsDowntownUnlockRequirements, type GameState } from "@/game/useGame";
 import {
   DISTRICTS, LOCATION_DEFS, isSpecialHotspot, type LocationId,
 } from "@/game/locations";
@@ -107,7 +107,33 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
         const exit = hotspots.find((z) => z.id === "downtown_exit");
         if (!exit) return null;
         const unlocked = state.locationLevel >= 3;
+        const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
+        const firstHit = hasFirstHit(state);
+        const readyForPromotion = meetsDowntownUnlockRequirements(state);
+        const checks = [
+          { label: "Cash", current: `$${state.cash.toLocaleString()}`, required: `$${req.cash.toLocaleString()}`, ok: state.cash >= req.cash },
+          { label: "Rep", current: state.reputation.toString(), required: req.reputation.toString(), ok: state.reputation >= req.reputation },
+          { label: "First Hit", current: firstHit ? "Done" : "Missing", required: "Required", ok: firstHit },
+          { label: "Heat", current: `${state.heatLevel}%`, required: `≤ ${req.maxHeat}%`, ok: state.heatLevel <= req.maxHeat },
+          ...(req.minTalent !== undefined ? [{ label: "Talent", current: `${state.girls.length}`, required: `≥ ${req.minTalent}`, ok: state.girls.length >= req.minTalent }] : []),
+        ];
         return (
+          <>
+          {!unlocked && (
+            <div className="absolute left-4 top-24 z-10 w-80 rounded-lg border border-border/60 bg-background/80 p-3 text-[11px] backdrop-blur">
+              <p className="font-display text-xs uppercase tracking-[0.2em] text-accent">Downtown Unlock Progress</p>
+              <p className="mt-1 text-muted-foreground">Fyll kravene for å oppgradere til Level 3 og åpne Downtown.</p>
+              <div className="mt-2 space-y-1.5">
+                {checks.map((c) => (
+                  <div key={c.label} className="flex items-center justify-between rounded border border-border/50 bg-card/40 px-2 py-1">
+                    <span className={c.ok ? "text-foreground" : "text-muted-foreground"}>{c.ok ? "✅" : "⬜"} {c.label}</span>
+                    <span className="font-mono text-[10px]">{c.current} / {c.required}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{readyForPromotion ? "Klar for upgrade i traileren." : "Mangler fortsatt krav."}</p>
+            </div>
+          )}
           <button
             onClick={() => unlocked && onSwitchDistrict()}
             disabled={!unlocked}
@@ -130,6 +156,7 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
               )}
             </div>
           </button>
+          </>
         );
       })()}
 
