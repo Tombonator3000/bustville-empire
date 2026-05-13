@@ -1,5 +1,5 @@
 import type { GameState } from "@/game/useGame";
-import { EQUIPMENT_LABELS } from "@/game/useGame";
+import { EQUIPMENT_LABELS, getEquipmentLevelLabel } from "@/game/useGame";
 import { SHOP_COVER } from "@/game/data";
 
 interface Props {
@@ -62,7 +62,7 @@ export function InventorySheet({ state, onClose }: Props) {
             <Item icon="🎬" label="Studio" sub="produksjons-base" value={`Lv ${state.studioLevel}`} />
             {(["camera","lighting","editing"] as const).map((k) => (
               <Item key={k} icon={EQUIPMENT_LABELS[k].emoji} label={EQUIPMENT_LABELS[k].label}
-                sub={EQUIPMENT_LABELS[k].blurb} value={`Lv ${state.equipment[k]}`} />
+                sub={EQUIPMENT_LABELS[k].blurb} value={getEquipmentLevelLabel(k, state.equipment[k])} />
             ))}
           </Section>
 
