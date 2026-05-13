@@ -1582,9 +1582,9 @@ export function useGame() {
               ...r,
               share: Math.max(5, r.share - 1 - Math.floor(qualityMult * 2)),
             }));
-        const updated = s.productions.map((x, i) =>
-          i === idx ? { ...x, stageIdx: STAGE_ORDER.length, flopped, releasedGross: gross } : x,
-        );
+        const finalQuality = Math.round(Math.max(0, Math.min(mods.qualityCap, p.quality)));
+        const campaignBonusConsumed = s.campaignBonus || 0;
+        const distribBonusConsumed = s.distribBonus || 0;
         const genreTag = p.genreId ? ` ${getGenre(p.genreId)?.emoji ?? ""}` : "";
         const matchNote = p.genreId
           ? genreMult >= 1.15
@@ -1606,12 +1606,44 @@ export function useGame() {
           const gid = p.genreId as GenreId;
           newFans[gid] = (newFans[gid] ?? 0) + fanGain;
         }
+        const fanGainByGenre: Partial<Record<GenreId, number>> = p.genreId
+          ? { [p.genreId as GenreId]: fanGain }
+          : {};
+        const releaseSummary = {
+          moneyDelta: gross,
+          reputationDelta: repGain,
+          finalQuality,
+          flopped,
+          fanGainByGenre,
+          genreMatchEffect: Number(genreMult.toFixed(2)),
+          campaignBonusConsumed,
+          distribBonusConsumed,
+        };
+        const updated = s.productions.map((x, i) =>
+          i === idx
+            ? {
+                ...x,
+                stageIdx: STAGE_ORDER.length,
+                flopped,
+                releasedGross: gross,
+                lastResult: releaseSummary,
+              }
+            : x,
+        );
         const fanNote = p.genreId
           ? ` · +${fanGain} ${getGenre(p.genreId)?.name ?? ""} fans${fanMult > 1.05 ? ` (fanbase ×${fanMult.toFixed(2)})` : ""}`
           : "";
-        const note = flopped
-          ? `💀 FLOPP!${genreTag} "${p.title}" floppet. +$${gross}, ${repGain} rep. Kritikerne er nådeløse.${fanNote}`
-          : `🎉${genreTag} "${p.title}" sluppet! +$${gross}, +${repGain} rep.${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}${fanNote}`;
+        const headline = flopped
+          ? `💀 FLOPP!${genreTag} "${p.title}" floppet.`
+          : `🎉${genreTag} "${p.title}" sluppet!`;
+        const shortSummary = `${flopped ? "" : "+"}$${gross}, ${repGain >= 0 ? "+" : ""}${repGain} rep, Q${finalQuality}${fanNote}`;
+        const structuredSummary = `release_summary=${JSON.stringify(releaseSummary)}`;
+        const note = `${headline} ${shortSummary}${matchNote}${campNote}${release.count ? ` (PR-team x${release.count})` : ""}. ${structuredSummary}`;
+        enqueueToast(`release:${p.id}:${s.day}:${s.hour}`, {
+          kind: flopped ? "error" : "success",
+          title: flopped ? `Flopp: "${p.title}"` : `Release: "${p.title}"`,
+          description: shortSummary,
+        });
         const girls = s.girls.map((g) => {
           if (!p.girlIds.includes(g.id)) return g;
           const scene: GalleryScene = {
@@ -1777,9 +1809,14 @@ export function useGame() {
             }
           : x,
       );
+      const prevStageLabel = tier.stages[p.stageIdx].label;
+      const nextStageLabel = nextStage.label;
+      const qualityAfter = Math.max(0, Math.min(mods.qualityCap, p.quality + qDelta));
+      const qImpact = qDelta === 0 ? "Q ±0" : `Q ${qDelta > 0 ? "+" : ""}${Math.round(qDelta)}`;
+      const costImpact = `kost -$${nextCost}`;
       return log(
         { ...next, productions: updated },
-        `${nextStage.emoji} "${p.title}" → ${nextStage.label} [$${nextCost}, ${nextHours}t]${roleNote}. ${flavor}`,
+        `${nextStage.emoji} "${p.title}" ${prevStageLabel} → ${nextStageLabel} (${costImpact}, ${qImpact}, Q${Math.round(qualityAfter)}/${mods.qualityCap}, ${nextHours}t)${roleNote}. ${flavor}`,
       );
     });
   }, []);
