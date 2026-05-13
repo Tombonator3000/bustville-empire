@@ -141,6 +141,7 @@ function GamePage() {
           onSetRole={g.setCastRole}
           onCancel={g.cancelProduction}
           onUpgradeEquipment={g.upgradeEquipment}
+          onAssignDeal={g.assignDistributionDeal}
         />
       )}
       {invOpen && <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />}

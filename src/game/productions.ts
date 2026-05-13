@@ -105,6 +105,7 @@ export interface Production {
   };
   genreId?: string;     // valgt genre (romance/wild/glamour/fetish)
   campaign?: 0 | 1 | 2 | 3; // marketing-kampanje-nivå
+  distributionDealId?: string;
 }
 
 export const STAGE_ORDER: StageId[] = ["briefing", "casting", "shooting", "editing", "release"];

@@ -174,6 +174,21 @@ export interface GameState {
   fans: Record<GenreId, number>; // genre-vektor: bygges av releases, drives marketing-mål
   milestones: GameMilestones;
   milestoneEvent: MilestoneEventPayload | null;
+  distributionDeals: DistributionDeal[];
+}
+export type DistributionDealType = "streaming" | "dvd" | "cable" | "theatrical";
+export interface DistributionDeal {
+  id: string;
+  label: string;
+  dealType: DistributionDealType;
+  durationWeeks: number;
+  royaltyPct: number;
+  genrePreference?: GenreId;
+  minQuality: number;
+  minReputation: number;
+  advancePayment?: number;
+  activeFromDay?: number;
+  expiresDay?: number;
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -277,6 +292,11 @@ const INITIAL: GameState = {
   fans: emptyFans(),
   milestones: { firstHit: false },
   milestoneEvent: null,
+  distributionDeals: [
+    { id: "deal-stream-1", label: "NeonFlix Midnight", dealType: "streaming", durationWeeks: 6, royaltyPct: 8, genrePreference: "glamour", minQuality: 45, minReputation: 12, advancePayment: 350 },
+    { id: "deal-dvd-1", label: "Red State DVD Club", dealType: "dvd", durationWeeks: 10, royaltyPct: 6, genrePreference: "wild", minQuality: 35, minReputation: 8 },
+    { id: "deal-cable-1", label: "AfterDark Cable", dealType: "cable", durationWeeks: 8, royaltyPct: 7, minQuality: 50, minReputation: 15, advancePayment: 500 },
+  ],
 };
 const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
   editor: { names: ["Marty Cut", "Joan Razor", "Vince Splice"], traits: ["Night Owl", "Precision", "Fast Hands"] },
@@ -520,12 +540,16 @@ export function useGame() {
   const importSave = useCallback((json: string) => {
     try {
       const parsed = JSON.parse(json);
-      setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [] });
+      setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [], distributionDeals: parsed.distributionDeals ?? INITIAL.distributionDeals });
       return true;
     } catch {
       return false;
     }
   }, []);
+  const isDealEligibleForProduction = (deal: DistributionDeal, p: Production, s: GameState) =>
+    (p.genreId ? !deal.genrePreference || deal.genrePreference === p.genreId : !deal.genrePreference) &&
+    Math.round(Math.max(0, Math.min(getStudioMods(s).qualityCap, p.quality))) >= deal.minQuality &&
+    s.reputation >= deal.minReputation;
 
   // === TIME ENGINE ============================================
   // Advance time by N hours, drain stamina, complete missions, tick productions
@@ -631,6 +655,25 @@ export function useGame() {
     const royalty = next.backlog * 180;
     next.cash += royalty - wages;
     next = log(next, `📅 Ukens lønn: -$${wages}. Royalties: +$${royalty}.`);
+    const royaltyLines: string[] = [];
+    let dealRoyaltyTotal = 0;
+    for (const p of next.productions) {
+      if (!p.releasedGross || !p.distributionDealId) continue;
+      const deal = next.distributionDeals.find((d) => d.id === p.distributionDealId);
+      if (!deal || !deal.activeFromDay || !deal.expiresDay) continue;
+      if (next.day > deal.expiresDay) continue;
+      const payout = Math.floor(p.releasedGross * (deal.royaltyPct / 100));
+      if (payout <= 0) continue;
+      dealRoyaltyTotal += payout;
+      royaltyLines.push(`💿 Deal royalty: "${p.title}" via ${deal.label} +$${payout} (${deal.royaltyPct}%).`);
+    }
+    if (dealRoyaltyTotal > 0) {
+      next.cash += dealRoyaltyTotal;
+      next.news = [`💿 Ukens deal-royalties: +$${dealRoyaltyTotal}.`, ...next.news].slice(0, 12);
+      royaltyLines.forEach((line) => {
+        next = log(next, line);
+      });
+    }
     // Kontrakt-utløp: marker som free agent, gi liten loyalty-hit
     const expiring = next.girls.filter((g) => g.contract && next.day >= g.contract.expiresDay);
     if (expiring.length) {
@@ -1778,6 +1821,18 @@ export function useGame() {
               }
             : x,
         );
+        const selectedDeal = p.distributionDealId
+          ? s.distributionDeals.find((d) => d.id === p.distributionDealId)
+          : undefined;
+        const dealEligible = selectedDeal ? isDealEligibleForProduction(selectedDeal, p, s) : false;
+        const dealAdvance = dealEligible ? selectedDeal?.advancePayment ?? 0 : 0;
+        const updatedDeals = selectedDeal && dealEligible
+          ? s.distributionDeals.map((d) =>
+              d.id === selectedDeal.id
+                ? { ...d, activeFromDay: s.day, expiresDay: s.day + selectedDeal.durationWeeks * 7 }
+                : d,
+            )
+          : s.distributionDeals;
         const fanNote = p.genreId
           ? ` · +${fanGain} ${getGenre(p.genreId)?.name ?? ""} fans${fanMult > 1.05 ? ` (fanbase ×${fanMult.toFixed(2)})` : ""}`
           : "";
@@ -1851,7 +1906,6 @@ export function useGame() {
         return log(
           {
             ...s,
-            cash: s.cash + gross,
             reputation: nextReputation,
             backlog: flopped ? s.backlog : s.backlog + 1,
             distribBonus: 0,
@@ -1860,10 +1914,14 @@ export function useGame() {
             productions: updated,
             girls,
             fans: newFans,
+            distributionDeals: updatedDeals,
             milestones: firstHitUnlocked ? { ...s.milestones, firstHit: true } : s.milestones,
             milestoneEvent,
+            cash: s.cash + gross + dealAdvance,
           },
-          firstHitUnlocked ? `${note} 🥇 Milestone: First Hit unlocked.` : note,
+          firstHitUnlocked
+            ? `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""} 🥇 Milestone: First Hit unlocked.`
+            : `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""}`,
         );
       }
 
@@ -2049,6 +2107,19 @@ export function useGame() {
     },
     [],
   );
+  const assignDistributionDeal = useCallback((productionId: string, dealId: string) => {
+    setState((s) => {
+      const idx = s.productions.findIndex((p) => p.id === productionId);
+      if (idx === -1) return s;
+      const p = s.productions[idx];
+      if (p.stageIdx !== STAGE_ORDER.length - 1) return log(s, "Deal kan kun settes rett før release.");
+      const deal = s.distributionDeals.find((d) => d.id === dealId);
+      if (!deal) return s;
+      if (!isDealEligibleForProduction(deal, p, s)) return log(s, `Ikke kvalifisert for ${deal.label}.`);
+      const updated = s.productions.map((prod, i) => i === idx ? { ...prod, distributionDealId: dealId } : prod);
+      return log({ ...s, productions: updated }, `🤝 "${p.title}" tildelt deal: ${deal.label}.`);
+    });
+  }, []);
 
   const cancelProduction = useCallback((id: string) => {
     setState((s) => {
@@ -2415,6 +2486,7 @@ export function useGame() {
     advanceProduction,
     assignToProduction,
     setCastRole,
+    assignDistributionDeal,
     cancelProduction,
     archiveProduction,
     startMission,
