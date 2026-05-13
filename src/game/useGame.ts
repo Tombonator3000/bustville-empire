@@ -26,6 +26,14 @@ function enqueueToast(id: string, item: ToastItem) {
 
 export const absHour = (s: { day: number; hour: number }) => s.day * 24 + s.hour;
 
+// Eksempel (targetHour=7): absNow=3 -> +4t (07:00 samme dag), absNow=7 -> +24t (07:00 neste dag), absNow=20 -> +11t (07:00 neste dag).
+export function hoursUntilNextClockTime(absNow: number, targetHour: number): number {
+  const dayStart = Math.floor(absNow / 24) * 24;
+  const todayTarget = dayStart + targetHour;
+  const nextTarget = absNow < todayTarget ? todayTarget : todayTarget + 24;
+  return nextTarget - absNow;
+}
+
 export type Intensity = "chill" | "standard" | "intense";
 export const INTENSITIES: { id: Intensity; label: string; emoji: string; hint: string }[] = [
   { id: "chill",    label: "Avslappet", emoji: "🌙", hint: "0.7× lønn, mindre heat. For trøtte stjerner." },
@@ -557,8 +565,7 @@ export function useGame() {
     switch (`${locId}:${actionId}`) {
       // Trailer
       case "trailer:sleep": {
-        const target = next.hour <= 7 ? 7 : 7 + 24;
-        const delta = target - next.hour;
+        const delta = hoursUntilNextClockTime(absHour(next), 7);
         next = advanceFn(next, delta);
         next.stamina = next.maxStamina;
         return log(next, `😴 Du sov til ${timeStr(next.hour)}. Full stamina.`);
