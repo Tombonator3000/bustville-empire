@@ -5,16 +5,17 @@ import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId } from "@/game/locatio
 import { getLocationImage } from "@/components/game/HotspotEditor";
 import { ArrowLeft } from "lucide-react";
 
-export function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRoster }: {
+export function LocationView({ state, locId, selectedGirl, onBack, onPerform, onOpenRoster, onOpenProductions }: {
   state: GameState; locId: LocationId; selectedGirl?: string;
   onBack: () => void;
   onPerform: (actionId: string, girlId?: string, intensity?: Intensity) => void;
   onOpenRoster: () => void;
+  onOpenProductions: () => void;
 }) {
   const def = LOCATION_DEFS[locId];
   const actions = LOCATION_ACTIONS[locId];
   const [openId, setOpenId] = useState<string | null>(null);
-  const SIMPLE = new Set(["sleep", "roster", "upgrade", "distillUp", "upgradeStudio", "repay", "loan", "supplies", "hideStash", "bribe"]);
+  const SIMPLE = new Set(["sleep", "roster", "upgrade", "distillUp", "upgradeStudio", "repay", "loan", "supplies", "hideStash", "bribe", "produce"]);
   return (
     <section className="w-full px-4 pt-3">
       <button onClick={onBack} className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-card/70 px-3 py-1 text-xs hover:bg-card">
@@ -54,7 +55,11 @@ export function LocationView({ state, locId, selectedGirl, onBack, onPerform, on
                   return (
                     <button
                       key={a.id}
-                      onClick={() => a.id === "roster" ? onOpenRoster() : onPerform(a.id)}
+                      onClick={() => {
+                        if (a.id === "roster") return onOpenRoster();
+                        if (a.id === "produce") return onOpenProductions();
+                        onPerform(a.id);
+                      }}
                       className="flex w-full items-start gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-left hover:border-primary/60 hover:bg-secondary/80 transition"
                     >
                       <span className="text-xl leading-none">{a.emoji}</span>
