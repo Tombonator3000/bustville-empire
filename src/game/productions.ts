@@ -1,3 +1,5 @@
+import type { GenreId } from "./genres";
+
 export type StageId = "briefing" | "casting" | "shooting" | "editing" | "release";
 
 export interface StageDef {
@@ -91,6 +93,16 @@ export interface Production {
   reworks: number;
   flopped?: boolean;
   releasedGross?: number;
+  lastResult?: {
+    moneyDelta: number;
+    reputationDelta: number;
+    finalQuality: number;
+    flopped: boolean;
+    fanGainByGenre: Partial<Record<GenreId, number>>;
+    genreMatchEffect: number;
+    campaignBonusConsumed: number;
+    distribBonusConsumed: number;
+  };
   genreId?: string;     // valgt genre (romance/wild/glamour/fetish)
   campaign?: 0 | 1 | 2 | 3; // marketing-kampanje-nivå
 }

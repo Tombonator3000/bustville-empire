@@ -197,6 +197,7 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
     fans: state.fans,
   });
   const stageLabel = isDone ? "Ferdig" : `${currentStage?.label ?? "Ukjent"}${p.hoursLeft > 0 ? ` · ${p.hoursLeft}t igjen` : " · klar"}`;
+  const lastResult = p.lastResult;
   const castSummary = p.girlIds
     .map((gid) => {
       const g = girls.find((x) => x.id === gid);
@@ -282,6 +283,27 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
           </div>
         )}
       </div>
+
+      {isDone && lastResult && (
+        <details className="mt-2 rounded-md border border-border/60 bg-background/40 p-2 text-[11px]">
+          <summary className="cursor-pointer font-bold text-foreground">Siste resultat</summary>
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-muted-foreground">
+            <div>Penger</div><div className="font-mono text-foreground">+${lastResult.moneyDelta.toLocaleString()}</div>
+            <div>Rep</div><div className="font-mono text-foreground">{lastResult.reputationDelta >= 0 ? "+" : ""}{lastResult.reputationDelta}</div>
+            <div>Final kvalitet</div><div className="font-mono text-foreground">Q{lastResult.finalQuality}</div>
+            <div>Resultat</div><div className="font-mono text-foreground">{lastResult.flopped ? "Flopp" : "Hit"}</div>
+            <div>Genre-match effekt</div><div className="font-mono text-foreground">×{lastResult.genreMatchEffect.toFixed(2)}</div>
+            <div>Kampanje brukt</div><div className="font-mono text-foreground">+{lastResult.campaignBonusConsumed}%</div>
+            <div>Distrib brukt</div><div className="font-mono text-foreground">+{lastResult.distribBonusConsumed}%</div>
+            <div>Fans per genre</div>
+            <div className="font-mono text-foreground">
+              {Object.entries(lastResult.fanGainByGenre).length
+                ? Object.entries(lastResult.fanGainByGenre).map(([gid, gain]) => `${getGenre(gid)?.emoji ?? ""}${gid}+${gain}`).join(" · ")
+                : "—"}
+            </div>
+          </div>
+        </details>
+      )}
 
       {/* Cast with role assignment */}
       {!isDone && (
