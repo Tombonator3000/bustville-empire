@@ -108,6 +108,17 @@ export interface PlayerStats {
   lust: number;
 }
 
+export interface MilestoneEventPayload {
+  id: "firstHit";
+  title: string;
+  body: string;
+  rewards: string[];
+}
+
+export interface GameMilestones {
+  firstHit: boolean;
+}
+
 export interface GameState {
   cash: number;
   reputation: number;
@@ -147,6 +158,8 @@ export interface GameState {
   trailerLevel: number; // 1-4, hvor mange visit-typer er låst opp
   condoms: number; // forbrukbare beskyttelse — brukes auto i risikable scener
   fans: Record<GenreId, number>; // genre-vektor: bygges av releases, drives marketing-mål
+  milestones: GameMilestones;
+  milestoneEvent: MilestoneEventPayload | null;
 }
 
 export type EquipmentKind = "camera" | "lighting" | "editing";
@@ -238,6 +251,8 @@ const INITIAL: GameState = {
   trailerLevel: 1,
   condoms: 2,
   fans: emptyFans(),
+  milestones: { firstHit: false },
+  milestoneEvent: null,
 };
 
 
@@ -256,6 +271,18 @@ export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
   requiresFirstHit: true,
   minTalent: 3,
 };
+
+
+const FIRST_HIT_REQUIREMENTS = {
+  minQuality: 58,
+  minGross: 3000,
+  minReputation: 20,
+  maxHeat: 55,
+};
+
+function isQuickieRelease(tierId: string): boolean {
+  return tierId === "quickie";
+}
 
 export function hasFirstHit(state: GameState): boolean {
   return state.productions.some((p) => !!p.releasedGross && !p.flopped);
@@ -1717,11 +1744,41 @@ export function useGame() {
                 lastActivityDay: s.day,
               };
         });
+        const nextReputation = Math.max(0, s.reputation + repGain);
+        const firstHitUnlocked =
+          !s.milestones.firstHit &&
+          !flopped &&
+          isQuickieRelease(p.tierId) &&
+          finalQuality >= FIRST_HIT_REQUIREMENTS.minQuality &&
+          gross >= FIRST_HIT_REQUIREMENTS.minGross &&
+          nextReputation >= FIRST_HIT_REQUIREMENTS.minReputation &&
+          s.heatLevel <= FIRST_HIT_REQUIREMENTS.maxHeat;
+
+        const milestoneEvent = firstHitUnlocked
+          ? {
+              id: "firstHit" as const,
+              title: "🥇 Milestone låst opp: First Hit",
+              body: `Din første breakout-release er i boks. "${p.title}" beviste at studioet leverer.`,
+              rewards: [
+                "Downtown-gating kan nå passeres når øvrige krav er møtt",
+                `+Tillit i markedet (quality ${finalQuality}, gross $${gross.toLocaleString()})`,
+              ],
+            }
+          : s.milestoneEvent;
+
+        if (firstHitUnlocked) {
+          enqueueToast(`milestone:first-hit:${p.id}`, {
+            kind: "success",
+            title: "🥇 First Hit unlocked!",
+            description: `"${p.title}" traff målene — Downtown er ett steg nærmere.`,
+          });
+        }
+
         return log(
           {
             ...s,
             cash: s.cash + gross,
-            reputation: Math.max(0, s.reputation + repGain),
+            reputation: nextReputation,
             backlog: flopped ? s.backlog : s.backlog + 1,
             distribBonus: 0,
             campaignBonus: 0,
@@ -1729,8 +1786,10 @@ export function useGame() {
             productions: updated,
             girls,
             fans: newFans,
+            milestones: firstHitUnlocked ? { ...s.milestones, firstHit: true } : s.milestones,
+            milestoneEvent,
           },
-          note,
+          firstHitUnlocked ? `${note} 🥇 Milestone: First Hit unlocked.` : note,
         );
       }
 
