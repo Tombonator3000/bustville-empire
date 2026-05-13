@@ -50,9 +50,7 @@ export function HUD({
       {/* Row 2 — navigation */}
       <div className="mx-auto flex w-full flex-wrap items-center gap-1.5 border-t border-border/40 bg-background/60 px-4 py-1.5 text-xs">
         <NavBtn onClick={onOpenRoster} icon={<Users className="h-3.5 w-3.5" />} label={`Roster ${state.girls.length}`} primary />
-        <NavBtn onClick={onOpenProductions}
-          icon={<Clapperboard className="h-3.5 w-3.5" />}
-          label={`Filmer${activeProds ? ` (${activeProds})` : ""}`} />
+        <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn onClick={onOpenInventory} icon={<Backpack className="h-3.5 w-3.5" />} label="Lager" />
         <NavBtn onClick={onOpenGallery} icon={<ImageIcon className="h-3.5 w-3.5" />} label="Galleri" />
@@ -73,8 +71,14 @@ export function HUD({
       </div>
 
       {/* Status strip — campaign + rival + news */}
-      {(state.campaignBonus > 0 || topRival || headline) && (
+      {(state.campaignBonus > 0 || topRival || headline || activeProds > 0) && (
         <div className="flex items-center gap-3 border-t border-border/40 bg-background/70 px-4 py-1 text-[10px]">
+          {activeProds > 0 && (
+            <button onClick={onOpenProductions} title="Aktive produksjoner — åpne pipeline"
+              className="flex items-center gap-1 rounded border border-primary/60 bg-primary/15 px-1.5 py-0.5 font-mono text-primary hover:brightness-125 whitespace-nowrap">
+              <Clapperboard className="h-3 w-3" /> {activeProds}
+            </button>
+          )}
           {state.campaignBonus > 0 && (
             <span title="Marketing-kampanje aktiv — brukes opp ved neste release"
               className="flex items-center gap-1 rounded border border-accent/60 bg-accent/15 px-1.5 py-0.5 font-mono text-accent whitespace-nowrap">
