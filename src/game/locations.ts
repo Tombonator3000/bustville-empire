@@ -187,6 +187,7 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "sleep",   label: "Sov til morgen", emoji: "😴", hours: 0, desc: "Hopper til kl 07. Full stamina." },
     { id: "webcam",  label: "Webcam Show", emoji: "💻", hours: 2 },
     { id: "visit",   label: "Ta imot besøk", emoji: "🚪", hours: 1 },
+    { id: "produce", label: "🎬 Lag quickie", emoji: "🎬", hours: 0, desc: "Åpner film-pipeline (Quickie tilgjengelig her)." },
     { id: "roster",  label: "Roster & Trening", emoji: "💋", hours: 0 },
     { id: "upgrade", label: "Oppgrader bolig", emoji: "🏚️➡️🏠", hours: 0 },
   ],
@@ -215,6 +216,7 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "hideStash",   label: "Gjem moonshine", emoji: "🌲", hours: 1, desc: "Reduserer razzia-tap." },
   ],
   loft: [
+    { id: "produce",  label: "🎬 Start filmproduksjon", emoji: "🎬", hours: 0, desc: "Åpner pipeline — Glamour Feature låst opp her." },
     { id: "glamour",  label: "Glamour Shoot", emoji: "📸", hours: 4 },
     { id: "onlyfans", label: "OnlyFans-pakke", emoji: "🔥", hours: 3 },
   ],
@@ -228,6 +230,7 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "repay", label: "Betal ned lån", emoji: "💸", hours: 1 },
   ],
   studio: [
+    { id: "produce", label: "🎬 Start filmproduksjon", emoji: "🎬", hours: 0, desc: "Pipeline — Feature & Blockbuster låst opp her." },
     { id: "feature", label: "Feature Film", emoji: "🎬", hours: 6 },
     { id: "upgradeStudio", label: "Oppgrader utstyr", emoji: "🎥", hours: 0 },
   ],
