@@ -19,9 +19,10 @@ interface Props {
   onSetRole: (id: string, girlId: string, role: CastRole) => void;
   onCancel: (id: string) => void;
   onUpgradeEquipment: (kind: EquipmentKind) => void;
+  onAssignDeal: (productionId: string, dealId: string) => void;
 }
 
-export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onSetRole, onCancel, onUpgradeEquipment }: Props) {
+export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign, onSetRole, onCancel, onUpgradeEquipment, onAssignDeal }: Props) {
   const mods = getStudioMods(state);
   const activeCount = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const full = activeCount >= mods.capacity;
@@ -162,7 +163,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
           {state.productions.map((p) => (
             <ProductionCard key={p.id} p={p} girls={state.girls} mods={mods} state={state}
               onAdvance={onAdvance} onAssign={onAssign} onSetRole={onSetRole}
-              onCancel={onCancel} cash={state.cash} />
+              onCancel={onCancel} cash={state.cash} onAssignDeal={onAssignDeal} />
           ))}
         </div>
       </div>
@@ -177,6 +178,7 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
   onAssign: (id: string, gid: string) => void;
   onSetRole: (id: string, gid: string, role: CastRole) => void;
   onCancel: (id: string) => void;
+  onAssignDeal: (productionId: string, dealId: string) => void;
 }) {
   const tier = getTier(p.tierId)!;
   const isDone = p.stageIdx >= STAGE_ORDER.length;
@@ -387,6 +389,27 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
 
       {/* Advance button */}
       {!isDone && (
+        <>
+        {isReleaseReady && (
+          <div className="mt-2 rounded-md border border-border/60 bg-background/40 p-2 text-[11px]">
+            <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Distribution deal</div>
+            <div className="flex flex-wrap gap-1">
+              {state.distributionDeals.map((deal) => {
+                const eligible =
+                  (!deal.genrePreference || !p.genreId || deal.genrePreference === p.genreId) &&
+                  Math.round(Math.max(0, Math.min(mods.qualityCap, p.quality))) >= deal.minQuality &&
+                  state.reputation >= deal.minReputation;
+                const active = p.distributionDealId === deal.id;
+                return (
+                  <button key={deal.id} disabled={!eligible} onClick={() => onAssignDeal(p.id, deal.id)}
+                    className={`rounded border px-2 py-1 text-left ${active ? "border-primary bg-primary/20" : "border-border bg-background/50"} ${!eligible ? "opacity-40" : ""}`}>
+                    <div>{deal.label} · {deal.royaltyPct}%</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <button
           onClick={() => onAdvance(p.id)}
           disabled={!canAdvance || (stageCostToAdvance > 0 && cash < stageCostToAdvance)}
@@ -398,6 +421,7 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
               ? `Start ${nextStage!.label} ($${stageCostToAdvance})`
               : `Vent ${p.hoursLeft}t…`}
         </button>
+        </>
       )}
       </div>
     </div>
