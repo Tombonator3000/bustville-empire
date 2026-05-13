@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { absHour, INTENSITIES, type GameState, type Intensity } from "@/game/useGame";
+import { absHour, INTENSITIES, intensityCooldownHours, previewHeat, type GameState, type Intensity } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId } from "@/game/locations";
 import { getLocationImage } from "@/components/game/HotspotEditor";
@@ -133,6 +133,9 @@ function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }
 
   const selectedGirlObj = girlId ? girls.find((g) => g.id === girlId) : undefined;
   const selectedBlocked = selectedGirlObj && !isAvailable(selectedGirlObj);
+  const heat = previewHeat(action.id === "visit" ? 2 : 0, intensity);
+  const staminaCost = action.hours * 4;
+  const cooldown = selectedGirlObj ? intensityCooldownHours(action.hours, intensity) : 0;
   return (
     <div className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}>
       <button
@@ -222,6 +225,16 @@ function ActionRow({ action, open, onToggle, girls, nowAbs, defaultGirl, onRun }
             <p className="mt-1 text-[10px] text-muted-foreground">
               {INTENSITIES.find((m) => m.id === intensity)?.hint}
             </p>
+          </div>
+
+          <div className="rounded border border-border/70 bg-background/40 px-2 py-1.5 text-[10px]">
+            <div className="font-bold uppercase tracking-wider text-accent">Risiko før innsending</div>
+            <div className="mt-1 flex items-center justify-between"><span>Heat</span><span>+{heat.total}{heat.intensityBonus > 0 ? ` (base ${heat.baseApplied} + ${heat.intensityBonus})` : ""}</span></div>
+            <div className="flex items-center justify-between"><span>Energi/tid</span><span>{action.hours > 0 ? `-${staminaCost} stamina · ${action.hours}t` : "Ingen tidsbruk"}</span></div>
+            <div className="flex items-center justify-between"><span>Valgt stjerne</span><span>{selectedGirlObj ? `Busy ca. ${cooldown}t` : "Ingen cooldown"}</span></div>
+            {selectedGirlObj && intensity === "intense" && action.hours > 0 && (
+              <div className="mt-1 text-amber-300">🧪 Intens økt kan trigge helserisiko-roll. Condoms brukes auto.</div>
+            )}
           </div>
 
           <button

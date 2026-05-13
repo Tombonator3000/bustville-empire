@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { WEBCAM_SHOWS, WEBCAM_UPGRADE_COST, ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
-import { absHour, INTENSITIES, type GameState, type Intensity } from "@/game/useGame";
+import { absHour, INTENSITIES, intensityCooldownHours, previewHeat, type GameState, type Intensity } from "@/game/useGame";
 
 export function WebcamModal({
   state, onClose, onRun, onUpgrade,
@@ -21,6 +21,10 @@ export function WebcamModal({
   const isAvailable = (g: Girl) => !g.mission && (!g.busyUntil || g.busyUntil <= nowAbs);
   const selectedGirl = girlId ? state.girls.find((g) => g.id === girlId) : undefined;
   const selectedBlocked = selectedGirl && !isAvailable(selectedGirl);
+  const heat = previewHeat(0, intensity);
+  const staminaCost = show.hours * 4;
+  const cooldownHours = selectedGirl ? intensityCooldownHours(show.hours, intensity) : 0;
+  const hasRiskRoll = !!selectedGirl && intensity === "intense" && show.id === "toys";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm p-3" onClick={onClose}>
@@ -125,6 +129,14 @@ export function WebcamModal({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="rounded border border-border/70 bg-background/40 px-2 py-1.5 text-[10px]">
+            <div className="font-bold uppercase tracking-wider text-accent">Før du går live</div>
+            <div className="mt-1 flex items-center justify-between"><span>Heat</span><span>+{heat.total}</span></div>
+            <div className="flex items-center justify-between"><span>Energi/tid</span><span>-{staminaCost} stamina · {show.hours}t</span></div>
+            <div className="flex items-center justify-between"><span>Valgt stjerne</span><span>{selectedGirl ? `Busy ca. ${cooldownHours}t` : "Ingen ekstra cooldown"}</span></div>
+            {hasRiskRoll && <div className="mt-1 text-amber-300">🧪 Lav STD-risiko-rull (condoms: {state.condoms}).</div>}
           </div>
 
           <button

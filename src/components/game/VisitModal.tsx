@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { VISIT_TYPES, VISIT_UPGRADE_COST, ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
-import { absHour, INTENSITIES, type GameState, type Intensity } from "@/game/useGame";
+import { absHour, INTENSITIES, intensityCooldownHours, previewHeat, type GameState, type Intensity } from "@/game/useGame";
 import { activeSTD } from "@/game/health";
 
 export function VisitModal({
@@ -26,6 +26,9 @@ export function VisitModal({
   const selectedBlocked = selectedGirl && !isAvailable(selectedGirl);
   const std = selectedGirl ? activeSTD(selectedGirl, state.day) : null;
   const needsGirl = visit.needsGirl && !girlId;
+  const heat = previewHeat(visit.heat, intensity);
+  const staminaCost = visit.hours * 4;
+  const cooldownHours = selectedGirl ? intensityCooldownHours(visit.hours, intensity) : 0;
 
   const earnPreview = Math.floor(
     visit.basePay
@@ -156,7 +159,17 @@ export function VisitModal({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Heat-tillegg</span>
-              <span className="font-mono">+{visit.heat + (intensity === "intense" ? 2 : 0)}</span>
+              <span className="font-mono">+{heat.total} (base {heat.baseApplied}{heat.intensityBonus > 0 ? ` + ${heat.intensityBonus}` : ""})</span>
+            </div>
+            <div className="mt-1 rounded border border-border/70 bg-card/40 px-2 py-1.5 text-[10px]">
+              <div className="font-bold uppercase tracking-wider text-accent">Før du bekrefter</div>
+              <div className="mt-1 flex items-center justify-between"><span>Energi/tid</span><span>-{staminaCost} stamina · {visit.hours}t</span></div>
+              <div className="flex items-center justify-between"><span>Valgt stjerne</span><span>{selectedGirl ? `Opptatt ca. ${cooldownHours}t etterpå` : "Ingen ekstra cooldown"}</span></div>
+              {(visit.risky || std) && (
+                <div className={`mt-1 ${visit.risky && intensity === "intense" ? "text-amber-300" : "text-muted-foreground"}`}>
+                  {visit.risky ? (intensity === "intense" ? `🧪 Risikorull aktiv (condoms: ${state.condoms}).` : "🧪 Ingen risikorull før du skrur opp intensitet.") : "STD påvirker utbetaling/tilgang."}
+                </div>
+              )}
             </div>
             {std && (
               <div className="mt-1 text-[10px] text-destructive">
