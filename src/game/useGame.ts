@@ -18,18 +18,12 @@ import {
 } from "./data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId, type DistrictId } from "./locations";
 import { TIERS, getTier, STAGE_ORDER, type Production } from "./productions";
-import {
-  genreMatchMult,
-  getGenre,
-  emptyFans,
-  fanMultiplier,
-  GENRE_IDS,
-  type GenreId,
-} from "./genres";
-import { INITIAL_RIVALS, tickRivals, dailyHeadline, playerMarketShare, type Rival } from "./rivals";
+import { getGenre, emptyFans, GENRE_IDS, type GenreId } from "./genres";
+import { INITIAL_RIVALS, tickRivals, dailyHeadline, type Rival } from "./rivals";
 import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
 import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
+import { deriveProductionReleaseForecast, roleScoreForProduction } from "./productionForecast";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -1555,73 +1549,30 @@ export function useGame() {
       const mods = getStudioMods(s);
 
       // Per-role cast contribution helper.
-      // Each role keys to a (girl) → contribution score. Higher = better roll & quality.
-      const roleScore = (role: "casting" | "shooting" | "editing" | "release") => {
-        const assigned = p.girlIds
-          .map((gid) => s.girls.find((x) => x.id === gid))
-          .filter((g): g is Girl => !!g && (p.roles?.[g.id] ?? "shooting") === role);
-        if (!assigned.length) return { count: 0, score: 0 };
-        const score =
-          assigned.reduce((acc, g) => {
-            switch (role) {
-              case "casting":
-                return acc + g.beauty * 0.6 + g.popularity * 0.3 + g.loyalty * 0.2;
-              case "shooting":
-                return acc + g.performance * 0.6 + g.beauty * 0.3 + g.loyalty * 0.1;
-              case "editing":
-                return acc + g.loyalty * 0.5 + g.performance * 0.3;
-              case "release":
-                return acc + g.popularity * 0.7 + g.beauty * 0.2;
-            }
-          }, 0) / assigned.length;
-        return { count: assigned.length, score };
-      };
+      const roleScore = (role: "casting" | "shooting" | "editing" | "release") =>
+        roleScoreForProduction(p, s.girls, role);
 
       // Release stage payout
       if (p.stageIdx === STAGE_ORDER.length - 1) {
         const qualityMult = (p.quality + castAvg) / 100;
-        const hustleMult = 1 + s.player.hustle * 0.04;
-        const studioMult = 1 + (s.studioLevel - 1) * 0.15 + mods.eqSum * 0.04;
         const release = roleScore("release"); // PR/promo cast cuts flop risk and boosts gross
-        const promoMult = 1 + (release.score / 100) * 0.25 + release.count * 0.02;
-        // Genre × cast-arketype match
-        const castArchetypes = castStats.map((g) => g.archetype);
-        const genreMult = genreMatchMult(p.genreId, castArchetypes);
-        // Markedsandel vs. rivaler (0.5..1.0 multiplikator)
-        const share = playerMarketShare(s.rivals, s.reputation);
-        const marketMult = 0.55 + share * 0.6; // ~0.55..1.15
-        // Marketing-kampanje engangs-bonus
-        const campMult = 1 + (s.campaignBonus || 0) / 100;
-        // Fanbase-multiplier — genre-fans bygges av tidligere releases + målrettet marketing
-        const genreFans = p.genreId ? (s.fans[p.genreId as GenreId] ?? 0) : 0;
-        const fanMult = p.genreId ? fanMultiplier(genreFans) : 1;
-        const flopChance = Math.max(
-          0.02,
-          0.55 -
-            p.quality / 120 -
-            s.player.business * 0.02 -
-            mods.eqSum * 0.015 -
-            release.score / 220 -
-            (genreMult - 1) * 0.3 - // god genre-match reduserer flopp-risiko
-            Math.min(0.15, genreFans / 4000), // stor fanbase = lavere flopp
-        );
+        const { flopChance, expectedGross, conservativeGross, genreMult, fanMult } = deriveProductionReleaseForecast(p, {
+          girls: s.girls,
+          reputation: s.reputation,
+          rivals: s.rivals,
+          playerBusiness: s.player.business,
+          playerHustle: s.player.hustle,
+          studioLevel: s.studioLevel,
+          equipmentSum: mods.eqSum,
+          distribBonus: s.distribBonus || 0,
+          campaignBonus: s.campaignBonus || 0,
+          fans: s.fans,
+        });
         const flopped = Math.random() < flopChance;
-        const distribMult = 1 + (s.distribBonus || 0) / 100;
-        let gross = Math.floor(
-          tier.basePayout *
-            (0.7 + qualityMult) *
-            hustleMult *
-            studioMult *
-            promoMult *
-            distribMult *
-            genreMult *
-            marketMult *
-            campMult *
-            fanMult,
-        );
+        let gross = expectedGross;
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
         if (flopped) {
-          gross = Math.floor(gross * 0.3);
+          gross = conservativeGross;
           repGain = -Math.max(2, Math.floor(tier.baseRep / 3));
         }
         // Spillerens hit reduserer rivalenes andel
