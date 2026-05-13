@@ -350,9 +350,13 @@ export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
 
 const FIRST_HIT_REQUIREMENTS = {
   minQuality: 58,
-  minGross: 3000,
-  minReputation: 20,
+  minGross: 1400,
+  minReputation: 18,
   maxHeat: 55,
+};
+const FIRST_HIT_REWARDS = {
+  cash: 1500,
+  reputation: 4,
 };
 
 function isQuickieRelease(tierId: string): boolean {
@@ -360,7 +364,7 @@ function isQuickieRelease(tierId: string): boolean {
 }
 
 export function hasFirstHit(state: GameState): boolean {
-  return state.productions.some((p) => !!p.releasedGross && !p.flopped);
+  return state.milestones.firstHit;
 }
 
 export function meetsDowntownUnlockRequirements(state: GameState): boolean {
@@ -441,6 +445,53 @@ function serializeStateForStorage(state: GameState): VersionedSaveEnvelope {
   const normalized = normalizeGameState(state);
   const { rank: _rank, ...clean } = normalized as GameState & { rank?: unknown };
   return { storageVersion: CURRENT_STORAGE_VERSION, state: clean };
+}
+
+function isEligibleFirstHitRelease(p: Production): boolean {
+  if (p.flopped) return false;
+  if (!isQuickieRelease(p.tierId)) return false;
+  const gross = p.releasedGross ?? 0;
+  if (gross < FIRST_HIT_REQUIREMENTS.minGross) return false;
+  const finalQuality = p.lastResult?.finalQuality ?? Math.round(Math.max(0, p.quality));
+  return finalQuality >= FIRST_HIT_REQUIREMENTS.minQuality;
+}
+
+function evaluateFirstHitMilestone(s: GameState, reason: "release" | "weekly" | "load"): GameState {
+  if (s.milestones.firstHit) return s;
+  if (s.reputation < FIRST_HIT_REQUIREMENTS.minReputation) return s;
+  if (s.heatLevel > FIRST_HIT_REQUIREMENTS.maxHeat) return s;
+  const hitRelease = s.productions.find((p) => isEligibleFirstHitRelease(p));
+  if (!hitRelease) return s;
+  const next = {
+    ...s,
+    cash: s.cash + FIRST_HIT_REWARDS.cash,
+    reputation: s.reputation + FIRST_HIT_REWARDS.reputation,
+    milestones: { ...s.milestones, firstHit: true },
+    milestoneEvent: {
+      id: "firstHit" as const,
+      title: "🎉 First Hit in Bustville",
+      body: `Quickie-releasen "${hitRelease.title}" traff markedet. Downtown-sporet er nå synlig.`,
+      rewards: [
+        `+$${FIRST_HIT_REWARDS.cash.toLocaleString()} cash`,
+        `+${FIRST_HIT_REWARDS.reputation} reputation`,
+      ],
+    },
+  };
+  if (reason !== "load") {
+    enqueueToast(`milestone:first-hit:${reason}:${hitRelease.id}`, {
+      kind: "success",
+      title: "🎉 First Hit in Bustville",
+      description: `+$${FIRST_HIT_REWARDS.cash.toLocaleString()} cash · +${FIRST_HIT_REWARDS.reputation} rep`,
+    });
+  }
+  const reasonText = reason === "release" ? "release" : reason === "weekly" ? "week tick" : "load check";
+  return {
+    ...next,
+    log: [
+      `🎉 Milestone chronology: First Hit in Bustville (${reasonText}). Belønning +$${FIRST_HIT_REWARDS.cash}, +${FIRST_HIT_REWARDS.reputation} rep.`,
+      ...next.log,
+    ].slice(0, 60),
+  };
 }
 
 
@@ -555,7 +606,7 @@ export function useGame() {
         const incoming = parsed && typeof parsed === "object" && "state" in parsed
           ? (parsed as { state?: unknown }).state
           : parsed;
-        setState(normalizeGameState(incoming));
+        setState(evaluateFirstHitMilestone(normalizeGameState(incoming), "load"));
       }
     } catch {}
     setLoaded(true);
@@ -612,7 +663,7 @@ export function useGame() {
       const parsed = safeParseJson(raw);
       if (!parsed || typeof parsed !== "object") return false;
       const incoming = "state" in parsed ? (parsed as { state?: unknown }).state : parsed;
-      setState(normalizeGameState(incoming));
+      setState(evaluateFirstHitMilestone(normalizeGameState(incoming), "load"));
       return true;
     } catch {
       return false;
@@ -630,7 +681,7 @@ export function useGame() {
       const parsed = safeParseJson(json);
       if (!parsed || typeof parsed !== "object") return false;
       const incoming = "state" in parsed ? (parsed as { state?: unknown }).state : parsed;
-      setState(normalizeGameState(incoming));
+      setState(evaluateFirstHitMilestone(normalizeGameState(incoming), "load"));
       return true;
     } catch {
       return false;
@@ -736,7 +787,7 @@ export function useGame() {
         description: `+$${payouts.toLocaleString()} · +${repGain} rep${completed.length > 1 ? `\n${details}` : ""}`,
       });
     }
-    return next;
+    return evaluateFirstHitMilestone(next, "weekly");
   }
 
   function weekTick(s: GameState): GameState {
@@ -1991,55 +2042,24 @@ export function useGame() {
               };
         });
         const nextReputation = Math.max(0, s.reputation + repGain);
-        const firstHitUnlocked =
-          !s.milestones.firstHit &&
-          !flopped &&
-          isQuickieRelease(p.tierId) &&
-          finalQuality >= FIRST_HIT_REQUIREMENTS.minQuality &&
-          gross >= FIRST_HIT_REQUIREMENTS.minGross &&
-          nextReputation >= FIRST_HIT_REQUIREMENTS.minReputation &&
-          s.heatLevel <= FIRST_HIT_REQUIREMENTS.maxHeat;
-
-        const milestoneEvent = firstHitUnlocked
-          ? {
-              id: "firstHit" as const,
-              title: "🥇 Milestone låst opp: First Hit",
-              body: `Din første breakout-release er i boks. "${p.title}" beviste at studioet leverer.`,
-              rewards: [
-                "Downtown-gating kan nå passeres når øvrige krav er møtt",
-                `+Tillit i markedet (quality ${finalQuality}, gross $${gross.toLocaleString()})`,
-              ],
-            }
-          : s.milestoneEvent;
-
-        if (firstHitUnlocked) {
-          enqueueToast(`milestone:first-hit:${p.id}`, {
-            kind: "success",
-            title: "🥇 First Hit unlocked!",
-            description: `"${p.title}" traff målene — Downtown er ett steg nærmere.`,
-          });
-        }
-
-        return log(
-          {
-            ...s,
-            reputation: nextReputation,
-            backlog: flopped ? s.backlog : s.backlog + 1,
-            distribBonus: 0,
-            campaignBonus: 0,
-            rivals: rivalsAfter,
-            productions: updated,
-            girls,
-            fans: newFans,
-            distributionDeals: updatedDeals,
-            milestones: firstHitUnlocked ? { ...s.milestones, firstHit: true } : s.milestones,
-            milestoneEvent,
-            cash: s.cash + gross + dealAdvance,
-          },
-          firstHitUnlocked
-            ? `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""} 🥇 Milestone: First Hit unlocked.`
-            : `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""}`,
+        const releasedState = {
+          ...s,
+          reputation: nextReputation,
+          backlog: flopped ? s.backlog : s.backlog + 1,
+          distribBonus: 0,
+          campaignBonus: 0,
+          rivals: rivalsAfter,
+          productions: updated,
+          girls,
+          fans: newFans,
+          distributionDeals: updatedDeals,
+          cash: s.cash + gross + dealAdvance,
+        };
+        const withReleaseLog = log(
+          releasedState,
+          `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""}`,
         );
+        return evaluateFirstHitMilestone(withReleaseLog, "release");
       }
 
       // Pay next stage and enter it
