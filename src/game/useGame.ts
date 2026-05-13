@@ -240,6 +240,37 @@ const INITIAL: GameState = {
   fans: emptyFans(),
 };
 
+
+export interface DowntownUnlockRequirements {
+  cash: number;
+  reputation: number;
+  maxHeat: number;
+  requiresFirstHit: boolean;
+  minTalent?: number;
+}
+
+export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
+  cash: 24500,
+  reputation: 55,
+  maxHeat: 45,
+  requiresFirstHit: true,
+  minTalent: 3,
+};
+
+export function hasFirstHit(state: GameState): boolean {
+  return state.productions.some((p) => !!p.releasedGross && !p.flopped);
+}
+
+export function meetsDowntownUnlockRequirements(state: GameState): boolean {
+  const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
+  if (state.cash < req.cash) return false;
+  if (state.reputation < req.reputation) return false;
+  if (state.heatLevel > req.maxHeat) return false;
+  if (req.requiresFirstHit && !hasFirstHit(state)) return false;
+  if (req.minTalent !== undefined && state.girls.length < req.minTalent) return false;
+  return true;
+}
+
 const STORAGE_KEY = "bustville-empire-v2";
 
 export interface SaveSlotMeta {
@@ -777,9 +808,19 @@ export function useGame() {
       case "trailer:upgrade": {
         const nextLoc = LOCATIONS[next.locationLevel];
         if (!nextLoc) return log(next, "Du er allerede på toppen.");
-        if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
-        if (next.reputation < nextLoc.unlockRep)
-          return log(next, `Trenger ${nextLoc.unlockRep} rep.`);
+        if (nextLoc.level === 3) {
+          const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
+          if (next.cash < req.cash) return log(next, `Trenger $${req.cash}.`);
+          if (next.reputation < req.reputation) return log(next, `Trenger ${req.reputation} rep.`);
+          if (req.requiresFirstHit && !hasFirstHit(next)) return log(next, "Trenger First Hit (minst én vellykket release).");
+          if (next.heatLevel > req.maxHeat) return log(next, `Heat må ned til ${req.maxHeat}% eller lavere.`);
+          if (req.minTalent !== undefined && next.girls.length < req.minTalent)
+            return log(next, `Trenger minst ${req.minTalent} talenter i roster.`);
+        } else {
+          if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
+          if (next.reputation < nextLoc.unlockRep)
+            return log(next, `Trenger ${nextLoc.unlockRep} rep.`);
+        }
         return log(
           {
             ...next,
