@@ -1306,7 +1306,10 @@ export function useGame() {
       const difficulty = tier.minLevel * 6;
       const successPct = Math.max(35, Math.min(95, 65 + stageBoost - difficulty));
       const roll = Math.random() * 100;
-      const failed = roll > successPct;
+      const isEarlyTier = p.tierId === "quickie" || p.tierId === "glamour";
+      // Mild onboarding protection: first failure in early tiers becomes a narrow success.
+      const firstFailProtected = isEarlyTier && p.reworks === 0 && roll > successPct && (roll - successPct) <= 5;
+      const failed = !firstFailProtected && roll > successPct;
 
       // P4: cast-binding — sterk bonus når stjerne er tildelt riktig rolle, straff når den mangler
       const roleAssignmentMod =
@@ -1328,17 +1331,25 @@ export function useGame() {
 
       if (failed && p.reworks < 2) {
         const reworkCost = Math.floor(nextCost * 0.5);
+        const prevStage = tier.stages[p.stageIdx];
+        const reworkHours = Math.max(1, Math.floor(stageHours(prevStage, mods) * 0.7));
+        const qualityPenalty = -8;
+        const totalDeducted = nextCost + reworkCost;
         const updated = next.productions.map((x, i) => i === idx
-          ? { ...x, hoursLeft: Math.max(1, Math.floor(stageHours(tier.stages[p.stageIdx], mods) * 0.7)),
-              quality: Math.max(0, x.quality - 8), reworks: x.reworks + 1 }
+          ? { ...x, hoursLeft: reworkHours,
+              quality: Math.max(0, x.quality + qualityPenalty), reworks: x.reworks + 1 }
           : x);
         next.cash = Math.max(0, next.cash - reworkCost);
-        return log({ ...next, productions: updated },
-          `⚠️ ${nextStage.label} feilet (${Math.round(roll)} vs ${Math.round(successPct)}). Rework -$${reworkCost}, Q-8.`);
+        return log(
+          { ...next, productions: updated },
+          `⚠️ ${nextStage.label} feilet (sjanse ${successPct.toFixed(1)}%, roll ${roll.toFixed(1)}). ` +
+          `Entry-kostnad -$${nextCost}. Rework penalty -$${reworkCost}. ` +
+          `Quality ${qualityPenalty}. Ny ventetid ${reworkHours}t. Totalt trukket -$${totalDeducted}.`
+        );
       }
 
       const qDelta = failed ? -10 : qBonus;
-      const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : nextStage.flavor;
+      const flavor = failed ? "Vi dytter den ut uansett. Skadekontroll." : (firstFailProtected ? `${nextStage.flavor} (første-fail protection reddet attempten)` : nextStage.flavor);
       const roleNote = roleInfo.count > 0
         ? ` (${roleInfo.count} i ${role}-rolle, +${Math.round(roleBonus)}%)`
         : ` (⚠️ ingen ${role}-rolle, Q${roleAssignmentMod})`;
