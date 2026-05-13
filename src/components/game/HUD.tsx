@@ -1,5 +1,7 @@
 import { LOCATIONS } from "@/game/data";
 import { absHour, dayName, hoursUntilNextClockTime, timeStr, type GameState } from "@/game/useGame";
+import { formatDowntownRemainingRequirements } from "@/game/progression";
+import { getDistrictTransitionLock } from "@/game/locations";
 import { STAGE_ORDER } from "@/game/productions";
 import {
   DollarSign,
@@ -51,6 +53,11 @@ export function HUD({
   const sickCount = state.girls.filter((x) => x.std).length;
   const activeProds = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
+
+  const downtownLock = getDistrictTransitionLock(state, "downtown");
+  const nextUnlockText = state.district === "park" && downtownLock.locked
+    ? formatDowntownRemainingRequirements(state)
+    : "Downtown route is open.";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
@@ -152,14 +159,13 @@ export function HUD({
           hot={sickCount > 0}
         />
         <div className="ml-auto flex items-center gap-1.5">
-          {state.locationLevel >= 3 && (
-            <NavBtn
-              onClick={onSwitch}
-              icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
-              label={state.district === "park" ? "→ Downtown" : "→ Park"}
-              accent
-            />
-          )}
+          <NavBtn
+            onClick={onSwitch}
+            icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
+            label={state.district === "park" ? "→ Downtown" : "→ Park"}
+            accent
+            title={state.district === "park" && downtownLock.locked ? nextUnlockText : "Switch district"}
+          />
           <button
             onClick={onOpenOptions}
             title="Meny / Lagre / Innstillinger"
@@ -169,6 +175,12 @@ export function HUD({
           </button>
         </div>
       </div>
+
+      {state.district === "park" && (
+        <div className="border-t border-border/40 bg-background/70 px-4 py-1 text-[10px] text-muted-foreground">
+          <span className="font-semibold text-accent">Next unlock:</span> {nextUnlockText}
+        </div>
+      )}
 
       {/* Status strip — campaign + rival + news */}
       {(state.campaignBonus > 0 || topRival || headline || activeProds > 0) && (

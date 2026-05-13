@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { DOWNTOWN_UNLOCK_REQUIREMENTS, hasFirstHit, isOpen, meetsDowntownUnlockRequirements, type GameState } from "@/game/useGame";
+import { DOWNTOWN_UNLOCK_REQUIREMENTS, isOpen, meetsDowntownUnlockRequirements, type GameState } from "@/game/useGame";
+import { formatDowntownRemainingRequirements } from "@/game/progression";
 import {
-  DISTRICTS, LOCATION_DEFS, isSpecialHotspot, type LocationId,
+  DISTRICTS, LOCATION_DEFS, getDistrictTransitionLock, isSpecialHotspot, type LocationId,
 } from "@/game/locations";
 import { HotspotEditor, getHotspotsFor } from "@/components/game/HotspotEditor";
 import { Wrench, ScrollText } from "lucide-react";
@@ -106,16 +107,15 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
       {district.id === "park" && (() => {
         const exit = hotspots.find((z) => z.id === "downtown_exit");
         if (!exit) return null;
-        const unlocked = state.locationLevel >= 3;
+        const transition = getDistrictTransitionLock(state, "downtown");
+        const unlocked = !transition.locked;
         const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
-        const firstHit = hasFirstHit(state);
         const readyForPromotion = meetsDowntownUnlockRequirements(state);
         const checks = [
           { label: "Cash", current: `$${state.cash.toLocaleString()}`, required: `$${req.cash.toLocaleString()}`, ok: state.cash >= req.cash },
           { label: "Rep", current: state.reputation.toString(), required: req.reputation.toString(), ok: state.reputation >= req.reputation },
-          { label: "First Hit", current: firstHit ? "Done" : "Missing", required: "Required", ok: firstHit },
+          { label: "First Hit", current: state.milestones.firstHit ? "Done" : "Missing", required: "Required", ok: state.milestones.firstHit },
           { label: "Heat", current: `${state.heatLevel}%`, required: `≤ ${req.maxHeat}%`, ok: state.heatLevel <= req.maxHeat },
-          ...(req.minTalent !== undefined ? [{ label: "Talent", current: `${state.girls.length}`, required: `≥ ${req.minTalent}`, ok: state.girls.length >= req.minTalent }] : []),
         ];
         return (
           <>
@@ -142,7 +142,7 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
                 ? "cursor-pointer border-accent/60 bg-accent/0 hover:bg-accent/15 hover:shadow-[0_0_28px_oklch(0.85_0.22_95/0.55)]"
                 : "cursor-not-allowed border-muted-foreground/30 bg-background/0 hover:bg-background/20"}`}
             style={{ left: `${exit.x}%`, top: `${exit.y}%`, width: `${exit.w}%`, height: `${exit.h}%` }}
-            title={unlocked ? "Kjør til Downtown" : "Veien til Downtown åpner på Level 3"}
+            title={unlocked ? "Kjør til Downtown" : (transition.reason ?? "Downtown er låst")}
           >
             <div className={`pointer-events-none mb-2 max-w-[220px] rounded-md border bg-background/90 px-2 py-1.5 text-[10px] backdrop-blur opacity-0 transition-opacity group-hover:opacity-100
               ${unlocked ? "border-accent/60" : "border-muted-foreground/40"}`}>
@@ -150,8 +150,8 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
                 <p className="font-display uppercase tracking-widest text-accent">🛣️ Kjør til Downtown →</p>
               ) : (
                 <>
-                  <p className="font-display uppercase tracking-widest text-muted-foreground">🔒 Veien er stengt · Lv 3</p>
-                  <p className="mt-0.5 text-muted-foreground">Når du når <span className="font-bold text-foreground">Level 3</span> åpnes Downtown med 🎥 Camera Shack, 👗 Glitter & Garter, 🎭 Casting og 📼 Reel Republic.</p>
+                  <p className="font-display uppercase tracking-widest text-muted-foreground">🔒 Veien er stengt</p>
+                  <p className="mt-0.5 text-muted-foreground">{formatDowntownRemainingRequirements(state)}</p>
                 </>
               )}
             </div>
