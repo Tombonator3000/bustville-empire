@@ -25,6 +25,7 @@ import { rollDrama } from "./drama";
 import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 import { deriveProductionReleaseForecast, roleScoreForProduction } from "./productionForecast";
 import { deriveCompanyRank } from "./progression";
+import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -219,15 +220,18 @@ export const EQUIPMENT_LABELS: Record<
 export function getStudioMods(s: GameState) {
   const eqSum = s.equipment.camera + s.equipment.lighting + s.equipment.editing;
   const studioBoost = s.studioLevel - 1; // 0..2
+  const lowEqPenalties = getLowEquipmentPenalties(eqSum);
   // Cost: -8% per studio level above 1, -4% per equipment level. Floor 50%.
   const costMult = Math.max(0.5, 1 - 0.08 * studioBoost - 0.04 * eqSum);
   // Hours: -6% per studio level, -3% per equipment level. Floor 50%.
   const hoursMult = Math.max(0.5, 1 - 0.06 * studioBoost - 0.03 * eqSum);
-  // Quality cap: 70 base + 6/studio level + 2/eq level. Max 100.
-  const qualityCap = Math.min(100, 70 + studioBoost * 6 + eqSum * 2);
+  const shootHoursMult = lowEqPenalties.shootHoursMult;
+  const editHoursMult = lowEqPenalties.editHoursMult;
+  // Quality cap: 70 base + 6/studio level + 2/eq level, with low-equipment penalty.
+  const qualityCap = Math.max(45, Math.min(100, 70 + studioBoost * 6 + eqSum * 2 - lowEqPenalties.qualityCapPenalty));
   // Parallel capacity: 1 base + studio level + 1 per 2 equipment levels.
   const capacity = 1 + studioBoost + Math.floor(eqSum / 2);
-  return { costMult, hoursMult, qualityCap, capacity, eqSum };
+  return { costMult, hoursMult, qualityCap, capacity, eqSum, shootHoursMult, editHoursMult };
 }
 
 export function stageCost(stage: { cost: number }, mods: { costMult: number }) {
@@ -238,16 +242,25 @@ export function stageHours(stage: { hours: number }, mods: { hoursMult: number }
 }
 function stageHoursWithStaff(
   stage: { id?: string; hours: number },
-  mods: { hoursMult: number },
+  mods: { hoursMult: number; shootHoursMult: number; editHoursMult: number },
   s: GameState,
 ) {
-  const base = stageHours(stage, mods);
+  const roleMult = stage.id === "shooting"
+    ? mods.shootHoursMult
+    : stage.id === "editing"
+      ? mods.editHoursMult
+      : 1;
+  const base = Math.max(1, Math.round(stageHours(stage, mods) * roleMult));
   if (stage.id !== "editing") return base;
   return Math.max(1, Math.round(base * staffMods(s).editingHoursMult));
 }
 
 export const EQUIPMENT_UPGRADE_COST = (level: number, studioLevel: number) =>
   Math.floor(600 * Math.pow(level + 1, 1.6) * (0.8 + studioLevel * 0.3));
+
+export function getEquipmentLevelLabel(kind: EquipmentKind, level: number) {
+  return level === 0 ? EQUIPMENT_LEVEL_ZERO_FLAVOR[kind] : `Lv ${level}`;
+}
 
 const INITIAL: GameState = {
   cash: 350,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TIERS, STAGE_ORDER, getTier, CAST_ROLES, type Production, type CastRole } from "@/game/productions";
 import {
   getStudioMods, stageCost, stageHours,
-  EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST,
+  EQUIPMENT_LABELS, EQUIPMENT_UPGRADE_COST, getEquipmentLevelLabel,
   type GameState, type EquipmentKind,
 } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
@@ -65,7 +65,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold">{meta.emoji} {meta.label}</span>
-                    <span className="text-accent">Lv {lvl}/3</span>
+                    <span className="text-accent">{getEquipmentLevelLabel(kind, lvl)}/3</span>
                   </div>
                 </div>
               );

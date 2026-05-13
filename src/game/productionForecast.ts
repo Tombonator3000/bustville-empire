@@ -2,6 +2,7 @@ import { fanMultiplier, genreMatchMult, type GenreId } from "@/game/genres";
 import { getTier, type CastRole, type Production } from "@/game/productions";
 import { type Girl } from "@/game/data";
 import { playerMarketShare, type Rival } from "@/game/rivals";
+import { getLowEquipmentPenalties } from "@/game/balanceConstants";
 
 export interface ProductionForecastContext {
   girls: Girl[];
@@ -62,8 +63,9 @@ export function deriveProductionReleaseForecast(production: Production, ctx: Pro
   const campMult = 1 + (ctx.campaignBonus || 0) / 100;
   const genreFans = production.genreId ? (ctx.fans[production.genreId as GenreId] ?? 0) : 0;
   const fanMult = production.genreId ? fanMultiplier(genreFans) : 1;
+  const lowEqPenalties = getLowEquipmentPenalties(ctx.equipmentSum);
   const flopChance = Math.max(
-    0.02,
+    lowEqPenalties.flopFloor,
     0.55 -
       production.quality / 120 -
       ctx.playerBusiness * 0.02 -
@@ -73,7 +75,7 @@ export function deriveProductionReleaseForecast(production: Production, ctx: Pro
       Math.min(0.15, genreFans / 4000),
   );
   const distribMult = 1 + (ctx.distribBonus || 0) / 100;
-  const expectedGross = Math.floor(
+  const rawGross = Math.floor(
     tier.basePayout *
       (0.7 + qualityMult) *
       hustleMult *
@@ -85,6 +87,7 @@ export function deriveProductionReleaseForecast(production: Production, ctx: Pro
       campMult *
       fanMult,
   );
+  const expectedGross = Math.floor(rawGross * lowEqPenalties.payoutCeilingMult);
 
   return {
     flopChance,
