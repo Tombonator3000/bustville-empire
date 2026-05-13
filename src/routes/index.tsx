@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 
 function GamePage() {
   const g = useGame();
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(true);
   const [selectedGirl, setSelectedGirl] = useState<string | undefined>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
