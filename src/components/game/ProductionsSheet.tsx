@@ -7,6 +7,7 @@ import {
 } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
 import { GENRES, getGenre } from "@/game/genres";
+import { deriveProductionReleaseForecast } from "@/game/productionForecast";
 
 interface Props {
   state: GameState;
@@ -158,7 +159,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
             </p>
           )}
           {state.productions.map((p) => (
-            <ProductionCard key={p.id} p={p} girls={state.girls} mods={mods}
+            <ProductionCard key={p.id} p={p} girls={state.girls} mods={mods} state={state}
               onAdvance={onAdvance} onAssign={onAssign} onSetRole={onSetRole}
               onCancel={onCancel} cash={state.cash} />
           ))}
@@ -168,8 +169,8 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
   );
 }
 
-function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCancel, cash }: {
-  p: Production; girls: Girl[]; cash: number;
+function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole, onCancel, cash }: {
+  p: Production; girls: Girl[]; cash: number; state: GameState;
   mods: ReturnType<typeof getStudioMods>;
   onAdvance: (id: string) => void;
   onAssign: (id: string, gid: string) => void;
@@ -183,6 +184,29 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
   const canAdvance = !isDone && p.hoursLeft <= 0;
   const stageCostToAdvance = canAdvance && p.stageIdx < STAGE_ORDER.length - 1 ? stageCost(nextStage!, mods) : 0;
   const isReleaseReady = canAdvance && p.stageIdx === STAGE_ORDER.length - 1;
+  const forecast = deriveProductionReleaseForecast(p, {
+    girls,
+    reputation: state.reputation,
+    rivals: state.rivals,
+    playerBusiness: state.player.business,
+    playerHustle: state.player.hustle,
+    studioLevel: state.studioLevel,
+    equipmentSum: mods.eqSum,
+    distribBonus: state.distribBonus || 0,
+    campaignBonus: state.campaignBonus || 0,
+    fans: state.fans,
+  });
+  const stageLabel = isDone ? "Ferdig" : `${currentStage?.label ?? "Ukjent"}${p.hoursLeft > 0 ? ` · ${p.hoursLeft}t igjen` : " · klar"}`;
+  const castSummary = p.girlIds
+    .map((gid) => {
+      const g = girls.find((x) => x.id === gid);
+      if (!g) return null;
+      const role = p.roles?.[gid] ?? "shooting";
+      const roleLabel = CAST_ROLES.find((r) => r.id === role)?.label ?? role;
+      return `${g.name} (${roleLabel})`;
+    })
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-secondary/30">
@@ -238,6 +262,26 @@ function ProductionCard({ p, girls, mods, onAdvance, onAssign, onSetRole, onCanc
             : <span className="ml-2 font-mono text-accent">✅ klar</span>}
         </div>
       )}
+
+      <div className="mt-2 grid gap-1 rounded-md border border-border/60 bg-background/40 p-2 text-[11px]">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Est. payout</span>
+          <span className="font-mono text-foreground">${forecast.conservativeGross.toLocaleString()}–${forecast.expectedGross.toLocaleString()} <span className="ml-1 rounded bg-primary/20 px-1 py-0.5 text-[9px] uppercase text-primary">Estimate</span></span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Est. flop chance</span>
+          <span className="font-mono text-foreground">{Math.round(forecast.flopChance * 100)}% <span className="ml-1 rounded bg-primary/20 px-1 py-0.5 text-[9px] uppercase text-primary">Estimate</span></span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">Stage</span>
+          <span className="font-mono text-foreground">{stageLabel}</span>
+        </div>
+        {!!castSummary && (
+          <div className="truncate text-muted-foreground" title={castSummary}>
+            Cast: <span className="text-foreground">{castSummary}</span>
+          </div>
+        )}
+      </div>
 
       {/* Cast with role assignment */}
       {!isDone && (
