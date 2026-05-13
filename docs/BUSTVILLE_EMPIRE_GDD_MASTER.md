@@ -36,6 +36,16 @@ This master GDD summarizes what is **already implemented** and what the team sho
 
 ---
 
+## MVP RULE
+Bustville Empire is first and foremost a business tycoon game.
+Adult content is theme, tone and satire — not the mechanical core.
+Every feature must improve at least one of these:
+1. Money decisions
+2. Time pressure
+3. Character management
+4. Risk/reward
+5. Progression toward the next location
+
 ## 2) MVP Focus (Core Loop)
 
 The MVP should stay strict to this shipped loop:
