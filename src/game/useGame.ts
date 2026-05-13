@@ -24,6 +24,7 @@ import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
 import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 import { deriveProductionReleaseForecast, roleScoreForProduction } from "./productionForecast";
+import { deriveCompanyRank } from "./progression";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -2202,9 +2203,21 @@ export function useGame() {
     });
   }, []);
 
+
+  const companyRank = deriveCompanyRank({
+    locationLevel: state.locationLevel,
+    cash: state.cash,
+    reputation: state.reputation,
+    studioLevel: state.studioLevel,
+    distilleryLevel: state.distilleryLevel,
+    totalGirls: state.girls.length,
+    releasedProductions: state.productions.filter((p) => p.stageIdx >= STAGE_ORDER.length).length,
+  });
+
   return {
     state,
     loaded,
+    companyRank,
     reset,
     saveToSlot,
     loadFromSlot,
