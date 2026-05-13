@@ -362,6 +362,75 @@ export function meetsDowntownUnlockRequirements(state: GameState): boolean {
 
 const STORAGE_KEY = "bustville-empire-v2";
 
+type SaveStorageVersion = "bustville-empire-v2";
+const CURRENT_STORAGE_VERSION: SaveStorageVersion = STORAGE_KEY;
+
+type SaveLike = Partial<GameState> & {
+  rank?: unknown;
+  departments?: unknown;
+  storageVersion?: unknown;
+};
+
+interface VersionedSaveEnvelope {
+  storageVersion: SaveStorageVersion;
+  state: SaveLike;
+}
+
+const SAVE_MIGRATIONS: Record<SaveStorageVersion, (raw: SaveLike) => SaveLike> = {
+  "bustville-empire-v2": (raw) => ({
+    ...raw,
+    milestones:
+      raw.milestones && typeof raw.milestones === "object"
+        ? { ...INITIAL.milestones, ...raw.milestones }
+        : { ...INITIAL.milestones },
+    departments: Array.isArray(raw.departments) ? raw.departments : [],
+    staff: Array.isArray(raw.staff) ? raw.staff : [],
+    distributionDeals: Array.isArray(raw.distributionDeals)
+      ? raw.distributionDeals
+      : [...INITIAL.distributionDeals],
+  }),
+};
+
+function safeParseJson(raw: string): unknown | null {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function migrateByVersion(rawState: SaveLike, version: unknown): SaveLike {
+  const resolvedVersion: SaveStorageVersion =
+    version === "bustville-empire-v2" ? version : "bustville-empire-v2";
+  return SAVE_MIGRATIONS[resolvedVersion](rawState);
+}
+
+function normalizeGameState(raw: unknown): GameState {
+  const base = raw && typeof raw === "object" ? (raw as SaveLike) : {};
+  const migrated = migrateByVersion(base, base.storageVersion);
+  const { rank: _rank, storageVersion: _storageVersion, departments: _departments, ...rest } = migrated;
+  return {
+    ...INITIAL,
+    ...rest,
+    milestones:
+      rest.milestones && typeof rest.milestones === "object"
+        ? { ...INITIAL.milestones, ...rest.milestones }
+        : { ...INITIAL.milestones },
+    staff: Array.isArray(rest.staff) ? rest.staff : [],
+    distributionDeals: Array.isArray(rest.distributionDeals)
+      ? rest.distributionDeals
+      : [...INITIAL.distributionDeals],
+    rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
+  };
+}
+
+function serializeStateForStorage(state: GameState): VersionedSaveEnvelope {
+  const normalized = normalizeGameState(state);
+  const { rank: _rank, ...clean } = normalized as GameState & { rank?: unknown };
+  return { storageVersion: CURRENT_STORAGE_VERSION, state: clean };
+}
+
+
 export interface SaveSlotMeta {
   slot: number;
   label: string;
@@ -469,14 +538,17 @@ export function useGame() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [] });
+        const parsed = safeParseJson(raw);
+        const incoming = parsed && typeof parsed === "object" && "state" in parsed
+          ? (parsed as { state?: unknown }).state
+          : parsed;
+        setState(normalizeGameState(incoming));
       }
     } catch {}
     setLoaded(true);
   }, []);
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeStateForStorage(state)));
     // Flush queued toasts after commit
     while (_toastQueue.length) {
       const t = _toastQueue.shift()!;
@@ -515,7 +587,7 @@ export function useGame() {
         day: state.day,
         cash: state.cash,
       };
-      localStorage.setItem(`${STORAGE_KEY}:slot:${slot}`, JSON.stringify(meta));
+      localStorage.setItem(`${STORAGE_KEY}:slot:${slot}`, JSON.stringify({ ...meta, state: serializeStateForStorage(state).state, storageVersion: CURRENT_STORAGE_VERSION }));
     },
     [state],
   );
@@ -524,9 +596,10 @@ export function useGame() {
     const raw = localStorage.getItem(`${STORAGE_KEY}:slot:${slot}`);
     if (!raw) return false;
     try {
-      const parsed = JSON.parse(raw);
-      const incoming = parsed.state ?? parsed;
-      setState({ ...INITIAL, ...incoming, staff: incoming.staff ?? [] });
+      const parsed = safeParseJson(raw);
+      if (!parsed || typeof parsed !== "object") return false;
+      const incoming = "state" in parsed ? (parsed as { state?: unknown }).state : parsed;
+      setState(normalizeGameState(incoming));
       return true;
     } catch {
       return false;
@@ -537,18 +610,14 @@ export function useGame() {
     localStorage.removeItem(`${STORAGE_KEY}:slot:${slot}`);
   }, []);
 
-  const exportSave = useCallback(() => JSON.stringify(state, null, 2), [state]);
+  const exportSave = useCallback(() => JSON.stringify(serializeStateForStorage(state), null, 2), [state]);
 
   const importSave = useCallback((json: string) => {
     try {
-      const parsed = JSON.parse(json);
-      setState({
-        ...INITIAL,
-        ...parsed,
-        staff: parsed.staff ?? [],
-        distributionDeals: parsed.distributionDeals ?? INITIAL.distributionDeals,
-        rivalDigest: parsed.rivalDigest ?? INITIAL.rivalDigest,
-      });
+      const parsed = safeParseJson(json);
+      if (!parsed || typeof parsed !== "object") return false;
+      const incoming = "state" in parsed ? (parsed as { state?: unknown }).state : parsed;
+      setState(normalizeGameState(incoming));
       return true;
     } catch {
       return false;
