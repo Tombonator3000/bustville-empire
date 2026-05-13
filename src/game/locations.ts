@@ -18,6 +18,9 @@ import mapTrailerDay from "@/assets/map-trailerpark-day.jpg";
 import mapTrailerNight from "@/assets/map-trailerpark-night.jpg";
 import mapDowntown from "@/assets/map-downtown.jpg";
 
+import { canUnlockDowntown, formatDowntownRemainingRequirements } from "./progression";
+import type { GameState } from "./useGame";
+
 export type LocationId =
   | "trailer" | "moonshine" | "bar" | "sheriff" | "gas" | "forest"
   | "loft" | "velvet" | "bank" | "studio" | "hq"
@@ -275,3 +278,11 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "enhanceButt",  label: "Butt Lift",          emoji: "🍑", hours: 5, desc: "-$2200, +popularity. 7 dager restitusjon. Risiko 12%." },
   ],
 };
+
+
+export function getDistrictTransitionLock(state: GameState, target: DistrictId): { locked: boolean; reason?: string } {
+  if (target !== "downtown") return { locked: false };
+  if (state.locationLevel < 3) return { locked: true, reason: "Need Trailer Lv 3 upgrade first." };
+  if (!canUnlockDowntown(state)) return { locked: true, reason: formatDowntownRemainingRequirements(state) };
+  return { locked: false };
+}

@@ -24,7 +24,12 @@ import { BODY_PROCEDURES } from "./clinic";
 import { rollDrama } from "./drama";
 import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 import { deriveProductionReleaseForecast, roleScoreForProduction } from "./productionForecast";
-import { deriveCompanyRank } from "./progression";
+import {
+  DOWNTOWN_UNLOCK_GATE,
+  canUnlockDowntown,
+  deriveCompanyRank,
+  formatDowntownRemainingRequirements,
+} from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
@@ -336,15 +341,13 @@ export interface DowntownUnlockRequirements {
   reputation: number;
   maxHeat: number;
   requiresFirstHit: boolean;
-  minTalent?: number;
 }
 
 export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
-  cash: 24500,
-  reputation: 55,
-  maxHeat: 45,
-  requiresFirstHit: true,
-  minTalent: 3,
+  cash: DOWNTOWN_UNLOCK_GATE.cash,
+  reputation: DOWNTOWN_UNLOCK_GATE.reputation,
+  maxHeat: DOWNTOWN_UNLOCK_GATE.maxHeat,
+  requiresFirstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit,
 };
 
 
@@ -368,13 +371,7 @@ export function hasFirstHit(state: GameState): boolean {
 }
 
 export function meetsDowntownUnlockRequirements(state: GameState): boolean {
-  const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
-  if (state.cash < req.cash) return false;
-  if (state.reputation < req.reputation) return false;
-  if (state.heatLevel > req.maxHeat) return false;
-  if (req.requiresFirstHit && !hasFirstHit(state)) return false;
-  if (req.minTalent !== undefined && state.girls.length < req.minTalent) return false;
-  return true;
+  return canUnlockDowntown(state);
 }
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -938,7 +935,9 @@ export function useGame() {
     setState((s) => {
       const target: DistrictId = s.district === "park" ? "downtown" : "park";
       if (target === "downtown" && s.locationLevel < 3)
-        return log(s, "Du har ikke råd til Downtown ennå. Bli Level 3 først.");
+        return log(s, "Downtown låses opp etter trailer-oppgradering til Level 3.");
+      if (target === "downtown" && !canUnlockDowntown(s))
+        return log(s, `Downtown er låst. ${formatDowntownRemainingRequirements(s)}`);
       const next = advance(s, 2);
       return log(
         { ...next, district: target, activeLocation: null },
@@ -1089,13 +1088,8 @@ export function useGame() {
         const nextLoc = LOCATIONS[next.locationLevel];
         if (!nextLoc) return log(next, "Du er allerede på toppen.");
         if (nextLoc.level === 3) {
-          const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
-          if (next.cash < req.cash) return log(next, `Trenger $${req.cash}.`);
-          if (next.reputation < req.reputation) return log(next, `Trenger ${req.reputation} rep.`);
-          if (req.requiresFirstHit && !hasFirstHit(next)) return log(next, "Trenger First Hit (minst én vellykket release).");
-          if (next.heatLevel > req.maxHeat) return log(next, `Heat må ned til ${req.maxHeat}% eller lavere.`);
-          if (req.minTalent !== undefined && next.girls.length < req.minTalent)
-            return log(next, `Trenger minst ${req.minTalent} talenter i roster.`);
+          if (!canUnlockDowntown(next))
+            return log(next, `Kan ikke oppgradere til Downtown ennå. ${formatDowntownRemainingRequirements(next)}`);
         } else {
           if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
           if (next.reputation < nextLoc.unlockRep)

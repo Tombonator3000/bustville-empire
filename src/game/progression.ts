@@ -1,5 +1,48 @@
 import type { GameState } from "./useGame";
 
+
+export const DOWNTOWN_UNLOCK_GATE = {
+  cash: 12000,
+  reputation: 30,
+  maxHeat: 60,
+  requiresFirstHit: true,
+} as const;
+
+export interface DowntownUnlockDeltas {
+  cash: number;
+  reputation: number;
+  heat: number;
+  milestone: string[];
+}
+
+export function getDowntownUnlockDeltas(state: GameState): DowntownUnlockDeltas {
+  const req = DOWNTOWN_UNLOCK_GATE;
+  return {
+    cash: Math.max(0, req.cash - state.cash),
+    reputation: Math.max(0, req.reputation - state.reputation),
+    heat: Math.max(0, state.heatLevel - req.maxHeat),
+    milestone: req.requiresFirstHit && !state.milestones.firstHit ? ["First Hit"] : [],
+  };
+}
+
+export function canUnlockDowntown(state: GameState): boolean {
+  const d = getDowntownUnlockDeltas(state);
+  return d.cash === 0 && d.reputation === 0 && d.heat === 0 && d.milestone.length === 0;
+}
+
+export function formatDowntownRemainingRequirements(state: GameState): string {
+  const d = getDowntownUnlockDeltas(state);
+  const needs: string[] = [];
+  if (d.cash > 0) needs.push(`+$${d.cash.toLocaleString()} cash`);
+  if (d.reputation > 0) needs.push(`+${d.reputation} rep`);
+  if (d.heat > 0) needs.push(`${d.heat}% less heat`);
+  if (d.milestone.length > 0) needs.push("First Hit milestone");
+  if (!needs.length) return "Downtown unlock requirements met.";
+  if (needs.length === 1) return `Need ${needs[0]}.`;
+  if (needs.length === 2) return `Need ${needs[0]} and ${needs[1]}.`;
+  return `Need ${needs.slice(0,-1).join(', ')}, and ${needs[needs.length-1]}.`;
+}
+
 export interface CompanyRankMeta {
   id: CompanyRankId;
   name: string;
@@ -171,7 +214,7 @@ const MAJOR_UNLOCKS: ProgressUnlockDef[] = [
   {
     id: "downtown",
     label: "Downtown district",
-    requirements: { locationLevel: 3 },
+    requirements: { cash: DOWNTOWN_UNLOCK_GATE.cash, reputation: DOWNTOWN_UNLOCK_GATE.reputation, heatMax: DOWNTOWN_UNLOCK_GATE.maxHeat, firstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit },
     suggestion: "Push location upgrades in Park to unlock district travel.",
   },
   {
