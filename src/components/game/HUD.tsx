@@ -21,6 +21,7 @@ import {
 export function HUD({
   state,
   onOpenRoster,
+  onOpenStaff,
   onOpenStats,
   onOpenProductions,
   onOpenInventory,
@@ -34,6 +35,7 @@ export function HUD({
   state: GameState;
   onOpenRoster: () => void;
   onOpenStats: () => void;
+  onOpenStaff: () => void;
   onOpenProductions: () => void;
   onOpenInventory: () => void;
   onOpenGallery: () => void;
@@ -130,6 +132,7 @@ export function HUD({
           label={`Roster ${state.girls.length}`}
           primary
         />
+        <NavBtn onClick={onOpenStaff} icon={<Users className="h-3.5 w-3.5" />} label={`Staff ${state.staff.length}`} />
         <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn

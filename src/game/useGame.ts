@@ -89,6 +89,9 @@ function applyIntensityHeat(
   }
   return { total: safeBase, baseApplied: safeBase, intensityBonus: 0 };
 }
+function mitigatedHeatGain(s: GameState, amount: number) {
+  return Math.max(0, amount - staffMods(s).heatMitigation);
+}
 
 export function previewHeat(baseHeat: number, intensity: Intensity): HeatBreakdown {
   return applyIntensityHeat(baseHeat, intensity, "perform");
@@ -118,6 +121,16 @@ export interface MilestoneEventPayload {
 export interface GameMilestones {
   firstHit: boolean;
 }
+export type StaffRole = "editor" | "scout" | "marketer" | "fixer";
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: StaffRole;
+  level: number;
+  bonus: number;
+  salary: number;
+  trait: string;
+}
 
 export interface GameState {
   cash: number;
@@ -131,6 +144,7 @@ export interface GameState {
   backlog: number;
   player: PlayerStats;
   girls: Girl[];
+  staff: StaffMember[];
   log: string[];
   won: boolean;
   district: DistrictId;
@@ -206,6 +220,15 @@ export function stageCost(stage: { cost: number }, mods: { costMult: number }) {
 export function stageHours(stage: { hours: number }, mods: { hoursMult: number }) {
   return Math.max(1, Math.round(stage.hours * mods.hoursMult));
 }
+function stageHoursWithStaff(
+  stage: { id?: string; hours: number },
+  mods: { hoursMult: number },
+  s: GameState,
+) {
+  const base = stageHours(stage, mods);
+  if (stage.id !== "editing") return base;
+  return Math.max(1, Math.round(base * staffMods(s).editingHoursMult));
+}
 
 export const EQUIPMENT_UPGRADE_COST = (level: number, studioLevel: number) =>
   Math.floor(600 * Math.pow(level + 1, 1.6) * (0.8 + studioLevel * 0.3));
@@ -222,6 +245,7 @@ const INITIAL: GameState = {
   backlog: 0,
   player: { charisma: 3, hustle: 3, business: 1, lust: 4 },
   girls: [],
+  staff: [],
   log: [
     "Velkommen til Bustville, Alabama. Lukten av rust og muligheter.",
     "Du eier én trailer, $350, og en uforklarlig selvtillit.",
@@ -254,6 +278,22 @@ const INITIAL: GameState = {
   milestones: { firstHit: false },
   milestoneEvent: null,
 };
+const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
+  editor: { names: ["Marty Cut", "Joan Razor", "Vince Splice"], traits: ["Night Owl", "Precision", "Fast Hands"] },
+  scout: { names: ["Rita Radar", "Duke Finder", "Nina Nose"], traits: ["Street Ear", "Charm Magnet", "Lucky Hunch"] },
+  marketer: { names: ["Penny Hype", "Lex Promo", "Cindy Clicks"], traits: ["Copy Wizard", "Trend Sniffer", "Billboard Brain"] },
+  fixer: { names: ["Buck Quiet", "Mara Cool", "Iggy Ice"], traits: ["Discreet", "Backchannel", "Crisis Calm"] },
+};
+function staffMods(s: GameState) {
+  const byRole = (r: StaffRole) => s.staff.filter((m) => m.role === r);
+  const rolePower = (r: StaffRole) => byRole(r).reduce((a, m) => a + m.bonus + m.level * 2, 0);
+  return {
+    editingHoursMult: Math.max(0.75, 1 - rolePower("editor") * 0.01),
+    scoutingQuality: Math.min(4, Math.floor(rolePower("scout") / 6)),
+    marketingMult: 1 + rolePower("marketer") * 0.015,
+    heatMitigation: Math.min(8, Math.floor(rolePower("fixer") / 5)),
+  };
+}
 
 
 export interface DowntownUnlockRequirements {
@@ -408,7 +448,7 @@ export function useGame() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        setState({ ...INITIAL, ...parsed });
+        setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [] });
       }
     } catch {}
     setLoaded(true);
@@ -463,7 +503,8 @@ export function useGame() {
     if (!raw) return false;
     try {
       const parsed = JSON.parse(raw);
-      setState({ ...INITIAL, ...(parsed.state ?? parsed) });
+      const incoming = parsed.state ?? parsed;
+      setState({ ...INITIAL, ...incoming, staff: incoming.staff ?? [] });
       return true;
     } catch {
       return false;
@@ -479,7 +520,7 @@ export function useGame() {
   const importSave = useCallback((json: string) => {
     try {
       const parsed = JSON.parse(json);
-      setState({ ...INITIAL, ...parsed });
+      setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [] });
       return true;
     } catch {
       return false;
@@ -818,16 +859,17 @@ export function useGame() {
         if (!checkStam(action.hours)) return next;
         const $ = earn(220);
         const heat = applyIntensityHeat(2, intensity, "perform");
+        const finalHeat = mitigatedHeatGain(next, heat.total);
         next = advanceFn(next, action.hours);
         next = {
           ...next,
           cash: next.cash + $,
           reputation: next.reputation + 1,
-          heatLevel: Math.min(100, next.heatLevel + heat.total),
+          heatLevel: Math.min(100, next.heatLevel + finalHeat),
         };
         return log(
           next,
-          `🚪 Mystisk besøk: +$${$}. Heat +${heat.total} (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`,
+          `🚪 Mystisk besøk: +$${$}. Heat +${finalHeat}.`,
         );
       }
       case "trailer:roster":
@@ -909,7 +951,7 @@ export function useGame() {
         if (next.cash < cost) return log(next, `Drinks til en danser: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1 + staffMods(next).scoutingQuality);
         const g = withContract(raw, next.day, 8);
         const upfront = cost + g.contract!.signingBonus;
         if (next.cash < upfront)
@@ -937,7 +979,7 @@ export function useGame() {
         const streak = gap > 10 ? 0 : gap <= 5 ? next.bribeStreak : next.bribeStreak; // reset only after 10d gap
         const cost = Math.ceil((200 + next.heatLevel * 8) * (1 + 0.5 * streak));
         if (next.cash < cost) return log(next, `Buck vil ha $${cost}.`);
-        const heatDrop = Math.max(5, 25 - streak * 5);
+        const heatDrop = Math.max(5, 25 - streak * 5) + staffMods(next).heatMitigation;
         const newStreak = gap <= 5 ? streak + 1 : gap > 10 ? 1 : streak + 1;
         next = advanceFn(next, action.hours);
         return log(
@@ -1016,7 +1058,7 @@ export function useGame() {
         if (next.cash < cost) return log(next, "Trenger $60 til lommelykt og lokkemat.");
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, -1);
+        const raw = genGirl(next.player.charisma, next.locationLevel, -1 + staffMods(next).scoutingQuality);
         const g = withContract(raw, next.day, 4);
         const upfront = cost + g.contract!.signingBonus;
         if (next.cash < upfront)
@@ -1029,7 +1071,7 @@ export function useGame() {
       case "forest:hideStash": {
         next = advanceFn(next, action.hours);
         return log(
-          { ...next, heatLevel: Math.max(0, next.heatLevel - 15) },
+          { ...next, heatLevel: Math.max(0, next.heatLevel - (15 + staffMods(next).heatMitigation)) },
           "🌲 Gjemte lageret. Razzia-risiko ned.",
         );
       }
@@ -1095,7 +1137,7 @@ export function useGame() {
         if (next.cash < cost) return log(next, `VIP-scout: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, +1);
+        const raw = genGirl(next.player.charisma, next.locationLevel, +1 + staffMods(next).scoutingQuality);
         const g = withContract(raw, next.day, 12); // VIP-stjerner = lange kontrakter
         const upfront = cost + g.contract!.signingBonus;
         if (next.cash < upfront)
@@ -1253,7 +1295,7 @@ export function useGame() {
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
         if (Math.random() < 0.7) {
-          const raw = genGirl(next.player.charisma, next.locationLevel, 0);
+          const raw = genGirl(next.player.charisma, next.locationLevel, 0 + staffMods(next).scoutingQuality);
           const g = withContract(raw, next.day, 8);
           const upfront = cost + g.contract!.signingBonus;
           if (next.cash < upfront)
@@ -1304,9 +1346,9 @@ export function useGame() {
           {
             ...next,
             cash: next.cash - tier.cost,
-            campaignBonus: Math.min(200, next.campaignBonus + tier.bonus),
+            campaignBonus: Math.min(200, next.campaignBonus + Math.round(tier.bonus * staffMods(next).marketingMult)),
           },
-          `${tier.emoji} ${tier.name} kampanje aktivert: +${tier.bonus}% på neste utgivelse (totalt +${Math.min(200, next.campaignBonus + tier.bonus)}%).`,
+          `${tier.emoji} ${tier.name} kampanje aktivert: +${Math.round(tier.bonus * staffMods(next).marketingMult)}% på neste utgivelse.`,
         );
       }
       case "distrib:fansRomance":
@@ -1549,6 +1591,38 @@ export function useGame() {
       );
     });
   }, []);
+  const hireStaff = useCallback((role: StaffRole) => {
+    setState((s) => {
+      const cost = 500 + s.staff.length * 250;
+      if (s.cash < cost) return log(s, `Ansettelse koster $${cost}.`);
+      const pool = STAFF_POOLS[role];
+      const name = rand(pool.names);
+      const trait = rand(pool.traits);
+      const member: StaffMember = {
+        id: Math.random().toString(36).slice(2, 10),
+        name,
+        role,
+        level: 1,
+        bonus: ri(2, 5),
+        salary: 120 + ri(0, 80),
+        trait,
+      };
+      return log({ ...s, cash: s.cash - cost, staff: [...s.staff, member] }, `🧑‍💼 Ansatt ${name} (${role}).`);
+    });
+  }, []);
+  const upgradeStaff = useCallback((id: string) => {
+    setState((s) => {
+      const m = s.staff.find((x) => x.id === id);
+      if (!m) return s;
+      const cost = 250 + m.level * 200;
+      if (s.cash < cost) return log(s, `Oppgradering koster $${cost}.`);
+      return log({
+        ...s,
+        cash: s.cash - cost,
+        staff: s.staff.map((x) => x.id === id ? { ...x, level: x.level + 1, bonus: x.bonus + 1, salary: x.salary + 30 } : x),
+      }, `📈 ${m.name} oppgradert til Lv ${m.level + 1}.`);
+    });
+  }, []);
 
   // === PRODUCTION PIPELINE ====================================
   const startProduction = useCallback((tierId: string, girlIds: string[], genreId?: string) => {
@@ -1566,7 +1640,7 @@ export function useGame() {
         );
       const brief = tier.stages[0];
       const cost = stageCost(brief, mods);
-      const hours = stageHours(brief, mods);
+      const hours = stageHoursWithStaff(brief, mods, s);
       if (s.cash < cost) return log(s, `Briefing koster $${cost}.`);
       if (s.stamina < brief.staminaCost) return log(s, "For sliten til å brife teamet.");
       const title = tier.flavorTitles[Math.floor(Math.random() * tier.flavorTitles.length)];
@@ -1797,7 +1871,7 @@ export function useGame() {
       const nextIdx = p.stageIdx + 1;
       const nextStage = tier.stages[nextIdx];
       const nextCost = stageCost(nextStage, mods);
-      const nextHours = stageHours(nextStage, mods);
+      const nextHours = stageHoursWithStaff(nextStage, mods, s);
       if (s.cash < nextCost) return log(s, `${nextStage.label} koster $${nextCost}.`);
       if (s.stamina < nextStage.staminaCost) return log(s, "For sliten — hvil først.");
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
@@ -1873,7 +1947,7 @@ export function useGame() {
       if (failed && p.reworks < 2) {
         const reworkCost = Math.floor(nextCost * 0.5);
         const prevStage = tier.stages[p.stageIdx];
-        const reworkHours = Math.max(1, Math.floor(stageHours(prevStage, mods) * 0.7));
+        const reworkHours = Math.max(1, Math.floor(stageHoursWithStaff(prevStage, mods, s) * 0.7));
         const qualityPenalty = -8;
         const totalDeducted = nextCost + reworkCost;
         const updated = next.productions.map((x, i) =>
@@ -2128,11 +2202,12 @@ export function useGame() {
         );
         let next = advance(s, show.hours);
         const heat = applyIntensityHeat(0, intensity, "webcam");
+        const finalHeat = mitigatedHeatGain(next, heat.total);
         next = {
           ...next,
           cash: next.cash - show.cost + earned,
           reputation: next.reputation + show.rep,
-          heatLevel: Math.min(100, next.heatLevel + heat.total),
+          heatLevel: Math.min(100, next.heatLevel + finalHeat),
         };
         // Toy/intense webcam med jente kan smitte (lav sjanse — ikke fysisk møte, men sett-personell osv.)
         if (girlId && intensity === "intense" && show.id === "toys") {
@@ -2167,7 +2242,7 @@ export function useGame() {
         }
         return log(
           next,
-          `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep, +${heat.total} heat (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`,
+          `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep, +${finalHeat} heat.`,
         );
       });
     },
@@ -2219,11 +2294,12 @@ export function useGame() {
         );
         const heat = applyIntensityHeat(v.heat, intensity, "visit");
         let next = advance(s, v.hours);
+        const finalHeat = mitigatedHeatGain(next, heat.total);
         next = {
           ...next,
           cash: next.cash - v.cost + earned,
           reputation: next.reputation + v.rep,
-          heatLevel: Math.min(100, next.heatLevel + heat.total),
+          heatLevel: Math.min(100, next.heatLevel + finalHeat),
         };
         // STD-roll på risikable visits ved intense
         if (girlId && v.risky && intensity === "intense") {
@@ -2259,7 +2335,7 @@ export function useGame() {
         }
         return log(
           next,
-          `${v.emoji} ${v.label}${girl ? ` m/ ${girl.name}` : ""}: +$${earned}, +${v.rep} rep, +${heat.total} heat (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`,
+          `${v.emoji} ${v.label}${girl ? ` m/ ${girl.name}` : ""}: +$${earned}, +${v.rep} rep, +${finalHeat} heat.`,
         );
       });
     },
@@ -2333,6 +2409,8 @@ export function useGame() {
     giftGirl,
     resignGirl,
     upgradeStat,
+    hireStaff,
+    upgradeStaff,
     startProduction,
     advanceProduction,
     assignToProduction,

@@ -14,6 +14,7 @@ import { MapView } from "@/components/game/MapView";
 import { LocationView } from "@/components/game/LocationView";
 import { RosterSheet } from "@/components/game/RosterSheet";
 import { StatsSheet } from "@/components/game/StatsSheet";
+import { StaffPanel } from "@/components/game/StaffPanel";
 import { Splash, WinScreen } from "@/components/game/Splash";
 
 export const Route = createFileRoute("/")({
@@ -36,6 +37,7 @@ function GamePage() {
   const [selectedGirl, setSelectedGirl] = useState<string | undefined>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [staffOpen, setStaffOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [invOpen, setInvOpen] = useState(false);
@@ -69,6 +71,7 @@ function GamePage() {
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
+        onOpenStaff={() => setStaffOpen(true)}
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
@@ -124,6 +127,9 @@ function GamePage() {
       )}
       {statsOpen && (
         <StatsSheet state={g.state} onClose={() => setStatsOpen(false)} onUpgrade={g.upgradeStat} />
+      )}
+      {staffOpen && (
+        <StaffPanel state={g.state} onClose={() => setStaffOpen(false)} onHire={g.hireStaff} onUpgrade={g.upgradeStaff} />
       )}
       {prodOpen && (
         <ProductionsSheet
