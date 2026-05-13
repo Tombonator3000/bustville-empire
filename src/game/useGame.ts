@@ -41,6 +41,22 @@ export const INTENSITIES: { id: Intensity; label: string; emoji: string; hint: s
   { id: "intense",  label: "Hardcore",  emoji: "🔥", hint: "1.45× lønn, +heat. Skru opp innsatsen." },
 ];
 
+type HeatContext = "perform" | "webcam" | "visit";
+type HeatBreakdown = { total: number; baseApplied: number; intensityBonus: number };
+
+function applyIntensityHeat(baseHeat: number, intensity: Intensity, _context: HeatContext): HeatBreakdown {
+  const safeBase = Math.max(0, Math.floor(baseHeat));
+  if (intensity === "chill") {
+    const loweredBase = safeBase > 0 ? Math.max(0, safeBase - 1) : 0;
+    return { total: loweredBase, baseApplied: loweredBase, intensityBonus: 0 };
+  }
+  if (intensity === "intense") {
+    const intensityBonus = safeBase > 0 ? Math.max(1, Math.ceil(safeBase * 0.5)) : 2;
+    return { total: safeBase + intensityBonus, baseApplied: safeBase, intensityBonus };
+  }
+  return { total: safeBase, baseApplied: safeBase, intensityBonus: 0 };
+}
+
 export interface PlayerStats {
   charisma: number;
   hustle: number;
@@ -528,10 +544,6 @@ export function useGame() {
       }
       const before = s;
       let after = doAction(s, locId, actionId, girlId, intensity, advance);
-      // Intensity tax: hardcore tilts heat upward on any cash-earning timed action
-      if (intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
-        after = { ...after, heatLevel: Math.min(100, after.heatLevel + 3) };
-      }
       // STD-risiko ved intense, jente-involvert, betalt scene
       if (girlId && intensity === "intense" && action && action.hours > 0 && after.cash > before.cash) {
         const enc = rollEncounter(after, girlId, 0.07);
@@ -589,9 +601,10 @@ export function useGame() {
       case "trailer:visit": {
         if (!checkStam(action.hours)) return next;
         const $ = earn(220);
+        const heat = applyIntensityHeat(2, intensity, "perform");
         next = advanceFn(next, action.hours);
-        next = { ...next, cash: next.cash + $, reputation: next.reputation + 1, heatLevel: Math.min(100, next.heatLevel + 2) };
-        return log(next, `🚪 Mystisk besøk: +$${$}. Heat +2.`);
+        next = { ...next, cash: next.cash + $, reputation: next.reputation + 1, heatLevel: Math.min(100, next.heatLevel + heat.total) };
+        return log(next, `🚪 Mystisk besøk: +$${$}. Heat +${heat.total} (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`);
       }
       case "trailer:roster": return next; // handled in UI (opens sheet)
       case "trailer:upgrade": {
@@ -1479,8 +1492,9 @@ export function useGame() {
       const stdMult = girl ? payoutMult(girl, s.day) : 1;
       const earned = Math.floor(show.basePay * girlMult * hustleMult * intensityMult * stdMult * (0.85 + Math.random() * 0.3));
       let next = advance(s, show.hours);
-      next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep };
-      if (intensity === "intense") next = { ...next, heatLevel: Math.min(100, next.heatLevel + 2) };
+      const heat = applyIntensityHeat(0, intensity, "webcam");
+      next = { ...next, cash: next.cash - show.cost + earned, reputation: next.reputation + show.rep,
+        heatLevel: Math.min(100, next.heatLevel + heat.total) };
       // Toy/intense webcam med jente kan smitte (lav sjanse — ikke fysisk møte, men sett-personell osv.)
       if (girlId && intensity === "intense" && show.id === "toys") {
         const enc = rollEncounter(next, girlId, 0.05);
@@ -1502,7 +1516,7 @@ export function useGame() {
             : g),
         };
       }
-      return log(next, `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep.`);
+      return log(next, `${show.emoji} ${show.label}${girl ? ` m/ ${girl.name}` : " (solo)"}: +$${earned}, +${show.rep} rep, +${heat.total} heat (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`);
     });
   }, []);
 
@@ -1545,10 +1559,10 @@ export function useGame() {
       const intMult   = intensity === "chill" ? 0.7 : intensity === "intense" ? 1.45 : 1;
       const stdMult   = girl ? payoutMult(girl, s.day) : 1;
       const earned    = Math.floor(v.basePay * girlMult * charisma * intMult * stdMult * (0.85 + Math.random() * 0.3));
-      const heatGain  = v.heat + (intensity === "intense" ? 2 : 0);
+      const heat = applyIntensityHeat(v.heat, intensity, "visit");
       let next = advance(s, v.hours);
       next = { ...next, cash: next.cash - v.cost + earned, reputation: next.reputation + v.rep,
-        heatLevel: Math.min(100, next.heatLevel + heatGain) };
+        heatLevel: Math.min(100, next.heatLevel + heat.total) };
       // STD-roll på risikable visits ved intense
       if (girlId && v.risky && intensity === "intense") {
         const enc = rollEncounter(next, girlId, 0.09);
@@ -1571,7 +1585,7 @@ export function useGame() {
             : g),
         };
       }
-      return log(next, `${v.emoji} ${v.label}${girl ? ` m/ ${girl.name}` : ""}: +$${earned}, +${v.rep} rep, +${heatGain} heat.`);
+      return log(next, `${v.emoji} ${v.label}${girl ? ` m/ ${girl.name}` : ""}: +$${earned}, +${v.rep} rep, +${heat.total} heat (base ${heat.baseApplied}${heat.intensityBonus > 0 ? ` + intensity ${heat.intensityBonus}` : ""}).`);
     });
   }, []);
 
