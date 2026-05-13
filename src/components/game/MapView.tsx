@@ -32,7 +32,6 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   if (h >= 8 && h <= 17) night = 0;
   else if (h > 4 && h < 8) night = 1 - smooth((h - 4) / 4);
   else if (h > 17 && h < 23) night = smooth((h - 17) / 6);
-  const nightOpacity = night;
 
   const bell = (x: number, c: number, w: number) => {
     const d = Math.abs(x - c);
