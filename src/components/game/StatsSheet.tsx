@@ -58,6 +58,28 @@ export function StatsSheet({ state, onClose, onUpgrade }: {
           </div>
         </div>
 
+        <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">Rival Watch</h3>
+        <div className="mt-2 space-y-1.5">
+          {state.rivals.map((r) => (
+            <div key={r.id} className="rounded-md border border-border bg-secondary/30 p-2">
+              <p className="text-xs font-semibold">{r.emoji} {r.name}</p>
+              <div className="mt-1 grid grid-cols-3 gap-1 text-[11px]">
+                <span>Share <b>{Math.round(r.share)}%</b></span>
+                <span>Momentum <b>{r.momentum > 0 ? "+" : ""}{r.momentum}</b></span>
+                <span>Δ <b>{r.lastDelta > 0 ? "+" : ""}{r.lastDelta.toFixed(1)}%</b></span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{r.weeklyMove}</p>
+            </div>
+          ))}
+        </div>
+
+        <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">Weekly Rival Digest</h3>
+        <div className="mt-2 space-y-1 text-[11px]">
+          {state.rivalDigest.map((line, i) => (
+            <p key={`${i}-${line.slice(0, 8)}`} className="rounded bg-secondary/40 px-2 py-1">{line}</p>
+          ))}
+        </div>
+
         <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">Full Logg</h3>
         <div className="mt-2 max-h-72 space-y-0.5 overflow-y-auto text-xs">
           {state.log.map((line, i) => (

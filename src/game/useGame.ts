@@ -168,6 +168,7 @@ export interface GameState {
   campaignBonus: number; // % marketing-kampanje-bonus, brukes opp ved neste release
   rivals: Rival[];
   news: string[]; // siste byens overskrifter (nyeste først)
+  rivalDigest: string[]; // kompakt ukesdigest med +/- share
   webcamLevel: number; // 1-3, hvor mange webcam-show typer låst opp
   trailerLevel: number; // 1-4, hvor mange visit-typer er låst opp
   condoms: number; // forbrukbare beskyttelse — brukes auto i risikable scener
@@ -286,6 +287,7 @@ const INITIAL: GameState = {
   campaignBonus: 0,
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
+  rivalDigest: ["Rival watch online. Første ukesrapport kommer dag 8."],
   webcamLevel: 1,
   trailerLevel: 1,
   condoms: 2,
@@ -540,7 +542,13 @@ export function useGame() {
   const importSave = useCallback((json: string) => {
     try {
       const parsed = JSON.parse(json);
-      setState({ ...INITIAL, ...parsed, staff: parsed.staff ?? [], distributionDeals: parsed.distributionDeals ?? INITIAL.distributionDeals });
+      setState({
+        ...INITIAL,
+        ...parsed,
+        staff: parsed.staff ?? [],
+        distributionDeals: parsed.distributionDeals ?? INITIAL.distributionDeals,
+        rivalDigest: parsed.rivalDigest ?? INITIAL.rivalDigest,
+      });
       return true;
     } catch {
       return false;
@@ -696,12 +704,39 @@ export function useGame() {
       next.stamina = Math.max(0, Math.min(next.maxStamina, next.stamina + ev.stamina));
     next = log(next, ev.text);
     // Rival/marked-tick
-    const { rivals: newRivals, news: weeklyNews } = tickRivals(next.rivals, next.reputation);
+    const { rivals: rawRivals, news: weeklyNews } = tickRivals(next.rivals, next.reputation);
+    let newRivals = [...rawRivals];
+    const counterLines: string[] = [];
+    if (next.campaignBonus >= 20 || next.reputation >= 55) {
+      newRivals = newRivals.map((r) => ({ ...r, share: Math.max(5, r.share - 0.8), momentum: Math.max(-100, r.momentum - 8), lastDelta: r.lastDelta - 0.8 }));
+      counterLines.push("📢 PR push: du vant narrativet i lokalpressen (-share rivaler).");
+    }
+    const retained = next.girls.filter((g) => g.contract && g.loyalty >= 60).length;
+    if (retained >= 2) {
+      newRivals = newRivals.map((r) => ({ ...r, notoriety: Math.max(0, r.notoriety - 2), momentum: Math.max(-100, r.momentum - 5) }));
+      counterLines.push("🤝 Talent retention: rivalenes signeringsraid bremset.");
+    }
+    const activeDeals = next.distributionDeals.filter((d) => d.activeFromDay && d.expiresDay && next.day <= d.expiresDay).length;
+    if (activeDeals > 0 || next.distribBonus > 0) {
+      newRivals = newRivals.map((r) => ({ ...r, share: Math.max(5, r.share - 0.5), lastDelta: r.lastDelta - 0.5 }));
+      counterLines.push("💿 Undercut response: distribusjonsnettet ditt spiser marginene deres.");
+    }
     next.rivals = newRivals;
     if (weeklyNews.length) {
       next.news = [...weeklyNews, ...next.news].slice(0, 12);
       next = log(next, weeklyNews[0]);
     }
+    if (counterLines.length) {
+      next.news = [...counterLines, ...next.news].slice(0, 12);
+      counterLines.forEach((line) => {
+        next = log(next, line);
+      });
+    }
+    const digest = newRivals.map((r) => {
+      const delta = r.lastDelta >= 0 ? `+${r.lastDelta.toFixed(1)}` : r.lastDelta.toFixed(1);
+      return `${r.emoji} ${r.name}: ${Math.round(r.share)}% (${delta}) • ${r.weeklyMove}`;
+    });
+    next.rivalDigest = digest.slice(0, 4);
     // STD-tick: ukentlig loyalty-drain for syke jenter, og kronisk-varsel
     const sickGirls = next.girls.filter((g) => g.std);
     if (sickGirls.length) {

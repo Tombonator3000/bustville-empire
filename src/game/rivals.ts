@@ -5,11 +5,14 @@ export interface Rival {
   share: number;   // markedsandel 0-100, sum med spiller normaliseres ved bruk
   rep: number;     // kosmetisk
   notoriety: number; // 0-100, hvor aggressive de er
+  momentum: number; // -100..100, trend siste uke
+  weeklyMove: string; // siste ukeoppsummering
+  lastDelta: number; // +/- share siden forrige uke
 }
 
 export const INITIAL_RIVALS: Rival[] = [
-  { id: "scarlet", name: "Scarlet Pictures",   emoji: "🌹", share: 28, rep: 60, notoriety: 55 },
-  { id: "neon",    name: "Neon Knights Studios", emoji: "🌃", share: 22, rep: 45, notoriety: 70 },
+  { id: "scarlet", name: "Scarlet Pictures",   emoji: "🌹", share: 28, rep: 60, notoriety: 55, momentum: 4, weeklyMove: "Signerte tre nye stjerner.", lastDelta: 0 },
+  { id: "neon",    name: "Neon Knights Studios", emoji: "🌃", share: 22, rep: 45, notoriety: 70, momentum: 7, weeklyMove: "Kjøpte nytt studio-kvartal.", lastDelta: 0 },
 ];
 
 const RIVAL_HEADLINES: Record<string, string[]> = {
@@ -40,14 +43,18 @@ const CITY_HEADLINES = [
 export function tickRivals(rivals: Rival[], playerRep: number): { rivals: Rival[]; news: string[] } {
   const news: string[] = [];
   const next = rivals.map((r) => {
+    const prevShare = r.share;
     const drift = (Math.random() - 0.5) * 6 + (r.notoriety - 50) * 0.04;
     const repGain = Math.random() < 0.6 ? Math.floor(Math.random() * 4) : 0;
     const share = Math.max(5, Math.min(60, r.share + drift));
+    const movePool = RIVAL_HEADLINES[r.id] ?? [];
+    const weeklyMove = movePool.length ? movePool[Math.floor(Math.random() * movePool.length)] : "Rolig uke i kulissene.";
+    const lastDelta = Math.round((share - prevShare) * 10) / 10;
+    const momentum = Math.max(-100, Math.min(100, Math.round((r.momentum * 0.45 + lastDelta * 11))));
     if (Math.random() < 0.55) {
-      const pool = RIVAL_HEADLINES[r.id] ?? [];
-      if (pool.length) news.push(`${r.emoji} ${pool[Math.floor(Math.random() * pool.length)]}`);
+      if (movePool.length) news.push(`${r.emoji} ${movePool[Math.floor(Math.random() * movePool.length)]}`);
     }
-    return { ...r, share, rep: r.rep + repGain };
+    return { ...r, share, rep: r.rep + repGain, momentum, weeklyMove, lastDelta };
   });
   if (Math.random() < 0.7) {
     news.push(`📰 ${CITY_HEADLINES[Math.floor(Math.random() * CITY_HEADLINES.length)]}`);
