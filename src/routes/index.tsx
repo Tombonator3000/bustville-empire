@@ -16,6 +16,7 @@ import { RosterSheet } from "@/components/game/RosterSheet";
 import { StatsSheet } from "@/components/game/StatsSheet";
 import { StaffPanel } from "@/components/game/StaffPanel";
 import { Splash, WinScreen } from "@/components/game/Splash";
+import { ProgressionPanel } from "@/components/game/ProgressionPanel";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
@@ -81,6 +82,7 @@ function GamePage() {
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
       />
+      <ProgressionPanel state={g.state} />
 
       {activeLoc ? (
         <LocationView
@@ -129,7 +131,12 @@ function GamePage() {
         <StatsSheet state={g.state} onClose={() => setStatsOpen(false)} onUpgrade={g.upgradeStat} />
       )}
       {staffOpen && (
-        <StaffPanel state={g.state} onClose={() => setStaffOpen(false)} onHire={g.hireStaff} onUpgrade={g.upgradeStaff} />
+        <StaffPanel
+          state={g.state}
+          onClose={() => setStaffOpen(false)}
+          onHire={g.hireStaff}
+          onUpgrade={g.upgradeStaff}
+        />
       )}
       {prodOpen && (
         <ProductionsSheet
