@@ -41,35 +41,34 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   const hh = h < 4 ? h + 24 : h;
   const cool = Math.max(bell(h, 1.5, 3), bell(hh, 25.5, 3));
 
-  const dayBrightness = 1 - 0.18 * night;
-  const dayContrast = 1 + 0.08 * night;
-  const daySaturate = 1 - 0.35 * night + 0.1 * warmth;
-  const dayFilter = `brightness(${dayBrightness}) contrast(${dayContrast}) saturate(${daySaturate})`;
-
-  const nightBrightness = 0.85 + 0.15 * (1 - cool);
-  const nightContrast = 1 + 0.15 * cool;
-  const nightSaturate = 0.7 + 0.4 * cool;
-  const nightFilter = `brightness(${nightBrightness}) contrast(${nightContrast}) saturate(${nightSaturate})`;
-  const hasNightVariant = Boolean(district.nightImage);
-  const useNightArtwork = hasNightVariant && night >= 0.5;
-  const activeMapImage = useNightArtwork ? district.nightImage! : district.image;
-  const activeMapFilter = useNightArtwork ? nightFilter : dayFilter;
-  const transitionVeilOpacity = hasNightVariant ? Math.max(0, 0.24 - Math.abs(night - 0.5) * 0.48) : 0;
+  const baseBrightness = 1 - 0.28 * night + 0.05 * warmth;
+  const baseContrast = 1 + 0.06 * night + 0.08 * cool;
+  const baseSaturate = 1 - 0.32 * night + 0.12 * warmth - 0.08 * cool;
+  const mapFilter = `brightness(${baseBrightness}) contrast(${baseContrast}) saturate(${baseSaturate})`;
+  const nightShadeOpacity = 0.42 * night + 0.18 * cool;
+  const moonGlowOpacity = 0.22 * night + 0.18 * cool;
 
   return (
     <section className="relative h-[calc(100vh-6.25rem)] w-full overflow-hidden">
       <img
-        src={activeMapImage}
+        src={district.image}
         alt={district.name}
         className="absolute inset-0 h-full w-full object-cover will-change-[filter]"
-        style={{ filter: activeMapFilter, transition: "filter 1000ms linear" }}
+        style={{ filter: mapFilter, transition: "filter 1000ms linear" }}
         loading="eager"
       />
       <div
         className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
         style={{
-          opacity: transitionVeilOpacity,
-          background: "linear-gradient(180deg, oklch(0.18 0.03 280 / 0.42) 0%, oklch(0.12 0.02 30 / 0.38) 100%)",
+          opacity: nightShadeOpacity,
+          background: "linear-gradient(180deg, oklch(0.18 0.03 270 / 0.78) 0%, oklch(0.14 0.03 250 / 0.58) 42%, oklch(0.12 0.02 20 / 0.62) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 pointer-events-none mix-blend-screen transition-opacity duration-1000"
+        style={{
+          opacity: moonGlowOpacity,
+          background: "radial-gradient(circle at 72% 18%, oklch(0.72 0.08 250 / 0.34) 0%, transparent 28%), radial-gradient(circle at 24% 12%, oklch(0.66 0.1 220 / 0.18) 0%, transparent 24%)",
         }}
       />
       <div
