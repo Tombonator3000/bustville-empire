@@ -8,6 +8,7 @@ import {
 import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
 import { GENRES, getGenre } from "@/game/genres";
 import { deriveProductionReleaseForecast } from "@/game/productionForecast";
+import { suggestRole } from "@/game/roleSuggestion";
 
 interface Props {
   state: GameState;
@@ -324,7 +325,7 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
                 <button key={g.id}
                   disabled={locked && !on}
                   onClick={() => onAssign(p.id, g.id)}
-                  title={g.mission ? `Opptatt: ${g.mission.label}` : g.name}
+                  title={g.mission ? `Opptatt: ${g.mission.label}` : `${g.name} · ${suggestRole(g).reason}`}
                   className={`flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 text-[10px] transition ${
                     on ? "border-primary bg-primary/20 text-foreground"
                        : "border-border bg-background/50 text-muted-foreground hover:border-primary/60"
@@ -347,11 +348,13 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
                 const g = girls.find((x) => x.id === gid);
                 if (!g) return null;
                 const current = (p.roles?.[gid] ?? "shooting") as CastRole;
+                const suggestion = suggestRole(g);
                 return (
                   <div key={gid} className="flex items-center gap-2">
                     <img src={ARCHETYPE_PORTRAITS[g.archetype]} alt="" width={20} height={20}
                       className="h-5 w-5 rounded-full object-cover" loading="lazy" />
                     <span className="min-w-0 flex-1 truncate text-[11px] font-bold">{g.name}</span>
+                    <span title={suggestion.reason} className="rounded bg-primary/20 px-1 py-0.5 text-[9px] uppercase text-primary">{suggestion.role}</span>
                     <div className="flex gap-1">
                       {CAST_ROLES.map((r) => {
                         const stageIdx = STAGE_ORDER.indexOf(r.id);
@@ -362,7 +365,7 @@ function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole,
                             key={r.id}
                             disabled={past}
                             onClick={() => onSetRole(p.id, gid, r.id)}
-                            title={past ? `${r.label} – steget er ferdig` : r.hint}
+                            title={past ? `${r.label} – steget er ferdig` : `${r.hint} · ${suggestion.reason} · score ${suggestion.scores[r.id]}`}
                             className={`rounded border px-1.5 py-0.5 text-[10px] transition ${
                               active
                                 ? "border-primary bg-primary/30 text-foreground"

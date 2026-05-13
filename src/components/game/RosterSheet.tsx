@@ -1,6 +1,7 @@
 import { absHour, type GameState } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import { STDS } from "@/game/health";
+import { suggestRole } from "@/game/roleSuggestion";
 
 export function RosterSheet({
   state, selected, onClose, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission,
@@ -53,6 +54,12 @@ function GirlCard({
   const portrait = ARCHETYPE_PORTRAITS[g.archetype];
   const onMission = !!g.mission;
   const hoursLeft = g.mission ? Math.max(0, g.mission.endsAt - nowAbs) : 0;
+  const isBusy = typeof g.busyUntil === "number" && g.busyUntil > nowAbs;
+  const busyHoursLeft = isBusy ? Math.max(0, g.busyUntil! - nowAbs) : 0;
+  const contractDaysLeft = g.contract ? Math.max(0, g.contract.expiresDay - currentDay) : null;
+  const contractState = !g.contract ? "free" : contractDaysLeft !== null && contractDaysLeft <= 3 ? "expiring" : "active";
+  const roleSuggestion = suggestRole(g);
+
   return (
     <div onClick={onSelect}
       className={`rounded-lg border overflow-hidden cursor-pointer transition ${selected ? "border-primary bg-primary/10 neon-border" : "border-border bg-secondary/40 hover:bg-secondary/60"}`}>
@@ -67,6 +74,28 @@ function GirlCard({
             </span>
           </div>
           <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+            <span className={`rounded px-1.5 py-0.5 font-semibold ${isBusy ? "bg-amber-500/20 text-amber-200" : "bg-emerald-500/20 text-emerald-200"}`}>
+              {isBusy ? `⏳ Cooldown ${busyHoursLeft}t` : "✅ Ready"}
+            </span>
+            <span className={`rounded px-1.5 py-0.5 font-semibold ${onMission ? "bg-cyan-500/20 text-cyan-200" : "bg-background/60 text-muted-foreground"}`}>
+              {onMission ? "🛰️ Mission active" : "Mission idle"}
+            </span>
+            {contractState === "free" ? (
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-semibold text-amber-200">⚠️ Free agent</span>
+            ) : contractState === "expiring" ? (
+              <span className="rounded bg-orange-500/20 px-1.5 py-0.5 font-semibold text-orange-200">📜 Expiring soon ({contractDaysLeft}d)</span>
+            ) : (
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-semibold text-emerald-200">📜 Contract active</span>
+            )}
+            <span className={`rounded px-1.5 py-0.5 font-semibold ${g.std ? "bg-destructive/40 text-destructive-foreground" : "bg-background/60 text-muted-foreground"}`}>
+              {g.std ? "🩺 Health warning" : "🩺 Health clear"}
+            </span>
+            <span title={roleSuggestion.reason} className="rounded bg-primary/20 px-1.5 py-0.5 font-semibold text-primary-foreground/90">
+              🎯 Best role: {roleSuggestion.role}
+            </span>
+          </div>
+
           {g.std && (() => {
             const supressed = g.std.suppressedUntilDay && currentDay < g.std.suppressedUntilDay;
             const def = STDS[g.std.id];
@@ -78,14 +107,8 @@ function GirlCard({
               </div>
             );
           })()}
-          <div className="mt-1 text-[10px]">
-            {g.contract ? (
-              <span className="text-emerald-300/90">
-                📜 Kontrakt: utløper d.{g.contract.expiresDay} ({Math.max(0, g.contract.expiresDay - currentDay)} dager igjen)
-              </span>
-            ) : (
-              <span className="text-amber-300">⚠️ Free agent — re-sign før hun stikker.</span>
-            )}
+          <div className="mt-1 text-[10px] text-muted-foreground" title={roleSuggestion.reason}>
+            {roleSuggestion.reason}
           </div>
           <div className="mt-1.5 grid grid-cols-4 gap-1 text-[10px]">
             <Stat label="Bea" v={g.beauty} />
