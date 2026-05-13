@@ -183,6 +183,13 @@ const ri = (a: number, b: number) => Math.floor(a + Math.random() * (b - a + 1))
 export function dayName(day: number) {
   return ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"][(day - 1) % 7];
 }
+/**
+ * Ukentlig grense er dag 8, 15, 22, ... (dag 1 er startankeret og skal ikke trigge weekTick ved init).
+ * Dette tilsvarer én uketick hver gang vi går inn i en ny 7-dagers blokk etter oppstartsuken.
+ */
+export function isWeeklyBoundary(day: number): boolean {
+  return day > 1 && (day - 1) % 7 === 0;
+}
 export function timeStr(h: number) {
   return `${String(h).padStart(2, "0")}:00`;
 }
@@ -325,7 +332,8 @@ export function useGame() {
         const headline = dailyHeadline(next.rivals);
         next.news = [headline, ...next.news].slice(0, 12);
       }
-      if ((next.day - 1) % 7 === 0) next = weekTick(next);
+      // Dag-anker: weekTick kjøres på dag 8, 15, 22, ... (ikke dag 1), altså nøyaktig én gang per ukegrense.
+      if (isWeeklyBoundary(next.day)) next = weekTick(next);
       if (next.loan > 0 && next.day >= next.loanDueDay) {
         if (next.cash >= next.loan) {
           next = log(next, `🏦 Lån betalt automatisk: -$${next.loan}.`);
