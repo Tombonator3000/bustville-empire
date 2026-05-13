@@ -89,6 +89,17 @@ function applyIntensityHeat(
   return { total: safeBase, baseApplied: safeBase, intensityBonus: 0 };
 }
 
+export function previewHeat(baseHeat: number, intensity: Intensity): HeatBreakdown {
+  return applyIntensityHeat(baseHeat, intensity, "perform");
+}
+
+export function intensityCooldownHours(baseHours: number, intensity: Intensity): number {
+  const cdBase = Math.max(2, baseHours);
+  if (intensity === "intense") return Math.ceil(cdBase * 1.5);
+  if (intensity === "chill") return Math.max(1, Math.floor(cdBase * 0.7));
+  return cdBase;
+}
+
 export interface PlayerStats {
   charisma: number;
   hustle: number;
@@ -692,13 +703,7 @@ export function useGame() {
         }
         // Apply cooldown to the working girl if action consumed time
         if (girlId && action && action.hours > 0 && after !== before) {
-          const cdBase = Math.max(2, action.hours);
-          const cd =
-            intensity === "intense"
-              ? Math.ceil(cdBase * 1.5)
-              : intensity === "chill"
-                ? Math.max(1, Math.floor(cdBase * 0.7))
-                : cdBase;
+          const cd = intensityCooldownHours(action.hours, intensity);
           const until = absHour(after) + cd;
           after = {
             ...after,
@@ -2034,13 +2039,7 @@ export function useGame() {
           next = enc.state;
         }
         if (girlId) {
-          const cdBase = Math.max(2, show.hours);
-          const cd =
-            intensity === "intense"
-              ? Math.ceil(cdBase * 1.5)
-              : intensity === "chill"
-                ? Math.max(1, Math.floor(cdBase * 0.7))
-                : cdBase;
+          const cd = intensityCooldownHours(show.hours, intensity);
           const until = absHour(next) + cd;
           const scene: GalleryScene = {
             id: `${girlId}-webcam-${show.id}-${absHour(next)}`,
@@ -2132,13 +2131,7 @@ export function useGame() {
         }
         // Cooldown + scene + lastActivity
         if (girlId) {
-          const cdBase = Math.max(2, v.hours);
-          const cd =
-            intensity === "intense"
-              ? Math.ceil(cdBase * 1.5)
-              : intensity === "chill"
-                ? Math.max(1, Math.floor(cdBase * 0.7))
-                : cdBase;
+          const cd = intensityCooldownHours(v.hours, intensity);
           const until = absHour(next) + cd;
           const scene: GalleryScene = {
             id: `${girlId}-visit-${v.id}-${absHour(next)}`,
