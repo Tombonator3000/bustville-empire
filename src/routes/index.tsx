@@ -21,7 +21,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Bustville Empire — Lula-style Tycoon Sim" },
-      { name: "description", content: "Klikkbar tycoon-simulator: bygg et erotikk-imperium fra en rusten trailer i Bustville, Alabama." },
+      {
+        name: "description",
+        content:
+          "Klikkbar tycoon-simulator: bygg et erotikk-imperium fra en rusten trailer i Bustville, Alabama.",
+      },
     ],
   }),
 });
@@ -46,7 +50,14 @@ function GamePage() {
     return <Splash onStart={() => setStarted(true)} onReset={g.reset} />;
   }
   if (g.state.won) {
-    return <WinScreen onReset={() => { g.reset(); setStarted(false); }} />;
+    return (
+      <WinScreen
+        onReset={() => {
+          g.reset();
+          setStarted(false);
+        }}
+      />
+    );
   }
 
   const district = DISTRICTS.find((d) => d.id === g.state.district)!;
@@ -64,6 +75,8 @@ function GamePage() {
         onOpenClinic={() => setClinicOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
+        onAdvanceTime={g.advanceTime}
+        onEndDay={g.endDay}
       />
 
       {activeLoc ? (
@@ -73,15 +86,26 @@ function GamePage() {
           selectedGirl={selectedGirl}
           onBack={g.backToMap}
           onPerform={(id, girlId, intensity) => {
-            if (activeLoc === "trailer" && id === "webcam") { setWebcamOpen(true); return; }
-            if (activeLoc === "trailer" && id === "visit")  { setVisitOpen(true);  return; }
+            if (activeLoc === "trailer" && id === "webcam") {
+              setWebcamOpen(true);
+              return;
+            }
+            if (activeLoc === "trailer" && id === "visit") {
+              setVisitOpen(true);
+              return;
+            }
             g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
           }}
           onOpenRoster={() => setRosterOpen(true)}
           onOpenProductions={() => setProdOpen(true)}
         />
       ) : (
-        <MapView state={g.state} district={district} onGoTo={g.goTo} onSwitchDistrict={g.switchDistrict} />
+        <MapView
+          state={g.state}
+          district={district}
+          onGoTo={g.goTo}
+          onSwitchDistrict={g.switchDistrict}
+        />
       )}
 
       {rosterOpen && (
@@ -113,12 +137,8 @@ function GamePage() {
           onUpgradeEquipment={g.upgradeEquipment}
         />
       )}
-      {invOpen && (
-        <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />
-      )}
-      {galleryOpen && (
-        <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />
-      )}
+      {invOpen && <InventorySheet state={g.state} onClose={() => setInvOpen(false)} />}
+      {galleryOpen && <GallerySheet girls={g.state.girls} onClose={() => setGalleryOpen(false)} />}
       {clinicOpen && (
         <ClinicSheet state={g.state} onClose={() => setClinicOpen(false)} onPerform={g.perform} />
       )}
@@ -146,12 +166,23 @@ function GamePage() {
           onDelete={g.deleteSlot}
           onExport={g.exportSave}
           onImport={g.importSave}
-          onReset={() => { g.reset(); setStarted(false); }}
+          onReset={() => {
+            g.reset();
+            setStarted(false);
+          }}
         />
       )}
 
       <footer className="mx-auto mt-4 max-w-7xl px-3 pb-3 text-center text-[10px] text-muted-foreground">
-        <button onClick={() => { if (confirm("Slett all progresjon?")) { g.reset(); setStarted(false); } }} className="underline hover:text-primary">
+        <button
+          onClick={() => {
+            if (confirm("Slett all progresjon?")) {
+              g.reset();
+              setStarted(false);
+            }
+          }}
+          className="underline hover:text-primary"
+        >
           Reset
         </button>
         <span className="mx-2">·</span>
