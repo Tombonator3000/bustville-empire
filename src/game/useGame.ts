@@ -35,6 +35,17 @@ export function hoursUntilNextClockTime(absNow: number, targetHour: number): num
 }
 
 export type Intensity = "chill" | "standard" | "intense";
+
+function busyHoursLeft(g: Girl, s: { day: number; hour: number }): number {
+  const until = g.busyUntil ?? 0;
+  return Math.max(0, until - absHour(s));
+}
+
+function busyLog(g: Girl, s: { day: number; hour: number }, context = "denne handlingen"): string {
+  const hoursLeft = busyHoursLeft(g, s);
+  return `💤 ${g.name} er i cooldown (${hoursLeft}t igjen) og kan ikke tildeles til ${context}.`;
+}
+
 export const INTENSITIES: { id: Intensity; label: string; emoji: string; hint: string }[] = [
   { id: "chill",    label: "Avslappet", emoji: "🌙", hint: "0.7× lønn, mindre heat. For trøtte stjerner." },
   { id: "standard", label: "Standard",  emoji: "⚖️", hint: "Vanlig økt — balansert risiko." },
@@ -539,7 +550,7 @@ export function useGame() {
         if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
         const nowAbs = absHour(s);
         if (g.busyUntil && g.busyUntil > nowAbs) {
-          return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t — velg en annen.`);
+          return log(s, busyLog(g, s, "denne handlingen"));
         }
       }
       const before = s;
@@ -1369,7 +1380,13 @@ export function useGame() {
       const p = s.productions[idx];
       if (p.stageIdx > 1) return log(s, "Casting er låst etter innspilling startet.");
       const target = s.girls.find((x) => x.id === girlId);
-      if (target?.mission) return log(s, `${target.name} er opptatt med ${target.mission.label}.`);
+      if (!target) return s;
+      if (target.mission) return log(s, `${target.name} er opptatt med ${target.mission.label}.`);
+      // Design: cooldown blokkerer tildeling til cast (ikke bare utførelse).
+      // Dette gjør planlegging konsistent med perform/webcamShow/acceptVisit.
+      if (target.busyUntil && target.busyUntil > absHour(s)) {
+        return log(s, busyLog(target, s, `cast i "${p.title}"`));
+      }
       const has = p.girlIds.includes(girlId);
       const newCast = has ? p.girlIds.filter((x) => x !== girlId) : [...p.girlIds, girlId];
       const newRoles = { ...(p.roles ?? {}) };
@@ -1494,7 +1511,7 @@ export function useGame() {
         if (!g) return s;
         const nowAbs = absHour(s);
         if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
-        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t.`);
+        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, busyLog(g, s, show.label));
       }
       const girl = girlId ? s.girls.find((x) => x.id === girlId) : undefined;
       const girlMult = girl ? 1 + (girl.beauty + girl.performance + girl.popularity) / 220 : 1;
@@ -1558,7 +1575,7 @@ export function useGame() {
         if (!g) return s;
         const nowAbs = absHour(s);
         if (g.mission) return log(s, `⛔ ${g.name} er opptatt: ${g.mission.label}.`);
-        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, `💤 ${g.name} hviler i ${g.busyUntil - nowAbs}t.`);
+        if (g.busyUntil && g.busyUntil > nowAbs) return log(s, busyLog(g, s, v.label));
         if (isBlockedByStd(g, s.day, "vip")) {
           const a = activeSTD(g, s.day)!;
           return log(s, `${a.emoji} ${g.name} kan ikke ta ${v.label} med ${a.name}.`);
