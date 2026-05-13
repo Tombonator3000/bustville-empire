@@ -51,30 +51,28 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   const nightContrast = 1 + 0.15 * cool;
   const nightSaturate = 0.7 + 0.4 * cool;
   const nightFilter = `brightness(${nightBrightness}) contrast(${nightContrast}) saturate(${nightSaturate})`;
+  const hasNightVariant = Boolean(district.nightImage);
+  const useNightArtwork = hasNightVariant && night >= 0.5;
+  const activeMapImage = useNightArtwork ? district.nightImage! : district.image;
+  const activeMapFilter = useNightArtwork ? nightFilter : dayFilter;
+  const transitionVeilOpacity = hasNightVariant ? Math.max(0, 0.24 - Math.abs(night - 0.5) * 0.48) : 0;
 
   return (
     <section className="relative h-[calc(100vh-6.25rem)] w-full overflow-hidden">
       <img
-        src={district.image}
+        src={activeMapImage}
         alt={district.name}
         className="absolute inset-0 h-full w-full object-cover will-change-[filter]"
-        style={{ filter: dayFilter, transition: "filter 1000ms linear" }}
+        style={{ filter: activeMapFilter, transition: "filter 1000ms linear" }}
         loading="eager"
       />
-      {district.nightImage && (
-        <img
-          src={district.nightImage}
-          alt=""
-          aria-hidden
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-cover pointer-events-none will-change-[opacity,filter]"
-          style={{
-            opacity: nightOpacity,
-            filter: nightFilter,
-            transition: "opacity 1000ms linear, filter 1000ms linear",
-          }}
-        />
-      )}
+      <div
+        className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+        style={{
+          opacity: transitionVeilOpacity,
+          background: "linear-gradient(180deg, oklch(0.18 0.03 280 / 0.42) 0%, oklch(0.12 0.02 30 / 0.38) 100%)",
+        }}
+      />
       <div
         className="absolute inset-0 pointer-events-none mix-blend-soft-light transition-opacity duration-1000"
         style={{
