@@ -156,7 +156,8 @@
     background-image: radial-gradient(circle at 20% 10%, oklch(0.32 0.18 350 / 0.4), transparent 60%),
                       radial-gradient(circle at 80% 90%, oklch(0.3 0.18 290 / 0.4), transparent 60%);
     background-attachment: fixed;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     margin: 0;
   }
 
