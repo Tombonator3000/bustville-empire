@@ -31,6 +31,7 @@ import {
   formatDowntownRemainingRequirements,
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
+import { generateRecruitPresentation } from "./recruitPresentation";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -182,6 +183,7 @@ export interface GameState {
   backlog: number;
   player: PlayerStats;
   girls: Girl[];
+  lastRecruitId?: string;
   staff: StaffMember[];
   log: string[];
   won: boolean;
@@ -587,7 +589,7 @@ function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl
     locLevel >= 4 ? [...ARCHETYPES] : ARCHETYPES.filter((a) => a !== "Exotic Import");
   const archetype = rand(pool);
   const base = 25 + tier * 8 + playerCharisma * 2;
-  return {
+  const baseGirl: Girl = {
     id: Math.random().toString(36).slice(2, 10),
     name: `${rand(FIRST_NAMES)} ${rand(LAST_NAMES)}`,
     archetype,
@@ -597,6 +599,8 @@ function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl
     loyalty: 45 + ri(0, 25),
     salary: 60 + tier * 35 + ri(0, 40),
   };
+  const presentation = generateRecruitPresentation(baseGirl, locLevel, playerCharisma);
+  return { ...baseGirl, ...presentation };
 }
 
 /** Genererer kontrakt-tilbud basert på stjernens kvalitet. */
@@ -679,6 +683,10 @@ export function useGame() {
   });
 
   const reset = useCallback(() => setState(INITIAL), []);
+
+  const clearRecruitReveal = useCallback(() => {
+    setState((s) => ({ ...s, lastRecruitId: undefined }));
+  }, []);
 
   const saveToSlot = useCallback(
     (slot: number, label?: string) => {
@@ -1233,7 +1241,7 @@ export function useGame() {
             `${raw.name} vil ha $${g.contract!.signingBonus} i signing bonus. Du har ikke råd.`,
           );
         return log(
-          { ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
           `💃 ${g.name} signerte 8-ukers kontrakt. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`,
         );
       }
@@ -1314,7 +1322,7 @@ export function useGame() {
             );
           }
           return log(
-            { ...next, cash: next.cash - g.contract!.signingBonus, girls: [...next.girls, g] },
+            { ...next, cash: next.cash - g.contract!.signingBonus, girls: [...next.girls, g], lastRecruitId: g.id },
             `👠 ${g.name} signerte 4-ukers prøvekontrakt. Bonus $${g.contract!.signingBonus}.`,
           );
         }
@@ -1337,7 +1345,7 @@ export function useGame() {
         if (next.cash < upfront)
           return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus.`);
         return log(
-          { ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
           `🔦 ${g.name} signerte 4-ukers kontrakt. Bonus $${g.contract!.signingBonus}.`,
         );
       }
@@ -1419,7 +1427,7 @@ export function useGame() {
             `${raw.name} forventer $${g.contract!.signingBonus} i signing bonus. Du har ikke nok.`,
           );
         return log(
-          { ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+          { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
           `💎 ${g.name} signerte 12-ukers eksklusiv. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`,
         );
       }
@@ -1577,7 +1585,7 @@ export function useGame() {
               `${raw.name} vil ha $${g.contract!.signingBonus} i bonus. Du har ikke råd.`,
             );
           return log(
-            { ...next, cash: next.cash - upfront, girls: [...next.girls, g] },
+            { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
             `📣 ${g.name} signerte 8-ukers. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`,
           );
         }
@@ -2697,5 +2705,6 @@ export function useGame() {
     upgradeTrailerLevel,
     advanceTime,
     endDay,
+    clearRecruitReveal,
   };
 }

@@ -17,6 +17,7 @@ import { StatsSheet } from "@/components/game/StatsSheet";
 import { StaffPanel } from "@/components/game/StaffPanel";
 import { Splash, WinScreen } from "@/components/game/Splash";
 import { ProgressionPanel } from "@/components/game/ProgressionPanel";
+import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
@@ -65,6 +66,9 @@ function GamePage() {
 
   const district = DISTRICTS.find((d) => d.id === g.state.district)!;
   const activeLoc = g.state.activeLocation;
+  const recruitRevealGirl = g.state.lastRecruitId
+    ? g.state.girls.find((x) => x.id === g.state.lastRecruitId) ?? null
+    : null;
 
   return (
     <main className="relative min-h-screen w-full">
@@ -172,6 +176,10 @@ function GamePage() {
           onUpgrade={g.upgradeTrailerLevel}
         />
       )}
+      {recruitRevealGirl && (
+        <RecruitRevealModal girl={recruitRevealGirl} onClose={g.clearRecruitReveal} />
+      )}
+
       {optionsOpen && (
         <OptionsMenu
           onClose={() => setOptionsOpen(false)}
