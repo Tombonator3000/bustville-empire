@@ -25,24 +25,44 @@ export interface STDDef {
 
 export const STDS: Record<STDId, STDDef> = {
   chlamydia: {
-    id: "chlamydia", name: "Chlamydia", emoji: "🦠",
-    curable: true, effect: "Lett betennelse — −15% payout.",
-    payoutMult: 0.85, blocksMissions: [], weight: 45,
+    id: "chlamydia",
+    name: "Chlamydia",
+    emoji: "🦠",
+    curable: true,
+    effect: "Lett betennelse — −15% payout.",
+    payoutMult: 0.85,
+    blocksMissions: [],
+    weight: 45,
   },
   gonorrhea: {
-    id: "gonorrhea", name: "Gonorrhea", emoji: "💢",
-    curable: true, effect: "−20% payout, kan ikke ta VIP-eskorte.",
-    payoutMult: 0.8, blocksMissions: ["vip"], weight: 35,
+    id: "gonorrhea",
+    name: "Gonorrhea",
+    emoji: "💢",
+    curable: true,
+    effect: "−20% payout, kan ikke ta VIP-eskorte.",
+    payoutMult: 0.8,
+    blocksMissions: ["vip"],
+    weight: 35,
   },
   herpes: {
-    id: "herpes", name: "Herpes", emoji: "🤢",
-    curable: false, effect: "Halv payout, sterkt loyalty-tap.",
-    payoutMult: 0.5, blocksMissions: [], weight: 16,
+    id: "herpes",
+    name: "Herpes",
+    emoji: "🤢",
+    curable: false,
+    effect: "Halv payout, sterkt loyalty-tap.",
+    payoutMult: 0.5,
+    blocksMissions: [],
+    weight: 16,
   },
   hiv: {
-    id: "hiv", name: "HIV", emoji: "☣️",
-    curable: false, effect: "Kan ikke jobbe i det hele tatt.",
-    payoutMult: 0, blocksMissions: ["webcam","club","onlyfans","vip","tour"], weight: 4,
+    id: "hiv",
+    name: "HIV",
+    emoji: "☣️",
+    curable: false,
+    effect: "Kan ikke jobbe i det hele tatt.",
+    payoutMult: 0,
+    blocksMissions: ["webcam", "club", "onlyfans", "vip", "tour"],
+    weight: 4,
   },
 };
 
@@ -76,7 +96,11 @@ export function activeSTD(g: { std?: STDState }, currentDay: number): STDDef | n
 }
 
 /** Sann hvis et oppdrag/aktivitet er blokkert av en aktiv STD. */
-export function isBlockedByStd(g: { std?: STDState }, currentDay: number, missionId: string): boolean {
+export function isBlockedByStd(
+  g: { std?: STDState },
+  currentDay: number,
+  missionId: string,
+): boolean {
   const a = activeSTD(g, currentDay);
   if (!a) return false;
   return a.blocksMissions.includes(missionId);

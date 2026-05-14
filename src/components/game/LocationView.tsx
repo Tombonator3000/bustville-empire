@@ -175,9 +175,21 @@ export function LocationView({
             </div>
             <div className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
               {state.log.slice(0, 8).map((line, i) => {
-                const major = /(first hit|milestone|recruit|hired|new local lead|heat \+|utbrent|weekly|unlock)/i.test(line);
+                const major =
+                  /(first hit|milestone|recruit|hired|new local lead|heat \+|utbrent|weekly|unlock)/i.test(
+                    line,
+                  );
                 return (
-                  <p key={i} className={major ? "rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-foreground" : i === 0 ? "text-foreground" : "text-muted-foreground"}>
+                  <p
+                    key={i}
+                    className={
+                      major
+                        ? "rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-foreground"
+                        : i === 0
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                    }
+                  >
                     {major ? "⚡ " : ""}
                     {line}
                   </p>

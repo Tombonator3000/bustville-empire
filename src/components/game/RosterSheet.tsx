@@ -4,9 +4,19 @@ import { STDS } from "@/game/health";
 import { suggestRole } from "@/game/roleSuggestion";
 
 export function RosterSheet({
-  state, selected, onClose, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission,
+  state,
+  selected,
+  onClose,
+  onSelect,
+  onFire,
+  onTrain,
+  onGift,
+  onResign,
+  onStartMission,
+  onCancelMission,
 }: {
-  state: GameState; selected?: string;
+  state: GameState;
+  selected?: string;
   onClose: () => void;
   onSelect: (id: string) => void;
   onFire: (id: string) => void;
@@ -17,11 +27,19 @@ export function RosterSheet({
   onCancelMission: (girlId: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-card p-4 shadow-2xl">
+    <div
+      className="fixed inset-0 z-40 flex justify-end bg-background/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-card p-4 shadow-2xl"
+      >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl uppercase neon-text">Roster</h2>
-          <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">Lukk</button>
+          <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">
+            Lukk
+          </button>
         </div>
         <p className="text-xs text-muted-foreground">
           {state.girls.length}/6 stjerner. Scout via Bar, Skog eller Velvet.
@@ -33,9 +51,20 @@ export function RosterSheet({
             </p>
           )}
           {state.girls.map((g) => (
-            <GirlCard key={g.id} g={g} selected={selected === g.id} nowAbs={absHour(state)} currentDay={state.day}
-              onSelect={() => onSelect(g.id)} onFire={onFire} onTrain={onTrain} onGift={onGift} onResign={onResign}
-              onStartMission={onStartMission} onCancelMission={onCancelMission} />
+            <GirlCard
+              key={g.id}
+              g={g}
+              selected={selected === g.id}
+              nowAbs={absHour(state)}
+              currentDay={state.day}
+              onSelect={() => onSelect(g.id)}
+              onFire={onFire}
+              onTrain={onTrain}
+              onGift={onGift}
+              onResign={onResign}
+              onStartMission={onStartMission}
+              onCancelMission={onCancelMission}
+            />
           ))}
         </div>
       </div>
@@ -44,12 +73,29 @@ export function RosterSheet({
 }
 
 function GirlCard({
-  g, selected, nowAbs, currentDay, onSelect, onFire, onTrain, onGift, onResign, onStartMission, onCancelMission,
+  g,
+  selected,
+  nowAbs,
+  currentDay,
+  onSelect,
+  onFire,
+  onTrain,
+  onGift,
+  onResign,
+  onStartMission,
+  onCancelMission,
 }: {
-  g: Girl; selected: boolean; nowAbs: number; currentDay: number;
-  onSelect: () => void; onFire: (id: string) => void; onTrain: (id: string) => void; onGift: (id: string) => void;
+  g: Girl;
+  selected: boolean;
+  nowAbs: number;
+  currentDay: number;
+  onSelect: () => void;
+  onFire: (id: string) => void;
+  onTrain: (id: string) => void;
+  onGift: (id: string) => void;
   onResign: (id: string, lengthWeeks?: 4 | 8 | 12) => void;
-  onStartMission: (girlId: string, mid: string) => void; onCancelMission: (girlId: string) => void;
+  onStartMission: (girlId: string, mid: string) => void;
+  onCancelMission: (girlId: string) => void;
 }) {
   const portrait = ARCHETYPE_PORTRAITS[g.archetype];
   const onMission = !!g.mission;
@@ -57,15 +103,27 @@ function GirlCard({
   const isBusy = typeof g.busyUntil === "number" && g.busyUntil > nowAbs;
   const busyHoursLeft = isBusy ? Math.max(0, g.busyUntil! - nowAbs) : 0;
   const contractDaysLeft = g.contract ? Math.max(0, g.contract.expiresDay - currentDay) : null;
-  const contractState = !g.contract ? "free" : contractDaysLeft !== null && contractDaysLeft <= 3 ? "expiring" : "active";
+  const contractState = !g.contract
+    ? "free"
+    : contractDaysLeft !== null && contractDaysLeft <= 3
+      ? "expiring"
+      : "active";
   const roleSuggestion = suggestRole(g);
 
   return (
-    <div onClick={onSelect}
-      className={`rounded-lg border overflow-hidden cursor-pointer transition ${selected ? "border-primary bg-primary/10 neon-border" : "border-border bg-secondary/40 hover:bg-secondary/60"}`}>
+    <div
+      onClick={onSelect}
+      className={`rounded-lg border overflow-hidden cursor-pointer transition ${selected ? "border-primary bg-primary/10 neon-border" : "border-border bg-secondary/40 hover:bg-secondary/60"}`}
+    >
       <div className="flex gap-3 p-2.5">
-        <img src={portrait} alt={g.archetype} width={64} height={80}
-          className="h-20 w-16 flex-none rounded-md object-cover border border-border" loading="lazy" />
+        <img
+          src={portrait}
+          alt={g.archetype}
+          width={64}
+          height={80}
+          className="h-20 w-16 flex-none rounded-md object-cover border border-border"
+          loading="lazy"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
             <span className="font-bold truncate">{g.name}</span>
@@ -73,40 +131,65 @@ function GirlCard({
               ${g.contract ? Math.max(g.salary, g.contract.weeklyMin) : g.salary}/uke
             </span>
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-accent truncate">{g.archetype}</div>
+          <div className="text-[10px] uppercase tracking-wider text-accent truncate">
+            {g.archetype}
+          </div>
           <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
-            <span className={`rounded px-1.5 py-0.5 font-semibold ${isBusy ? "bg-amber-500/20 text-amber-200" : "bg-emerald-500/20 text-emerald-200"}`}>
+            <span
+              className={`rounded px-1.5 py-0.5 font-semibold ${isBusy ? "bg-amber-500/20 text-amber-200" : "bg-emerald-500/20 text-emerald-200"}`}
+            >
               {isBusy ? `⏳ Cooldown ${busyHoursLeft}t` : "✅ Ready"}
             </span>
-            <span className={`rounded px-1.5 py-0.5 font-semibold ${onMission ? "bg-cyan-500/20 text-cyan-200" : "bg-background/60 text-muted-foreground"}`}>
+            <span
+              className={`rounded px-1.5 py-0.5 font-semibold ${onMission ? "bg-cyan-500/20 text-cyan-200" : "bg-background/60 text-muted-foreground"}`}
+            >
               {onMission ? "🛰️ Mission active" : "Mission idle"}
             </span>
             {contractState === "free" ? (
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-semibold text-amber-200">⚠️ Free agent</span>
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-semibold text-amber-200">
+                ⚠️ Free agent
+              </span>
             ) : contractState === "expiring" ? (
-              <span className="rounded bg-orange-500/20 px-1.5 py-0.5 font-semibold text-orange-200">📜 Expiring soon ({contractDaysLeft}d)</span>
+              <span className="rounded bg-orange-500/20 px-1.5 py-0.5 font-semibold text-orange-200">
+                📜 Expiring soon ({contractDaysLeft}d)
+              </span>
             ) : (
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-semibold text-emerald-200">📜 Contract active</span>
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-semibold text-emerald-200">
+                📜 Contract active
+              </span>
             )}
-            <span className={`rounded px-1.5 py-0.5 font-semibold ${g.std ? "bg-destructive/40 text-destructive-foreground" : "bg-background/60 text-muted-foreground"}`}>
+            <span
+              className={`rounded px-1.5 py-0.5 font-semibold ${g.std ? "bg-destructive/40 text-destructive-foreground" : "bg-background/60 text-muted-foreground"}`}
+            >
               {g.std ? "🩺 Health warning" : "🩺 Health clear"}
             </span>
-            <span title={roleSuggestion.reason} className="rounded bg-primary/20 px-1.5 py-0.5 font-semibold text-primary-foreground/90">
+            <span
+              title={roleSuggestion.reason}
+              className="rounded bg-primary/20 px-1.5 py-0.5 font-semibold text-primary-foreground/90"
+            >
               🎯 Best role: {roleSuggestion.role}
             </span>
           </div>
 
-          {g.std && (() => {
-            const supressed = g.std.suppressedUntilDay && currentDay < g.std.suppressedUntilDay;
-            const def = STDS[g.std.id];
-            return (
-              <div className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                supressed ? "bg-amber-500/20 text-amber-200" : def.curable ? "bg-orange-600/30 text-orange-100" : "bg-destructive/40 text-destructive-foreground"
-              }`}>
-                {def.emoji} {def.name}{supressed ? ` (undertrykt d.${g.std.suppressedUntilDay})` : ""}
-              </div>
-            );
-          })()}
+          {g.std &&
+            (() => {
+              const supressed = g.std.suppressedUntilDay && currentDay < g.std.suppressedUntilDay;
+              const def = STDS[g.std.id];
+              return (
+                <div
+                  className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    supressed
+                      ? "bg-amber-500/20 text-amber-200"
+                      : def.curable
+                        ? "bg-orange-600/30 text-orange-100"
+                        : "bg-destructive/40 text-destructive-foreground"
+                  }`}
+                >
+                  {def.emoji} {def.name}
+                  {supressed ? ` (undertrykt d.${g.std.suppressedUntilDay})` : ""}
+                </div>
+              );
+            })()}
           <div className="mt-1 text-[10px] text-muted-foreground" title={roleSuggestion.reason}>
             {roleSuggestion.reason}
           </div>
@@ -126,8 +209,13 @@ function GirlCard({
               <span className="text-foreground">
                 ⏳ <b>{g.mission!.label}</b> · ~${g.mission!.payout} · {hoursLeft}t igjen
               </span>
-              <button onClick={(e) => { e.stopPropagation(); onCancelMission(g.id); }}
-                className="rounded bg-destructive/70 px-1.5 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancelMission(g.id);
+                }}
+                className="rounded bg-destructive/70 px-1.5 py-0.5 text-[10px] text-destructive-foreground hover:bg-destructive"
+              >
                 Hent hjem
               </button>
             </div>
@@ -145,13 +233,22 @@ function GirlCard({
               const stat = g[m.statKey];
               const locked = stat < m.min;
               return (
-                <button key={m.id} disabled={locked}
-                  onClick={(e) => { e.stopPropagation(); onStartMission(g.id, m.id); }}
+                <button
+                  key={m.id}
+                  disabled={locked}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onStartMission(g.id, m.id);
+                  }}
                   className={`flex items-center justify-between rounded px-2 py-1 text-[11px] transition ${
-                    locked ? "bg-background/40 text-muted-foreground opacity-50 cursor-not-allowed"
-                           : "bg-secondary hover:bg-secondary/80 text-foreground"
-                  }`}>
-                  <span>{m.emoji} {m.label}</span>
+                    locked
+                      ? "bg-background/40 text-muted-foreground opacity-50 cursor-not-allowed"
+                      : "bg-secondary hover:bg-secondary/80 text-foreground"
+                  }`}
+                >
+                  <span>
+                    {m.emoji} {m.label}
+                  </span>
                   <span className="font-mono text-[10px] text-accent">
                     ~${m.basePay} · {m.hours}t {locked ? `· ${m.statKey} ${m.min}+` : ""}
                   </span>
@@ -161,18 +258,68 @@ function GirlCard({
           </div>
           {!g.contract && (
             <div className="rounded border border-amber-400/40 bg-amber-400/10 p-1.5">
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-amber-300">Re-sign kontrakt</div>
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-amber-300">
+                Re-sign kontrakt
+              </div>
               <div className="grid grid-cols-3 gap-1">
-                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 4); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">4 uker</button>
-                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 8); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">8 uker</button>
-                <button onClick={(e) => { e.stopPropagation(); onResign(g.id, 12); }} className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80">12 uker</button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResign(g.id, 4);
+                  }}
+                  className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80"
+                >
+                  4 uker
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResign(g.id, 8);
+                  }}
+                  className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80"
+                >
+                  8 uker
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResign(g.id, 12);
+                  }}
+                  className="rounded bg-secondary px-1 py-1 text-[10px] hover:bg-secondary/80"
+                >
+                  12 uker
+                </button>
               </div>
             </div>
           )}
           <div className="grid grid-cols-3 gap-1">
-            <button onClick={(e) => { e.stopPropagation(); onTrain(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Train $200</button>
-            <button onClick={(e) => { e.stopPropagation(); onGift(g.id); }} className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80">Gift $150</button>
-            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Sparke ${g.name}?`)) onFire(g.id); }} className="rounded bg-destructive/80 px-1.5 py-1 text-[10px] text-destructive-foreground hover:bg-destructive">Fire</button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTrain(g.id);
+              }}
+              className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80"
+            >
+              Train $200
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onGift(g.id);
+              }}
+              className="rounded bg-secondary px-1.5 py-1 text-[10px] hover:bg-secondary/80"
+            >
+              Gift $150
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Sparke ${g.name}?`)) onFire(g.id);
+              }}
+              className="rounded bg-destructive/80 px-1.5 py-1 text-[10px] text-destructive-foreground hover:bg-destructive"
+            >
+              Fire
+            </button>
           </div>
         </div>
       )}

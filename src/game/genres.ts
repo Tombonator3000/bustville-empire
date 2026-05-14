@@ -12,22 +12,30 @@ export interface GenreDef {
 
 export const GENRES: GenreDef[] = [
   {
-    id: "romance", name: "Romance", emoji: "💕",
+    id: "romance",
+    name: "Romance",
+    emoji: "💕",
     blurb: "Søte, varme, langsomme. Stort publikum, lavt sjokk.",
     matches: ["Amateur Sweetheart", "Girl Next Door"],
   },
   {
-    id: "wild", name: "Wild Party", emoji: "🎉",
+    id: "wild",
+    name: "Wild Party",
+    emoji: "🎉",
     blurb: "Hardcore, kaotisk, energisk. Yngre marked, høy heat.",
     matches: ["Wild Party Girl", "MILF Next Door"],
   },
   {
-    id: "glamour", name: "Glamour", emoji: "💎",
+    id: "glamour",
+    name: "Glamour",
+    emoji: "💎",
     blurb: "Stilig, kunstnerisk, kostbart. Premium-kjøpere.",
     matches: ["Ice Queen Pornstar", "Exotic Import"],
   },
   {
-    id: "fetish", name: "Fetish", emoji: "⛓️",
+    id: "fetish",
+    name: "Fetish",
+    emoji: "⛓️",
     blurb: "Nisje, lojale fans. Ekstra premium på riktig cast.",
     matches: ["Wild Party Girl", "Ice Queen Pornstar"],
   },
@@ -36,7 +44,10 @@ export const GENRES: GenreDef[] = [
 export const GENRE_IDS: GenreId[] = ["romance", "wild", "glamour", "fetish"];
 
 export const emptyFans = (): Record<GenreId, number> => ({
-  romance: 0, wild: 0, glamour: 0, fetish: 0,
+  romance: 0,
+  wild: 0,
+  glamour: 0,
+  fetish: 0,
 });
 
 /** Fans → payout-multiplier. 0 fans = 1.0×, 600 fans = 2.0× (cap). */

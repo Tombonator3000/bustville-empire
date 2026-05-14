@@ -332,7 +332,13 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
     { id: "snitch", label: "Tysteri-tips", emoji: "🤐", hours: 1, desc: "+$120, -rep." },
   ],
   gas: [
-    { id: "sellTrucker", label: "Odd cash job", emoji: "🚛", hours: 1, desc: "Take a short hauling hustle for quick cash." },
+    {
+      id: "sellTrucker",
+      label: "Odd cash job",
+      emoji: "🚛",
+      hours: 1,
+      desc: "Take a short hauling hustle for quick cash.",
+    },
     {
       id: "supplies",
       label: "Buy supplies",

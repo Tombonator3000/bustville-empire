@@ -609,7 +609,9 @@ export function listSaveSlots(): SaveSlotMeta[] {
         day: m.day ?? m.state?.day ?? 0,
         cash: m.cash ?? m.state?.cash ?? 0,
       });
-    } catch {}
+    } catch {
+      // ignore invalid save slot payload
+    }
   }
   return out;
 }
@@ -707,6 +709,12 @@ function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
   return { ...g, contract: genContract(g, day, lengthWeeks) };
 }
 
+type TrainableStat = "beauty" | "performance" | "popularity";
+
+function getGirlStat(girl: Girl, stat: TrainableStat): number {
+  return girl[stat];
+}
+
 const STAFF_SLOT_CAP = (locationLevel: number) => {
   if (locationLevel >= 4) return 4;
   if (locationLevel >= 3) return 3;
@@ -729,7 +737,9 @@ export function useGame() {
             : parsed;
         setState(evaluateFirstHitMilestone(normalizeGameState(incoming), "load"));
       }
-    } catch {}
+    } catch {
+      // ignore persistence read errors
+    }
     setLoaded(true);
   }, []);
   useEffect(() => {
@@ -1907,7 +1917,7 @@ export function useGame() {
               g.id === target.id
                 ? {
                     ...g,
-                    [proc.stat]: Math.min(99, (g as any)[proc.stat] + inc),
+                    [proc.stat]: Math.min(99, getGirlStat(g, proc.stat) + inc),
                     busyUntil: absHour(next) + proc.restDays * 24,
                   }
                 : g,
@@ -1940,7 +1950,7 @@ export function useGame() {
           ...s,
           cash: s.cash - 200,
           girls: s.girls.map((x) =>
-            x.id === id ? { ...x, [stat]: Math.min(99, (x as any)[stat] + inc) } : x,
+            x.id === id ? { ...x, [stat]: Math.min(99, getGirlStat(x, stat) + inc) } : x,
           ),
         },
         `🏋️ ${g.name} trente ${stat}. +${inc}.`,
@@ -2391,7 +2401,7 @@ export function useGame() {
         roleQ +
         roleAssignmentMod;
 
-      let next = {
+      const next = {
         ...s,
         cash: s.cash - nextCost,
         stamina: Math.max(0, s.stamina - nextStage.staminaCost),
