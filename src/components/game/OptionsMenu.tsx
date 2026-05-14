@@ -13,7 +13,7 @@ interface Props {
   onReset: () => void;
 }
 
-type Tab = "saves" | "data" | "settings" | "about";
+type Tab = "saves" | "sync" | "data" | "settings" | "about";
 
 export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImport, onReset }: Props) {
   const [tab, setTab] = useState<Tab>("saves");
