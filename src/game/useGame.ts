@@ -31,7 +31,7 @@ import {
   formatDowntownRemainingRequirements,
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
-import { generateRecruitPresentation } from "./recruitPresentation";
+import { generateRecruitPresentation, getPhaseByLocationLevel, pickArchetypeForPhase } from "./recruitPresentation";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -584,22 +584,26 @@ export function isOpen(locId: LocationId, hour: number) {
 }
 
 function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl {
-  const tier = Math.max(1, Math.min(5, locLevel + qualityMod));
-  const pool: Archetype[] =
-    locLevel >= 4 ? [...ARCHETYPES] : ARCHETYPES.filter((a) => a !== "Exotic Import");
-  const archetype = rand(pool);
-  const base = 25 + tier * 8 + playerCharisma * 2;
+  const phase = getPhaseByLocationLevel(locLevel);
+  const archetype = pickArchetypeForPhase(locLevel);
+  const tuned = locLevel + qualityMod;
+  const range = phase === "trailer"
+    ? { beauty: [25, 60], perf: [20, 65], pop: [5, 35], loyalty: [40, 80], salary: [40, 140] }
+    : phase === "downtown"
+      ? { beauty: [45, 85], perf: [40, 85], pop: [25, 70], loyalty: [30, 70], salary: [150, 600] }
+      : { beauty: [65, 99], perf: [60, 99], pop: [60, 99], loyalty: [20, 60], salary: [700, 2500] };
+  const nudge = Math.max(-8, Math.min(10, tuned * 2 + playerCharisma - 4));
   const baseGirl: Girl = {
     id: Math.random().toString(36).slice(2, 10),
     name: `${rand(FIRST_NAMES)} ${rand(LAST_NAMES)}`,
     archetype,
-    beauty: Math.min(99, base + ri(-10, 20)),
-    performance: Math.min(99, base - 5 + ri(-10, 20)),
-    popularity: Math.min(99, 15 + tier * 6 + ri(0, 15)),
-    loyalty: 45 + ri(0, 25),
-    salary: 60 + tier * 35 + ri(0, 40),
+    beauty: Math.max(1, Math.min(99, ri(range.beauty[0], range.beauty[1]) + ri(-6, 6) + Math.floor(nudge / 2))),
+    performance: Math.max(1, Math.min(99, ri(range.perf[0], range.perf[1]) + ri(-6, 6) + Math.floor(nudge / 2))),
+    popularity: Math.max(1, Math.min(99, ri(range.pop[0], range.pop[1]) + ri(-4, 4) + Math.floor(nudge / 3))),
+    loyalty: Math.max(1, Math.min(99, ri(range.loyalty[0], range.loyalty[1]))),
+    salary: Math.max(25, ri(range.salary[0], range.salary[1])),
   };
-  const presentation = generateRecruitPresentation(baseGirl, locLevel, playerCharisma);
+  const presentation = generateRecruitPresentation(baseGirl, locLevel);
   return { ...baseGirl, ...presentation };
 }
 
@@ -2096,20 +2100,24 @@ export function useGame() {
             hue: flopped ? 12 : (p.tierId.length * 67) % 360,
           };
           const withScene = { ...g, gallery: [...(g.gallery ?? []), scene].slice(-40) };
-          return flopped
-            ? {
-                ...withScene,
-                loyalty: Math.max(0, g.loyalty - 4),
-                lastActivity: `Spilte i flopp "${p.title}"`,
-                lastActivityDay: s.day,
-              }
-            : {
-                ...withScene,
-                popularity: Math.min(99, g.popularity + 5),
-                loyalty: Math.min(99, g.loyalty + 2),
-                lastActivity: `Slapp "${p.title}" 🎬`,
-                lastActivityDay: s.day,
-              };
+          if (flopped) {
+            const flopLoyaltyLoss = g.hiddenPotential === "loyal_workhorse" ? 2 : 4;
+            return {
+              ...withScene,
+              loyalty: Math.max(0, g.loyalty - flopLoyaltyLoss),
+              lastActivity: `Spilte i flopp "${p.title}"`,
+              lastActivityDay: s.day,
+            };
+          }
+          const popGain = g.hiddenPotential === "late_bloomer" ? 7 : 5;
+          const loyaltyGain = g.hiddenPotential === "loyal_workhorse" ? 3 : 2;
+          return {
+            ...withScene,
+            popularity: Math.min(99, g.popularity + popGain),
+            loyalty: Math.min(99, g.loyalty + loyaltyGain),
+            lastActivity: `Slapp "${p.title}" 🎬`,
+            lastActivityDay: s.day,
+          };
         });
         const nextReputation = Math.max(0, s.reputation + repGain);
         const releasedState = {

@@ -4,6 +4,13 @@ import { getRecruitRarityLabel, getRecruitStars } from "@/game/recruitPresentati
 
 const FALLBACK_PREFERENCES = ["Solo", "Glamour"];
 const FALLBACK_TAGLINE = "A new face with expensive potential.";
+const POTENTIAL_LABELS: Record<string, string> = {
+  late_bloomer: "Late Bloomer",
+  camera_loves_her: "Camera Loves Her",
+  loyal_workhorse: "Loyal Workhorse",
+  niche_magnet: "Niche Magnet",
+  cheap_star: "Cheap Star",
+};
 
 export function RecruitRevealModal({ girl, onClose }: { girl: Girl; onClose: () => void }) {
   useEffect(() => {
@@ -33,6 +40,7 @@ export function RecruitRevealModal({ girl, onClose }: { girl: Girl; onClose: () 
             <p><span className="text-indigo-300">Profession:</span> {profession}</p>
             <p><span className="text-indigo-300">Prefers:</span> {preferences.join(" • ")}</p>
             <p><span className="text-indigo-300">Salary:</span> ${girl.salary}/week</p>
+            {girl.hiddenPotential ? <p><span className="text-indigo-300">Potential:</span> {POTENTIAL_LABELS[girl.hiddenPotential] ?? "Hidden Potential"}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2">{preferences.map((tag) => <span key={tag} className="rounded-full bg-pink-500/20 px-2.5 py-1 text-xs text-pink-100">{tag}</span>)}</div>
           <p className="italic text-indigo-100/80">“{tagline}”</p>

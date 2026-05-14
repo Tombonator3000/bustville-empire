@@ -51,6 +51,24 @@ export const ARCHETYPE_PORTRAITS: Record<string, string> = {
   "Girl Next Door": girlNextDoor,
   "MILF Next Door": girlMilf,
   "Exotic Import": girlExotic,
+  "Trailer Park Veteran": girlMilf,
+  "Local Webcam Hopeful": girlAmateur,
+  "Bar Stage Regular": girlParty,
+  "Garage Glamour Girl": girlNextDoor,
+  "Small-Town Flirt": girlNextDoor,
+  "VHS Amateur": girlAmateur,
+  "Divorced Bombshell": girlMilf,
+  "Rough-Cut Performer": girlParty,
+  "Backyard Pin-Up": girlNextDoor,
+  "Late-Night Caller": girlIceQueen,
+  "Glamour Model": girlIceQueen,
+  "Studio Starlet": girlIceQueen,
+  "Premium Performer": girlExotic,
+  "Fetish Specialist": girlExotic,
+  "Club Velvet Headliner": girlParty,
+  "International Import": girlExotic,
+  "Influencer Bombshell": girlIceQueen,
+  "Award-Night Diva": girlExotic,
 };
 
 export interface GirlMission {
@@ -96,11 +114,29 @@ export const LOCATIONS: Location[] = [
 ];
 
 export const ARCHETYPES = [
+  "Trailer Park Veteran",
+  "Local Webcam Hopeful",
+  "Bar Stage Regular",
+  "Garage Glamour Girl",
+  "Small-Town Flirt",
+  "VHS Amateur",
+  "Divorced Bombshell",
+  "Rough-Cut Performer",
+  "Backyard Pin-Up",
+  "Late-Night Caller",
   "Amateur Sweetheart",
   "Wild Party Girl",
   "Ice Queen Pornstar",
   "Girl Next Door",
   "MILF Next Door",
+  "Glamour Model",
+  "Studio Starlet",
+  "Premium Performer",
+  "Fetish Specialist",
+  "Club Velvet Headliner",
+  "International Import",
+  "Influencer Bombshell",
+  "Award-Night Diva",
   "Exotic Import",
 ] as const;
 export type Archetype = (typeof ARCHETYPES)[number];
@@ -147,6 +183,7 @@ export interface Girl {
   starRating?: 1 | 2 | 3 | 4 | 5;
   tagline?: string;
   recruitRarityLabel?: string;
+  hiddenPotential?: "late_bloomer" | "camera_loves_her" | "loyal_workhorse" | "niche_magnet" | "cheap_star";
   mission?: GirlMission;
   lastActivity?: string;     // shown inline under the portrait
   lastActivityDay?: number;
