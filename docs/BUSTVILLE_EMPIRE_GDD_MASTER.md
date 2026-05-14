@@ -92,6 +92,63 @@ These are **mandatory content constraints** for all current and future assets/co
 - Use stylized, non-explicit assets and suggestive-but-safe framing.
 - Keep writing in line with current “Lula-style satire” brand voice while remaining platform-safe.
 
+
+
+### 4.1 Adult Risqué Naming Policy
+
+Bustville Empire may use adult-industry genre labels, risqué film titles, camshow categories, production tags, and business-facing adult terminology.
+
+Allowed examples:
+- Solo
+- Solo Masturbation
+- Solo Play
+- Anal
+- Fetish
+- F/F
+- M/F
+- Group
+- Group Feature
+- Hardcore
+- Softcore
+- Premium
+- Glamour
+- Boudoir
+- Couples
+- Studio Special
+- Late-Night Special
+- XXX Feature
+- Kink
+- Roleplay
+- Dominant
+- Submission
+- MILF
+- Amateur
+- Star Showcase
+
+These terms may be used as:
+- Genre tags
+- Production categories
+- Unlockable production types
+- Fictional movie labels
+- Camshow labels
+- Marketing/fan segments
+- Distribution preferences
+
+Descriptions must stay business-focused and non-graphic.
+Example: “Anal Feature: higher payout, higher heat, requires better trust and studio quality.”
+
+### 4.2 Consent and Prohibited Content Boundaries
+
+All adult content is consenting adults only.
+
+Never include:
+- Minors or underage-coded terms
+- Coercion
+- Intoxication-based consent
+- Abuse or assault
+- Trafficking
+- Incest-coded content
+
 ---
 
 ## 5) Known Non-MVP Features (Do Not Block Current Loop Polish)
