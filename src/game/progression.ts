@@ -291,7 +291,7 @@ export function deriveProgressionSnapshot(state: GameState): ProgressionSnapshot
     studioLevel: state.studioLevel,
     distilleryLevel: state.distilleryLevel,
     totalGirls: state.girls.length,
-    releasedProductions: state.productions.filter((p) => p.stageIdx >= p.stages.length).length,
+    releasedProductions: state.productions.filter((p) => p.stageIdx >= STAGE_ORDER.length).length,
   });
 
   const blockedReasons: ProgressBlockedReason[] = [];
