@@ -42,9 +42,7 @@ export function SyncStatusBox() {
 
   return (
     <div className="space-y-3 text-sm">
-      <p className="font-display text-[10px] uppercase tracking-widest text-accent">
-        Synk-status
-      </p>
+      <p className="font-display text-[10px] uppercase tracking-widest text-accent">Synk-status</p>
 
       <Row
         label="GitHub"
@@ -56,7 +54,15 @@ export function SyncStatusBox() {
       <Row
         label="Denne fanen"
         status="ok"
-        value={isLocal ? "Lokalt dev-miljø" : isPreview ? "Preview-build" : isPublished ? "Live-build" : host || "Ukjent"}
+        value={
+          isLocal
+            ? "Lokalt dev-miljø"
+            : isPreview
+              ? "Preview-build"
+              : isPublished
+                ? "Live-build"
+                : host || "Ukjent"
+        }
         hint={`Host: ${host || "—"}`}
       />
 
@@ -78,8 +84,7 @@ export function SyncStatusBox() {
               : "Ingen respons"
         }
         hint={
-          (liveCheckedAt ? `Sjekket ${liveCheckedAt.toLocaleTimeString()} · ` : "") +
-          PUBLISHED_URL
+          (liveCheckedAt ? `Sjekket ${liveCheckedAt.toLocaleTimeString()} · ` : "") + PUBLISHED_URL
         }
       />
 
@@ -106,7 +111,10 @@ export function SyncStatusBox() {
           <li>Koble prosjektet til GitHub (Plus → GitHub).</li>
           <li>Push endringer fra Codex til samme branch.</li>
           <li>Lovable plukker opp commit-en og bygger preview automatisk.</li>
-          <li>Klikk <span className="font-bold text-primary">Publish → Update</span> for å oppdatere live-siden.</li>
+          <li>
+            Klikk <span className="font-bold text-primary">Publish → Update</span> for å oppdatere
+            live-siden.
+          </li>
         </ol>
       </div>
     </div>
@@ -136,7 +144,9 @@ function Row({
       <div className="min-w-0 flex-1">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
         <p className="truncate text-sm font-bold">{value}</p>
-        {hint && <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{hint}</p>}
+        {hint && (
+          <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{hint}</p>
+        )}
       </div>
     </div>
   );

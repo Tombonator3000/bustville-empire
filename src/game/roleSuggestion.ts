@@ -18,7 +18,10 @@ export function suggestRole(girl: Girl): RoleSuggestion {
   };
 
   const rank: CastRole[] = ["casting", "shooting", "editing", "release"];
-  const role = rank.reduce((best, candidate) => (scores[candidate] > scores[best] ? candidate : best), rank[0]);
+  const role = rank.reduce(
+    (best, candidate) => (scores[candidate] > scores[best] ? candidate : best),
+    rank[0],
+  );
 
   const reasonByRole: Record<CastRole, string> = {
     casting: `Suggested because Bea ${girl.beauty}, Pop ${girl.popularity}`,

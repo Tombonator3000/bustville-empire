@@ -40,7 +40,7 @@ export function formatDowntownRemainingRequirements(state: GameState): string {
   if (!needs.length) return "Downtown unlock requirements met.";
   if (needs.length === 1) return `Need ${needs[0]}.`;
   if (needs.length === 2) return `Need ${needs[0]} and ${needs[1]}.`;
-  return `Need ${needs.slice(0,-1).join(', ')}, and ${needs[needs.length-1]}.`;
+  return `Need ${needs.slice(0, -1).join(", ")}, and ${needs[needs.length - 1]}.`;
 }
 
 export interface CompanyRankMeta {
@@ -214,7 +214,12 @@ const MAJOR_UNLOCKS: ProgressUnlockDef[] = [
   {
     id: "downtown",
     label: "Downtown district",
-    requirements: { cash: DOWNTOWN_UNLOCK_GATE.cash, reputation: DOWNTOWN_UNLOCK_GATE.reputation, heatMax: DOWNTOWN_UNLOCK_GATE.maxHeat, firstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit },
+    requirements: {
+      cash: DOWNTOWN_UNLOCK_GATE.cash,
+      reputation: DOWNTOWN_UNLOCK_GATE.reputation,
+      heatMax: DOWNTOWN_UNLOCK_GATE.maxHeat,
+      firstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit,
+    },
     suggestion: "Push location upgrades in Park to unlock district travel.",
   },
   {

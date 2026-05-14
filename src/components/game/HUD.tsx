@@ -117,7 +117,11 @@ export function HUD({
           label={`Roster ${state.girls.length}`}
           primary
         />
-        <NavBtn onClick={onOpenStaff} icon={<Users className="h-3.5 w-3.5" />} label={`Staff ${state.staff.length}`} />
+        <NavBtn
+          onClick={onOpenStaff}
+          icon={<Users className="h-3.5 w-3.5" />}
+          label={`Staff ${state.staff.length}`}
+        />
         <NavBtn
           onClick={onOpenInventory}
           icon={<Backpack className="h-3.5 w-3.5" />}

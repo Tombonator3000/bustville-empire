@@ -42,13 +42,17 @@ export function roleScoreForProduction(
   return { count: assigned.length, score };
 }
 
-export function deriveProductionReleaseForecast(production: Production, ctx: ProductionForecastContext) {
+export function deriveProductionReleaseForecast(
+  production: Production,
+  ctx: ProductionForecastContext,
+) {
   const tier = getTier(production.tierId)!;
   const castStats = production.girlIds
     .map((gid) => ctx.girls.find((x) => x.id === gid))
     .filter(Boolean) as Girl[];
   const castAvg = castStats.length
-    ? castStats.reduce((a, g) => a + (g.beauty + g.performance + g.popularity) / 3, 0) / castStats.length
+    ? castStats.reduce((a, g) => a + (g.beauty + g.performance + g.popularity) / 3, 0) /
+      castStats.length
     : 0;
 
   const qualityMult = (production.quality + castAvg) / 100;
