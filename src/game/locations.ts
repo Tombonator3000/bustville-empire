@@ -166,7 +166,8 @@ export const LOCATION_DEFS: Record<LocationId, LocationDef> = {
     name: "Skogen",
     district: "park",
     image: forestImg,
-    description: "Bakveier, kratt og skjulesteder. Perfekt for å kjøle ned varme spor.",
+    description:
+      "Bakveier, kratt og skjulesteder. Perfekt for å lay low, gjemme stash og lete utstyr.",
     openHours: [0, 24],
   },
   loft: {
@@ -294,14 +295,14 @@ export const LOCATION_ACTIONS: Record<LocationId, Action[]> = {
       label: "Casting Board",
       emoji: "📋",
       hours: 0,
-      desc: "Main recruitment hub. Review and hire leads from local flyers and rumors.",
+      desc: "In-world casting board. Review leads from flyers/rumors and hire or pass.",
     },
     {
       id: "helpWanted",
       label: "Help Wanted Board",
       emoji: "🧰",
       hours: 0,
-      desc: "Main staff hiring hub for cheap local crew and specialists.",
+      desc: "Hire cheap local crew from trailer office board.",
     },
     { id: "upgrade", label: "Oppgrader bolig", emoji: "🏚️➡️🏠", hours: 0 },
   ],
