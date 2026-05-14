@@ -31,7 +31,11 @@ import {
   formatDowntownRemainingRequirements,
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
-import { generateRecruitPresentation, getPhaseByLocationLevel, pickArchetypeForPhase } from "./recruitPresentation";
+import {
+  generateRecruitPresentation,
+  getPhaseByLocationLevel,
+  pickArchetypeForPhase,
+} from "./recruitPresentation";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
@@ -139,7 +143,6 @@ export interface StaffMember {
   trait: string;
 }
 
-
 export interface WeeklyRivalSummary {
   week: number;
   playerMarketSharePct: number;
@@ -183,6 +186,7 @@ export interface GameState {
   backlog: number;
   player: PlayerStats;
   girls: Girl[];
+  castingLeads: Girl[];
   lastRecruitId?: string;
   staff: StaffMember[];
   log: string[];
@@ -270,7 +274,10 @@ export function getStudioMods(s: GameState) {
   const shootHoursMult = lowEqPenalties.shootHoursMult;
   const editHoursMult = lowEqPenalties.editHoursMult;
   // Quality cap: 70 base + 6/studio level + 2/eq level, with low-equipment penalty.
-  const qualityCap = Math.max(45, Math.min(100, 70 + studioBoost * 6 + eqSum * 2 - lowEqPenalties.qualityCapPenalty));
+  const qualityCap = Math.max(
+    45,
+    Math.min(100, 70 + studioBoost * 6 + eqSum * 2 - lowEqPenalties.qualityCapPenalty),
+  );
   // Parallel capacity: 1 base + studio level + 1 per 2 equipment levels.
   const capacity = 1 + studioBoost + Math.floor(eqSum / 2);
   return { costMult, hoursMult, qualityCap, capacity, eqSum, shootHoursMult, editHoursMult };
@@ -287,11 +294,8 @@ function stageHoursWithStaff(
   mods: { hoursMult: number; shootHoursMult: number; editHoursMult: number },
   s: GameState,
 ) {
-  const roleMult = stage.id === "shooting"
-    ? mods.shootHoursMult
-    : stage.id === "editing"
-      ? mods.editHoursMult
-      : 1;
+  const roleMult =
+    stage.id === "shooting" ? mods.shootHoursMult : stage.id === "editing" ? mods.editHoursMult : 1;
   const base = Math.max(1, Math.round(stageHours(stage, mods) * roleMult));
   if (stage.id !== "editing") return base;
   return Math.max(1, Math.round(base * staffMods(s).editingHoursMult));
@@ -316,6 +320,7 @@ const INITIAL: GameState = {
   backlog: 0,
   player: { charisma: 3, hustle: 3, business: 1, lust: 4 },
   girls: [],
+  castingLeads: [],
   staff: [],
   log: [
     "Velkommen til Bustville, Alabama. Lukten av rust og muligheter.",
@@ -351,18 +356,58 @@ const INITIAL: GameState = {
   milestones: { firstHit: false },
   milestoneEvent: null,
   distributionDeals: [
-    { id: "deal-stream-1", label: "NeonFlix Midnight", dealType: "streaming", durationWeeks: 6, royaltyPct: 8, genrePreference: "glamour", minQuality: 45, minReputation: 12, advancePayment: 350 },
-    { id: "deal-dvd-1", label: "Red State DVD Club", dealType: "dvd", durationWeeks: 10, royaltyPct: 6, genrePreference: "wild", minQuality: 35, minReputation: 8 },
-    { id: "deal-cable-1", label: "AfterDark Cable", dealType: "cable", durationWeeks: 8, royaltyPct: 7, minQuality: 50, minReputation: 15, advancePayment: 500 },
+    {
+      id: "deal-stream-1",
+      label: "NeonFlix Midnight",
+      dealType: "streaming",
+      durationWeeks: 6,
+      royaltyPct: 8,
+      genrePreference: "glamour",
+      minQuality: 45,
+      minReputation: 12,
+      advancePayment: 350,
+    },
+    {
+      id: "deal-dvd-1",
+      label: "Red State DVD Club",
+      dealType: "dvd",
+      durationWeeks: 10,
+      royaltyPct: 6,
+      genrePreference: "wild",
+      minQuality: 35,
+      minReputation: 8,
+    },
+    {
+      id: "deal-cable-1",
+      label: "AfterDark Cable",
+      dealType: "cable",
+      durationWeeks: 8,
+      royaltyPct: 7,
+      minQuality: 50,
+      minReputation: 15,
+      advancePayment: 500,
+    },
   ],
   distributionSummary: [],
   weeklyRoyaltyBreakdown: { week: 0, baseCatalogPayout: 0, dealPayoutTotal: 0, byTitle: [] },
 };
 const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
-  editor: { names: ["Marty Cut", "Joan Razor", "Vince Splice"], traits: ["Night Owl", "Precision", "Fast Hands"] },
-  scout: { names: ["Rita Radar", "Duke Finder", "Nina Nose"], traits: ["Street Ear", "Charm Magnet", "Lucky Hunch"] },
-  marketer: { names: ["Penny Hype", "Lex Promo", "Cindy Clicks"], traits: ["Copy Wizard", "Trend Sniffer", "Billboard Brain"] },
-  fixer: { names: ["Buck Quiet", "Mara Cool", "Iggy Ice"], traits: ["Discreet", "Backchannel", "Crisis Calm"] },
+  editor: {
+    names: ["Marty Cut", "Joan Razor", "Vince Splice"],
+    traits: ["Night Owl", "Precision", "Fast Hands"],
+  },
+  scout: {
+    names: ["Rita Radar", "Duke Finder", "Nina Nose"],
+    traits: ["Street Ear", "Charm Magnet", "Lucky Hunch"],
+  },
+  marketer: {
+    names: ["Penny Hype", "Lex Promo", "Cindy Clicks"],
+    traits: ["Copy Wizard", "Trend Sniffer", "Billboard Brain"],
+  },
+  fixer: {
+    names: ["Buck Quiet", "Mara Cool", "Iggy Ice"],
+    traits: ["Discreet", "Backchannel", "Crisis Calm"],
+  },
 };
 function staffMods(s: GameState) {
   const byRole = (r: StaffRole) => s.staff.filter((m) => m.role === r);
@@ -374,7 +419,6 @@ function staffMods(s: GameState) {
     heatMitigation: Math.min(8, Math.floor(rolePower("fixer") / 5)),
   };
 }
-
 
 export interface DowntownUnlockRequirements {
   cash: number;
@@ -389,7 +433,6 @@ export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
   maxHeat: DOWNTOWN_UNLOCK_GATE.maxHeat,
   requiresFirstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit,
 };
-
 
 const FIRST_HIT_REQUIREMENTS = {
   minQuality: 58,
@@ -462,7 +505,12 @@ function migrateByVersion(rawState: SaveLike, version: unknown): SaveLike {
 function normalizeGameState(raw: unknown): GameState {
   const base = raw && typeof raw === "object" ? (raw as SaveLike) : {};
   const migrated = migrateByVersion(base, base.storageVersion);
-  const { rank: _rank, storageVersion: _storageVersion, departments: _departments, ...rest } = migrated;
+  const {
+    rank: _rank,
+    storageVersion: _storageVersion,
+    departments: _departments,
+    ...rest
+  } = migrated;
   return {
     ...INITIAL,
     ...rest,
@@ -471,10 +519,13 @@ function normalizeGameState(raw: unknown): GameState {
         ? { ...INITIAL.milestones, ...rest.milestones }
         : { ...INITIAL.milestones },
     staff: Array.isArray(rest.staff) ? rest.staff : [],
+    castingLeads: Array.isArray(rest.castingLeads) ? rest.castingLeads : [],
     distributionDeals: Array.isArray(rest.distributionDeals)
       ? rest.distributionDeals
       : [...INITIAL.distributionDeals],
-    distributionSummary: Array.isArray(rest.distributionSummary) ? rest.distributionSummary : INITIAL.distributionSummary,
+    distributionSummary: Array.isArray(rest.distributionSummary)
+      ? rest.distributionSummary
+      : INITIAL.distributionSummary,
     weeklyRoyaltyBreakdown: rest.weeklyRoyaltyBreakdown ?? INITIAL.weeklyRoyaltyBreakdown,
     rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
     weeklyRivalSummary: rest.weeklyRivalSummary ?? INITIAL.weeklyRivalSummary,
@@ -524,7 +575,8 @@ function evaluateFirstHitMilestone(s: GameState, reason: "release" | "weekly" | 
       description: `+$${FIRST_HIT_REWARDS.cash.toLocaleString()} cash · +${FIRST_HIT_REWARDS.reputation} rep`,
     });
   }
-  const reasonText = reason === "release" ? "release" : reason === "weekly" ? "week tick" : "load check";
+  const reasonText =
+    reason === "release" ? "release" : reason === "weekly" ? "week tick" : "load check";
   return {
     ...next,
     log: [
@@ -533,7 +585,6 @@ function evaluateFirstHitMilestone(s: GameState, reason: "release" | "weekly" | 
     ].slice(0, 60),
   };
 }
-
 
 export interface SaveSlotMeta {
   slot: number;
@@ -587,19 +638,35 @@ function genGirl(playerCharisma: number, locLevel: number, qualityMod = 0): Girl
   const phase = getPhaseByLocationLevel(locLevel);
   const archetype = pickArchetypeForPhase(locLevel);
   const tuned = locLevel + qualityMod;
-  const range = phase === "trailer"
-    ? { beauty: [25, 60], perf: [20, 65], pop: [5, 35], loyalty: [40, 80], salary: [40, 140] }
-    : phase === "downtown"
-      ? { beauty: [45, 85], perf: [40, 85], pop: [25, 70], loyalty: [30, 70], salary: [150, 600] }
-      : { beauty: [65, 99], perf: [60, 99], pop: [60, 99], loyalty: [20, 60], salary: [700, 2500] };
+  const range =
+    phase === "trailer"
+      ? { beauty: [25, 60], perf: [20, 65], pop: [5, 35], loyalty: [40, 80], salary: [40, 140] }
+      : phase === "downtown"
+        ? { beauty: [45, 85], perf: [40, 85], pop: [25, 70], loyalty: [30, 70], salary: [150, 600] }
+        : {
+            beauty: [65, 99],
+            perf: [60, 99],
+            pop: [60, 99],
+            loyalty: [20, 60],
+            salary: [700, 2500],
+          };
   const nudge = Math.max(-8, Math.min(10, tuned * 2 + playerCharisma - 4));
   const baseGirl: Girl = {
     id: Math.random().toString(36).slice(2, 10),
     name: `${rand(FIRST_NAMES)} ${rand(LAST_NAMES)}`,
     archetype,
-    beauty: Math.max(1, Math.min(99, ri(range.beauty[0], range.beauty[1]) + ri(-6, 6) + Math.floor(nudge / 2))),
-    performance: Math.max(1, Math.min(99, ri(range.perf[0], range.perf[1]) + ri(-6, 6) + Math.floor(nudge / 2))),
-    popularity: Math.max(1, Math.min(99, ri(range.pop[0], range.pop[1]) + ri(-4, 4) + Math.floor(nudge / 3))),
+    beauty: Math.max(
+      1,
+      Math.min(99, ri(range.beauty[0], range.beauty[1]) + ri(-6, 6) + Math.floor(nudge / 2)),
+    ),
+    performance: Math.max(
+      1,
+      Math.min(99, ri(range.perf[0], range.perf[1]) + ri(-6, 6) + Math.floor(nudge / 2)),
+    ),
+    popularity: Math.max(
+      1,
+      Math.min(99, ri(range.pop[0], range.pop[1]) + ri(-4, 4) + Math.floor(nudge / 3)),
+    ),
     loyalty: Math.max(1, Math.min(99, ri(range.loyalty[0], range.loyalty[1]))),
     salary: Math.max(25, ri(range.salary[0], range.salary[1])),
   };
@@ -640,6 +707,13 @@ function withContract(g: Girl, day: number, lengthWeeks: 4 | 8 | 12 = 8): Girl {
   return { ...g, contract: genContract(g, day, lengthWeeks) };
 }
 
+const STAFF_SLOT_CAP = (locationLevel: number) => {
+  if (locationLevel >= 4) return 4;
+  if (locationLevel >= 3) return 3;
+  if (locationLevel >= 2) return 2;
+  return 1;
+};
+
 export function useGame() {
   const [state, setState] = useState<GameState>(INITIAL);
   const [loaded, setLoaded] = useState(false);
@@ -649,9 +723,10 @@ export function useGame() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = safeParseJson(raw);
-        const incoming = parsed && typeof parsed === "object" && "state" in parsed
-          ? (parsed as { state?: unknown }).state
-          : parsed;
+        const incoming =
+          parsed && typeof parsed === "object" && "state" in parsed
+            ? (parsed as { state?: unknown }).state
+            : parsed;
         setState(evaluateFirstHitMilestone(normalizeGameState(incoming), "load"));
       }
     } catch {}
@@ -701,7 +776,14 @@ export function useGame() {
         day: state.day,
         cash: state.cash,
       };
-      localStorage.setItem(`${STORAGE_KEY}:slot:${slot}`, JSON.stringify({ ...meta, state: serializeStateForStorage(state).state, storageVersion: CURRENT_STORAGE_VERSION }));
+      localStorage.setItem(
+        `${STORAGE_KEY}:slot:${slot}`,
+        JSON.stringify({
+          ...meta,
+          state: serializeStateForStorage(state).state,
+          storageVersion: CURRENT_STORAGE_VERSION,
+        }),
+      );
     },
     [state],
   );
@@ -724,7 +806,10 @@ export function useGame() {
     localStorage.removeItem(`${STORAGE_KEY}:slot:${slot}`);
   }, []);
 
-  const exportSave = useCallback(() => JSON.stringify(serializeStateForStorage(state), null, 2), [state]);
+  const exportSave = useCallback(
+    () => JSON.stringify(serializeStateForStorage(state), null, 2),
+    [state],
+  );
 
   const importSave = useCallback((json: string) => {
     try {
@@ -738,7 +823,9 @@ export function useGame() {
     }
   }, []);
   const isDealEligibleForProduction = (deal: DistributionDeal, p: Production, s: GameState) =>
-    (p.genreId ? !deal.genrePreference || deal.genrePreference === p.genreId : !deal.genrePreference) &&
+    (p.genreId
+      ? !deal.genrePreference || deal.genrePreference === p.genreId
+      : !deal.genrePreference) &&
     Math.round(Math.max(0, Math.min(getStudioMods(s).qualityCap, p.quality))) >= deal.minQuality &&
     s.reputation >= deal.minReputation;
 
@@ -840,15 +927,25 @@ export function useGame() {
     return evaluateFirstHitMilestone(next, "weekly");
   }
 
-
   function buildDistributionSummary(state: GameState): DistributionDealSummary[] {
     return state.distributionDeals.map((deal) => {
-      const isActive = Boolean(deal.activeFromDay && deal.expiresDay && state.day <= deal.expiresDay);
-      const weeksRemaining = isActive && deal.expiresDay
-        ? Math.max(0, Math.ceil((deal.expiresDay - state.day + 1) / 7))
-        : 0;
+      const isActive = Boolean(
+        deal.activeFromDay && deal.expiresDay && state.day <= deal.expiresDay,
+      );
+      const weeksRemaining =
+        isActive && deal.expiresDay
+          ? Math.max(0, Math.ceil((deal.expiresDay - state.day + 1) / 7))
+          : 0;
       const terms = `Min Q${deal.minQuality} · Min Rep ${deal.minReputation}${deal.genrePreference ? ` · Pref ${deal.genrePreference}` : ""}`;
-      return { id: deal.id, label: deal.label, dealType: deal.dealType, royaltyPct: deal.royaltyPct, terms, weeksRemaining, isActive };
+      return {
+        id: deal.id,
+        label: deal.label,
+        dealType: deal.dealType,
+        royaltyPct: deal.royaltyPct,
+        terms,
+        weeksRemaining,
+        isActive,
+      };
     });
   }
 
@@ -869,8 +966,15 @@ export function useGame() {
       const payout = Math.floor(p.releasedGross * (deal.royaltyPct / 100));
       if (payout <= 0) continue;
       dealRoyaltyTotal += payout;
-      royaltyLines.push(`💿 Deal royalty: "${p.title}" via ${deal.label} +$${payout} (${deal.royaltyPct}%).`);
-      royaltyByTitle.push({ title: p.title, dealLabel: deal.label, royaltyPct: deal.royaltyPct, payout });
+      royaltyLines.push(
+        `💿 Deal royalty: "${p.title}" via ${deal.label} +$${payout} (${deal.royaltyPct}%).`,
+      );
+      royaltyByTitle.push({
+        title: p.title,
+        dealLabel: deal.label,
+        royaltyPct: deal.royaltyPct,
+        payout,
+      });
     }
     next.weeklyRoyaltyBreakdown = {
       week: Math.max(1, Math.floor((next.day - 1) / 7) + 1),
@@ -911,17 +1015,32 @@ export function useGame() {
     let newRivals = [...rawRivals];
     const counterLines: string[] = [];
     if (next.campaignBonus >= 20 || next.reputation >= 55) {
-      newRivals = newRivals.map((r) => ({ ...r, share: Math.max(5, r.share - 0.8), momentum: Math.max(-100, r.momentum - 8), lastDelta: r.lastDelta - 0.8 }));
+      newRivals = newRivals.map((r) => ({
+        ...r,
+        share: Math.max(5, r.share - 0.8),
+        momentum: Math.max(-100, r.momentum - 8),
+        lastDelta: r.lastDelta - 0.8,
+      }));
       counterLines.push("📢 PR push: du vant narrativet i lokalpressen (-share rivaler).");
     }
     const retained = next.girls.filter((g) => g.contract && g.loyalty >= 60).length;
     if (retained >= 2) {
-      newRivals = newRivals.map((r) => ({ ...r, notoriety: Math.max(0, r.notoriety - 2), momentum: Math.max(-100, r.momentum - 5) }));
+      newRivals = newRivals.map((r) => ({
+        ...r,
+        notoriety: Math.max(0, r.notoriety - 2),
+        momentum: Math.max(-100, r.momentum - 5),
+      }));
       counterLines.push("🤝 Talent retention: rivalenes signeringsraid bremset.");
     }
-    const activeDeals = next.distributionDeals.filter((d) => d.activeFromDay && d.expiresDay && next.day <= d.expiresDay).length;
+    const activeDeals = next.distributionDeals.filter(
+      (d) => d.activeFromDay && d.expiresDay && next.day <= d.expiresDay,
+    ).length;
     if (activeDeals > 0 || next.distribBonus > 0) {
-      newRivals = newRivals.map((r) => ({ ...r, share: Math.max(5, r.share - 0.5), lastDelta: r.lastDelta - 0.5 }));
+      newRivals = newRivals.map((r) => ({
+        ...r,
+        share: Math.max(5, r.share - 0.5),
+        lastDelta: r.lastDelta - 0.5,
+      }));
       counterLines.push("💿 Undercut response: distribusjonsnettet ditt spiser marginene deres.");
     }
     next.rivals = newRivals;
@@ -942,8 +1061,17 @@ export function useGame() {
     next.rivalDigest = digest.slice(0, 4);
     next.weeklyRivalSummary = {
       week: Math.max(1, Math.floor((next.day - 1) / 7) + 1),
-      playerMarketSharePct: Math.round(Math.max(0, 100 - newRivals.reduce((sum, r) => sum + r.share, 0))),
-      rivals: newRivals.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, sharePct: Math.round(r.share), deltaPct: Number(r.lastDelta.toFixed(1)), weeklyAction: r.weeklyMove })),
+      playerMarketSharePct: Math.round(
+        Math.max(0, 100 - newRivals.reduce((sum, r) => sum + r.share, 0)),
+      ),
+      rivals: newRivals.map((r) => ({
+        id: r.id,
+        name: r.name,
+        emoji: r.emoji,
+        sharePct: Math.round(r.share),
+        deltaPct: Number(r.lastDelta.toFixed(1)),
+        weeklyAction: r.weeklyMove,
+      })),
       effects: counterLines,
     };
     next.distributionSummary = buildDistributionSummary(next);
@@ -1157,10 +1285,7 @@ export function useGame() {
           reputation: next.reputation + 1,
           heatLevel: Math.min(100, next.heatLevel + finalHeat),
         };
-        return log(
-          next,
-          `🚪 Mystisk besøk: +$${$}. Heat +${finalHeat}.`,
-        );
+        return log(next, `🚪 Mystisk besøk: +$${$}. Heat +${finalHeat}.`);
       }
       case "trailer:roster":
         return next; // handled in UI (opens sheet)
@@ -1169,7 +1294,10 @@ export function useGame() {
         if (!nextLoc) return log(next, "Du er allerede på toppen.");
         if (nextLoc.level === 3) {
           if (!canUnlockDowntown(next))
-            return log(next, `Kan ikke oppgradere til Downtown ennå. ${formatDowntownRemainingRequirements(next)}`);
+            return log(
+              next,
+              `Kan ikke oppgradere til Downtown ennå. ${formatDowntownRemainingRequirements(next)}`,
+            );
         } else {
           if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
           if (next.reputation < nextLoc.unlockRep)
@@ -1232,21 +1360,17 @@ export function useGame() {
         return log(next, `👂 ${ev.text}`);
       }
       case "bar:scoutBar": {
-        const cost = 180;
+        const cost = 140;
         if (next.cash < cost) return log(next, `Drinks til en danser: $${cost}.`);
-        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, -1 + staffMods(next).scoutingQuality);
-        const g = withContract(raw, next.day, 8);
-        const upfront = cost + g.contract!.signingBonus;
-        if (next.cash < upfront)
-          return log(
-            next,
-            `${raw.name} vil ha $${g.contract!.signingBonus} i signing bonus. Du har ikke råd.`,
-          );
+        const g = genGirl(
+          next.player.charisma,
+          next.locationLevel,
+          -1 + staffMods(next).scoutingQuality,
+        );
         return log(
-          { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
-          `💃 ${g.name} signerte 8-ukers kontrakt. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`,
+          { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, g] },
+          `💃 Møtte ${g.name}. Nytt lead lagt til Casting Board.`,
         );
       }
       case "bar:drink": {
@@ -1314,49 +1438,53 @@ export function useGame() {
           "🧪 +3 condoms i hanskerommet.",
         );
       }
-      case "gas:hitchhike": {
+      case "gas:postFlyer": {
+        const cost = 40;
+        if (next.cash < cost) return log(next, `Flyers koster $${cost}.`);
         next = advanceFn(next, action.hours);
-        if (Math.random() < 0.5 && next.girls.length < 6) {
-          const raw = genGirl(next.player.charisma, next.locationLevel, -2);
-          const g = withContract(raw, next.day, 4); // haikere = kort kontrakt
-          if (next.cash < g.contract!.signingBonus) {
-            return log(
-              next,
-              `👠 ${raw.name} ville ha $${g.contract!.signingBonus} kontant. Du hadde ikke nok — hun hoppet av.`,
-            );
-          }
-          return log(
-            { ...next, cash: next.cash - g.contract!.signingBonus, girls: [...next.girls, g], lastRecruitId: g.id },
-            `👠 ${g.name} signerte 4-ukers prøvekontrakt. Bonus $${g.contract!.signingBonus}.`,
-          );
-        }
-        const loss = 80;
+        const g = genGirl(
+          next.player.charisma,
+          next.locationLevel,
+          -2 + staffMods(next).scoutingQuality,
+        );
         return log(
-          { ...next, cash: Math.max(0, next.cash - loss) },
-          `👠 Haiker stjal $${loss} fra hanskerommet. Klassisk.`,
+          { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, g] },
+          "📣 Posted flyers at the gas station. New local lead added to the Casting Board.",
         );
       }
 
       // Forest
-      case "forest:scoutForest": {
-        const cost = 60;
-        if (next.cash < cost) return log(next, "Trenger $60 til lommelykt og lokkemat.");
-        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
+      case "forest:layLow": {
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, -1 + staffMods(next).scoutingQuality);
-        const g = withContract(raw, next.day, 4);
-        const upfront = cost + g.contract!.signingBonus;
-        if (next.cash < upfront)
-          return log(next, `${raw.name} vil ha $${g.contract!.signingBonus} i bonus.`);
+        const heatDrop = ri(4, 8);
         return log(
-          { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
-          `🔦 ${g.name} signerte 4-ukers kontrakt. Bonus $${g.contract!.signingBonus}.`,
+          { ...next, heatLevel: Math.max(0, next.heatLevel - heatDrop) },
+          `🌲 You stayed quiet and out of sight. Heat -${heatDrop}.`,
         );
+      }
+      case "forest:searchProps": {
+        next = advanceFn(next, action.hours);
+        const roll = Math.random();
+        if (roll < 0.33)
+          return log(
+            { ...next, costumes: next.costumes + 1 },
+            "🔦 Found usable wardrobe junk. +1 costume.",
+          );
+        if (roll < 0.66)
+          return log(
+            { ...next, filmstock: next.filmstock + 1 },
+            "🔦 Found spare filmstock in an old crate. +1 filmstock.",
+          );
+        const cash = ri(40, 90);
+        return log({ ...next, cash: next.cash + cash }, `🔦 Salvaged and sold scrap. +$${cash}.`);
       }
       case "forest:hideStash": {
         next = advanceFn(next, action.hours);
         return log(
-          { ...next, heatLevel: Math.max(0, next.heatLevel - (15 + staffMods(next).heatMitigation)) },
+          {
+            ...next,
+            heatLevel: Math.max(0, next.heatLevel - (15 + staffMods(next).heatMitigation)),
+          },
           "🌲 Gjemte lageret. Razzia-risiko ned.",
         );
       }
@@ -1422,7 +1550,11 @@ export function useGame() {
         if (next.cash < cost) return log(next, `VIP-scout: $${cost}.`);
         if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        const raw = genGirl(next.player.charisma, next.locationLevel, +1 + staffMods(next).scoutingQuality);
+        const raw = genGirl(
+          next.player.charisma,
+          next.locationLevel,
+          +1 + staffMods(next).scoutingQuality,
+        );
         const g = withContract(raw, next.day, 12); // VIP-stjerner = lange kontrakter
         const upfront = cost + g.contract!.signingBonus;
         if (next.cash < upfront)
@@ -1577,25 +1709,14 @@ export function useGame() {
       case "casting:openCall": {
         const cost = 500;
         if (next.cash < cost) return log(next, `Open call: $${cost}.`);
-        if (next.girls.length >= 6) return log(next, "Maks 6 stjerner.");
         next = advanceFn(next, action.hours);
-        if (Math.random() < 0.7) {
-          const raw = genGirl(next.player.charisma, next.locationLevel, 0 + staffMods(next).scoutingQuality);
-          const g = withContract(raw, next.day, 8);
-          const upfront = cost + g.contract!.signingBonus;
-          if (next.cash < upfront)
-            return log(
-              next,
-              `${raw.name} vil ha $${g.contract!.signingBonus} i bonus. Du har ikke råd.`,
-            );
-          return log(
-            { ...next, cash: next.cash - upfront, girls: [...next.girls, g], lastRecruitId: g.id },
-            `📣 ${g.name} signerte 8-ukers. Bonus $${g.contract!.signingBonus}, min $${g.contract!.weeklyMin}/uke.`,
-          );
-        }
+        const leadCount = Math.random() < 0.5 ? 2 : 1;
+        const leads = Array.from({ length: leadCount }, () =>
+          genGirl(next.player.charisma, next.locationLevel, 1 + staffMods(next).scoutingQuality),
+        );
         return log(
-          { ...next, cash: next.cash - cost },
-          "📣 Bare amatører i dag. Audition-vouchers var ikke verdt det.",
+          { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, ...leads] },
+          `📣 Open call booked ${leadCount} new lead${leadCount > 1 ? "s" : ""} on the Casting Board.`,
         );
       }
 
@@ -1631,7 +1752,10 @@ export function useGame() {
           {
             ...next,
             cash: next.cash - tier.cost,
-            campaignBonus: Math.min(200, next.campaignBonus + Math.round(tier.bonus * staffMods(next).marketingMult)),
+            campaignBonus: Math.min(
+              200,
+              next.campaignBonus + Math.round(tier.bonus * staffMods(next).marketingMult),
+            ),
           },
           `${tier.emoji} ${tier.name} kampanje aktivert: +${Math.round(tier.bonus * staffMods(next).marketingMult)}% på neste utgivelse.`,
         );
@@ -1878,6 +2002,9 @@ export function useGame() {
   }, []);
   const hireStaff = useCallback((role: StaffRole) => {
     setState((s) => {
+      const cap = STAFF_SLOT_CAP(s.locationLevel);
+      if (s.staff.length >= cap)
+        return log(s, `Staff slots full (${s.staff.length}/${cap}). Upgrade your base first.`);
       const cost = 500 + s.staff.length * 250;
       if (s.cash < cost) return log(s, `Ansettelse koster $${cost}.`);
       const pool = STAFF_POOLS[role];
@@ -1892,7 +2019,10 @@ export function useGame() {
         salary: 120 + ri(0, 80),
         trait,
       };
-      return log({ ...s, cash: s.cash - cost, staff: [...s.staff, member] }, `🧑‍💼 Ansatt ${name} (${role}).`);
+      return log(
+        { ...s, cash: s.cash - cost, staff: [...s.staff, member] },
+        `🧑‍💼 Ansatt ${name} (${role}).`,
+      );
     });
   }, []);
   const upgradeStaff = useCallback((id: string) => {
@@ -1901,11 +2031,61 @@ export function useGame() {
       if (!m) return s;
       const cost = 250 + m.level * 200;
       if (s.cash < cost) return log(s, `Oppgradering koster $${cost}.`);
-      return log({
+      return log(
+        {
+          ...s,
+          cash: s.cash - cost,
+          staff: s.staff.map((x) =>
+            x.id === id
+              ? { ...x, level: x.level + 1, bonus: x.bonus + 1, salary: x.salary + 30 }
+              : x,
+          ),
+        },
+        `📈 ${m.name} oppgradert til Lv ${m.level + 1}.`,
+      );
+    });
+  }, []);
+  const scoutLocalTalent = useCallback(() => {
+    setState((s) => {
+      const cost = 60;
+      const hours = 2;
+      if (s.cash < cost) return log(s, `Local scouting costs $${cost}.`);
+      let next = advance(s, hours);
+      const lead = genGirl(
+        next.player.charisma,
+        next.locationLevel,
+        -1 + staffMods(next).scoutingQuality,
+      );
+      next = { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, lead] };
+      return log(next, "📋 New local talent lead added to the Casting Board.");
+    });
+  }, []);
+  const hireCastingLead = useCallback((leadId: string) => {
+    setState((s) => {
+      const lead = s.castingLeads.find((g) => g.id === leadId);
+      if (!lead) return s;
+      if (s.girls.length >= 6) return log(s, "Maks 6 stjerner.");
+      const signed = withContract(lead, s.day, 8);
+      const upfront = signed.contract?.signingBonus ?? 0;
+      if (s.cash < upfront) return log(s, `${lead.name} requires $${upfront} signing bonus.`);
+      const next = {
         ...s,
-        cash: s.cash - cost,
-        staff: s.staff.map((x) => x.id === id ? { ...x, level: x.level + 1, bonus: x.bonus + 1, salary: x.salary + 30 } : x),
-      }, `📈 ${m.name} oppgradert til Lv ${m.level + 1}.`);
+        cash: s.cash - upfront,
+        castingLeads: s.castingLeads.filter((g) => g.id !== leadId),
+        girls: [...s.girls, signed],
+        lastRecruitId: signed.id,
+      };
+      return log(next, `✍️ ${signed.name} hired from Casting Board.`);
+    });
+  }, []);
+  const rejectCastingLead = useCallback((leadId: string) => {
+    setState((s) => {
+      const lead = s.castingLeads.find((g) => g.id === leadId);
+      if (!lead) return s;
+      return log(
+        { ...s, castingLeads: s.castingLeads.filter((g) => g.id !== leadId) },
+        `🗂️ Passed on ${lead.name}.`,
+      );
     });
   }, []);
 
@@ -1989,18 +2169,19 @@ export function useGame() {
       if (p.stageIdx === STAGE_ORDER.length - 1) {
         const qualityMult = (p.quality + castAvg) / 100;
         const release = roleScore("release"); // PR/promo cast cuts flop risk and boosts gross
-        const { flopChance, expectedGross, conservativeGross, genreMult, fanMult } = deriveProductionReleaseForecast(p, {
-          girls: s.girls,
-          reputation: s.reputation,
-          rivals: s.rivals,
-          playerBusiness: s.player.business,
-          playerHustle: s.player.hustle,
-          studioLevel: s.studioLevel,
-          equipmentSum: mods.eqSum,
-          distribBonus: s.distribBonus || 0,
-          campaignBonus: s.campaignBonus || 0,
-          fans: s.fans,
-        });
+        const { flopChance, expectedGross, conservativeGross, genreMult, fanMult } =
+          deriveProductionReleaseForecast(p, {
+            girls: s.girls,
+            reputation: s.reputation,
+            rivals: s.rivals,
+            playerBusiness: s.player.business,
+            playerHustle: s.player.hustle,
+            studioLevel: s.studioLevel,
+            equipmentSum: mods.eqSum,
+            distribBonus: s.distribBonus || 0,
+            campaignBonus: s.campaignBonus || 0,
+            fans: s.fans,
+          });
         const flopped = Math.random() < flopChance;
         let gross = expectedGross;
         let repGain = tier.baseRep + Math.floor(qualityMult * 5) + Math.floor(release.score / 40);
@@ -2067,14 +2248,19 @@ export function useGame() {
           ? s.distributionDeals.find((d) => d.id === p.distributionDealId)
           : undefined;
         const dealEligible = selectedDeal ? isDealEligibleForProduction(selectedDeal, p, s) : false;
-        const dealAdvance = dealEligible ? selectedDeal?.advancePayment ?? 0 : 0;
-        const updatedDeals = selectedDeal && dealEligible
-          ? s.distributionDeals.map((d) =>
-              d.id === selectedDeal.id
-                ? { ...d, activeFromDay: s.day, expiresDay: s.day + selectedDeal.durationWeeks * 7 }
-                : d,
-            )
-          : s.distributionDeals;
+        const dealAdvance = dealEligible ? (selectedDeal?.advancePayment ?? 0) : 0;
+        const updatedDeals =
+          selectedDeal && dealEligible
+            ? s.distributionDeals.map((d) =>
+                d.id === selectedDeal.id
+                  ? {
+                      ...d,
+                      activeFromDay: s.day,
+                      expiresDay: s.day + selectedDeal.durationWeeks * 7,
+                    }
+                  : d,
+              )
+            : s.distributionDeals;
         const fanNote = p.genreId
           ? ` · +${fanGain} ${getGenre(p.genreId)?.name ?? ""} fans${fanMult > 1.05 ? ` (fanbase ×${fanMult.toFixed(2)})` : ""}`
           : "";
@@ -2327,11 +2513,15 @@ export function useGame() {
       const idx = s.productions.findIndex((p) => p.id === productionId);
       if (idx === -1) return s;
       const p = s.productions[idx];
-      if (p.stageIdx !== STAGE_ORDER.length - 1) return log(s, "Deal kan kun settes rett før release.");
+      if (p.stageIdx !== STAGE_ORDER.length - 1)
+        return log(s, "Deal kan kun settes rett før release.");
       const deal = s.distributionDeals.find((d) => d.id === dealId);
       if (!deal) return s;
-      if (!isDealEligibleForProduction(deal, p, s)) return log(s, `Ikke kvalifisert for ${deal.label}.`);
-      const updated = s.productions.map((prod, i) => i === idx ? { ...prod, distributionDealId: dealId } : prod);
+      if (!isDealEligibleForProduction(deal, p, s))
+        return log(s, `Ikke kvalifisert for ${deal.label}.`);
+      const updated = s.productions.map((prod, i) =>
+        i === idx ? { ...prod, distributionDealId: dealId } : prod,
+      );
       return log({ ...s, productions: updated }, `🤝 "${p.title}" tildelt deal: ${deal.label}.`);
     });
   }, []);
@@ -2665,7 +2855,6 @@ export function useGame() {
     });
   }, []);
 
-
   const companyRank = deriveCompanyRank({
     locationLevel: state.locationLevel,
     cash: state.cash,
@@ -2697,6 +2886,9 @@ export function useGame() {
     upgradeStat,
     hireStaff,
     upgradeStaff,
+    scoutLocalTalent,
+    hireCastingLead,
+    rejectCastingLead,
     startProduction,
     advanceProduction,
     assignToProduction,

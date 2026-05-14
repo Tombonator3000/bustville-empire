@@ -18,6 +18,7 @@ import { StaffPanel } from "@/components/game/StaffPanel";
 import { Splash, WinScreen } from "@/components/game/Splash";
 import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
+import { CastingBoardPanel } from "@/components/game/CastingBoardPanel";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
@@ -40,6 +41,8 @@ function GamePage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [staffOpen, setStaffOpen] = useState(false);
+  const [staffMode, setStaffMode] = useState<"overview" | "helpWanted">("overview");
+  const [castingOpen, setCastingOpen] = useState(false);
   const [prodOpen, setProdOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [invOpen, setInvOpen] = useState(false);
@@ -68,7 +71,7 @@ function GamePage() {
   const district = DISTRICTS.find((d) => d.id === g.state.district)!;
   const activeLoc = g.state.activeLocation;
   const recruitRevealGirl = g.state.lastRecruitId
-    ? g.state.girls.find((x) => x.id === g.state.lastRecruitId) ?? null
+    ? (g.state.girls.find((x) => x.id === g.state.lastRecruitId) ?? null)
     : null;
 
   return (
@@ -77,7 +80,10 @@ function GamePage() {
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
-        onOpenStaff={() => setStaffOpen(true)}
+        onOpenStaff={() => {
+          setStaffMode("overview");
+          setStaffOpen(true);
+        }}
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
@@ -92,43 +98,54 @@ function GamePage() {
           className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary hover:brightness-110"
         >
           <span>Progress</span>
-          <span className="text-foreground/80">{g.state.locationLevel > 0 ? `Lv ${g.state.locationLevel}` : "Lv ?"}</span>
-          <span className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px]">{district.id === "park" ? "Next: Downtown" : "Downtown Open"}</span>
+          <span className="text-foreground/80">
+            {g.state.locationLevel > 0 ? `Lv ${g.state.locationLevel}` : "Lv ?"}
+          </span>
+          <span className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px]">
+            {district.id === "park" ? "Next: Downtown" : "Downtown Open"}
+          </span>
         </button>
       </div>
 
       <div className="relative flex-1 min-h-0 overflow-hidden">
-      {activeLoc ? (
-        <LocationView
-          state={g.state}
-          locId={activeLoc}
-          selectedGirl={selectedGirl}
-          onBack={g.backToMap}
-          onPerform={(id, girlId, intensity) => {
-            if (activeLoc === "trailer" && id === "webcam") {
-              setWebcamOpen(true);
-              return;
-            }
-            if (activeLoc === "trailer" && id === "visit") {
-              setVisitOpen(true);
-              return;
-            }
-            g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
-          }}
-          onOpenRoster={() => setRosterOpen(true)}
-          onOpenProductions={() => setProdOpen(true)}
-        />
-      ) : (
-        <MapView
-          state={g.state}
-          district={district}
-          onGoTo={g.goTo}
-          onSwitchDistrict={g.switchDistrict}
-        />
-      )}
+        {activeLoc ? (
+          <LocationView
+            state={g.state}
+            locId={activeLoc}
+            selectedGirl={selectedGirl}
+            onBack={g.backToMap}
+            onPerform={(id, girlId, intensity) => {
+              if (activeLoc === "trailer" && id === "webcam") {
+                setWebcamOpen(true);
+                return;
+              }
+              if (activeLoc === "trailer" && id === "visit") {
+                setVisitOpen(true);
+                return;
+              }
+              g.perform(activeLoc, id, girlId ?? selectedGirl, intensity);
+            }}
+            onOpenRoster={() => setRosterOpen(true)}
+            onOpenProductions={() => setProdOpen(true)}
+            onOpenCastingBoard={() => setCastingOpen(true)}
+            onOpenHelpWanted={() => {
+              setStaffMode("helpWanted");
+              setStaffOpen(true);
+            }}
+          />
+        ) : (
+          <MapView
+            state={g.state}
+            district={district}
+            onGoTo={g.goTo}
+            onSwitchDistrict={g.switchDistrict}
+          />
+        )}
       </div>
 
-      {progressionOpen && <ProgressionSheet state={g.state} onClose={() => setProgressionOpen(false)} />}
+      {progressionOpen && (
+        <ProgressionSheet state={g.state} onClose={() => setProgressionOpen(false)} />
+      )}
 
       {rosterOpen && (
         <RosterSheet
@@ -153,6 +170,16 @@ function GamePage() {
           onClose={() => setStaffOpen(false)}
           onHire={g.hireStaff}
           onUpgrade={g.upgradeStaff}
+          mode={staffMode}
+        />
+      )}
+      {castingOpen && (
+        <CastingBoardPanel
+          leads={g.state.castingLeads}
+          onClose={() => setCastingOpen(false)}
+          onScout={g.scoutLocalTalent}
+          onHire={g.hireCastingLead}
+          onPass={g.rejectCastingLead}
         />
       )}
       {prodOpen && (
