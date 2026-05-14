@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { listSaveSlots } from "@/game/useGame";
 import { toast } from "sonner";
+import { SyncStatusBox } from "./SyncStatusBox";
 
 interface Props {
   onClose: () => void;
@@ -12,7 +13,7 @@ interface Props {
   onReset: () => void;
 }
 
-type Tab = "saves" | "data" | "settings" | "about";
+type Tab = "saves" | "sync" | "data" | "settings" | "about";
 
 export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImport, onReset }: Props) {
   const [tab, setTab] = useState<Tab>("saves");
@@ -34,6 +35,7 @@ export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImp
         <div className="flex gap-1 border-b border-border bg-background/40 px-2 py-1">
           {([
             ["saves", "💾 Lagre / Last"],
+            ["sync", "🔄 Synk"],
             ["data", "📦 Data"],
             ["settings", "🎚️ Innstillinger"],
             ["about", "ℹ️ Om"],
@@ -88,6 +90,8 @@ export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImp
               })}
             </div>
           )}
+
+          {tab === "sync" && <SyncStatusBox />}
 
           {tab === "data" && (
             <div className="space-y-4">

@@ -171,7 +171,7 @@ export function ProductionsSheet({ state, onClose, onStart, onAdvance, onAssign,
   );
 }
 
-function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole, onCancel, cash }: {
+function ProductionCard({ p, girls, mods, state, onAdvance, onAssign, onSetRole, onCancel, onAssignDeal, cash }: {
   p: Production; girls: Girl[]; cash: number; state: GameState;
   mods: ReturnType<typeof getStudioMods>;
   onAdvance: (id: string) => void;
