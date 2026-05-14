@@ -56,7 +56,7 @@ export function VisitModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-primary/60 bg-card shadow-2xl"
+        className="w-full max-w-[1040px] max-h-[90vh] overflow-y-auto rounded-2xl border border-primary/60 bg-card shadow-2xl"
       >
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-border bg-secondary/90 backdrop-blur p-3">
           <div>
@@ -73,7 +73,7 @@ export function VisitModal({
           </button>
         </div>
 
-        <div className="space-y-3 p-3">
+        <div className="grid gap-4 p-3 lg:grid-cols-2">
           {/* Visit types */}
           <div>
             <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">

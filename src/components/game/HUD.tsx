@@ -1,4 +1,5 @@
 import { LOCATIONS } from "@/game/data";
+import type { ReactNode } from "react";
 import { absHour, dayName, hoursUntilNextClockTime, timeStr, type GameState } from "@/game/useGame";
 import {
   DollarSign,
@@ -35,175 +36,114 @@ export function HUD({
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
-
-  const districtLocations = LOCATIONS.filter((location) => location.district === state.district);
-  const currentDistrictIndex = Math.max(
-    districtLocations.findIndex((location) => location.level === state.locationLevel),
-    0,
-  );
   const districtLabel = state.district.charAt(0).toUpperCase() + state.district.slice(1);
-  const progressSummary = `LV${state.locationLevel} Hustler · ${districtLabel} ${Math.min(currentDistrictIndex + 1, districtLocations.length)}/${districtLocations.length}`;
+  const progressSummary = `LV${state.locationLevel} • Next: Downtown`;
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex w-full items-center gap-1.5 px-4 py-1.5 text-xs">
-        <h1 className="mr-1 font-display text-xl font-black uppercase neon-text leading-none">
+      <div className="mx-auto flex w-full items-center gap-1.5 px-3 py-1.5 text-xs overflow-x-auto">
+        <h1 className="font-display text-lg font-black uppercase neon-text leading-none">
           Bustville
         </h1>
         <span className="hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground lg:inline">
-          › Lv{loc.level} {loc.name}
+          {districtLabel} · Lv{loc.level}
         </span>
-        <div className="ml-auto flex items-center gap-1.5 overflow-x-auto">
-          <Pill
-            icon={<DollarSign className="h-3.5 w-3.5" />}
-            label="Cash"
-            value={state.cash.toLocaleString()}
-            accent
-          />
-          <Pill
-            icon={<Star className="h-3.5 w-3.5" />}
-            label="Rep"
-            value={state.reputation.toString()}
-          />
-          <Pill
-            icon={<Zap className="h-3.5 w-3.5" />}
-            label="Stam"
-            value={`${state.stamina}/${state.maxStamina}`}
-          />
-          <Pill
-            icon={<Flame className="h-3.5 w-3.5" />}
-            label="Heat"
-            value={`${state.heatLevel}%`}
-            hot={state.heatLevel > 40}
-          />
-          {state.loan > 0 && (
-            <Pill
-              icon={<DollarSign className="h-3.5 w-3.5" />}
-              label="Loan"
-              value={`$${state.loan}`}
-              hot
-            />
-          )}
-          <span className="flex items-center gap-1 rounded-md border border-border/60 bg-card/50 px-2 py-1 font-mono">
-            <Calendar className="h-3.5 w-3.5 text-accent" />
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
-              {dayName(state.day)}
-            </span>
-            <span className="font-bold">d.{state.day}</span>
-            <span className="text-muted-foreground">·</span>
-            <span className="font-bold">{timeStr(state.hour)}</span>
-          </span>
-          <button
-            onClick={() => onAdvanceTime(1)}
-            title="Hopp tiden 1 time frem"
-            className="rounded-md border border-primary/60 bg-primary/20 px-2 py-1 font-bold text-primary hover:brightness-110"
-          >
-            ⏩ +1h
-          </button>
-          <button
-            onClick={onEndDay}
-            title={`Hopp ${hoursToMorning}t til neste morgen`}
-            className="rounded-md border border-accent/60 bg-accent/20 px-2 py-1 font-bold text-accent hover:brightness-110"
-          >
-            🌙 End Day
-          </button>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full items-center gap-1.5 border-t border-border/40 bg-background/60 px-4 py-1 text-xs">
-        <NavBtn
-          onClick={onOpenRoster}
-          icon={<Users className="h-3.5 w-3.5" />}
-          label={`Roster ${state.girls.length}`}
-          primary
+        <Pill icon={<DollarSign className="h-3 w-3" />} value={state.cash.toLocaleString()} />
+        <Pill icon={<Star className="h-3 w-3" />} value={state.reputation.toString()} />
+        <Pill icon={<Zap className="h-3 w-3" />} value={`${state.stamina}/${state.maxStamina}`} />
+        <Pill
+          icon={<Flame className="h-3 w-3" />}
+          value={`${state.heatLevel}%`}
+          hot={state.heatLevel > 40}
         />
-        <NavBtn
-          onClick={onOpenStaff}
-          icon={<Users className="h-3.5 w-3.5" />}
-          label={`Staff ${state.staff.length}`}
-        />
-        <NavBtn
-          onClick={onOpenInventory}
-          icon={<Backpack className="h-3.5 w-3.5" />}
-          label="Lager"
-        />
-        <NavBtn
-          onClick={onOpenGallery}
-          icon={<ImageIcon className="h-3.5 w-3.5" />}
-          label="Galleri"
-        />
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            onClick={onOpenProgression}
-            title="Open progression"
-            className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary hover:brightness-110"
-          >
-            <span>{progressSummary}</span>
-          </button>
-          <button
-            onClick={onOpenOptions}
-            title="Meny / Lagre / Innstillinger"
-            className="rounded-md border border-border bg-background p-1.5 hover:border-primary"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <span className="flex items-center gap-1 rounded-md border border-border/60 bg-card/50 px-2 py-1 font-mono">
+          <Calendar className="h-3 w-3 text-accent" /> {dayName(state.day)} d.{state.day} ·{" "}
+          {timeStr(state.hour)}
+        </span>
+        <IconBtn onClick={onOpenRoster} title="Roster">
+          <Users className="h-3.5 w-3.5" />
+        </IconBtn>
+        <IconBtn onClick={onOpenStaff} title="Staff">
+          <Users className="h-3.5 w-3.5" />
+        </IconBtn>
+        <IconBtn onClick={onOpenInventory} title="Lager">
+          <Backpack className="h-3.5 w-3.5" />
+        </IconBtn>
+        <IconBtn onClick={onOpenGallery} title="Galleri">
+          <ImageIcon className="h-3.5 w-3.5" />
+        </IconBtn>
+        <button
+          onClick={onOpenProgression}
+          className="rounded-full border border-primary/60 bg-primary/15 px-2 py-1 text-[10px] font-semibold uppercase text-primary"
+        >
+          {progressSummary}
+        </button>
+        <button
+          onClick={() => onAdvanceTime(1)}
+          className="rounded-md border border-primary/60 bg-primary/20 px-2 py-1 font-bold text-primary"
+        >
+          +1h
+        </button>
+        <button
+          onClick={onEndDay}
+          title={`Hopp ${hoursToMorning}t`}
+          className="rounded-md border border-accent/60 bg-accent/20 px-2 py-1 font-bold text-accent"
+        >
+          End Day
+        </button>
+        <IconBtn onClick={onOpenOptions} title="Settings">
+          <Settings className="h-3.5 w-3.5" />
+        </IconBtn>
       </div>
     </header>
   );
 }
 
-function NavBtn({
+function IconBtn({
   onClick,
-  icon,
-  label,
-  primary,
-  accent,
-  hot,
   title,
+  children,
 }: {
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  primary?: boolean;
-  accent?: boolean;
-  hot?: boolean;
-  title?: string;
+  state: GameState;
+  onOpenRoster: () => void;
+  onOpenStaff: () => void;
+  onOpenInventory: () => void;
+  onOpenGallery: () => void;
+  onOpenOptions: () => void;
+  onAdvanceTime: (hours?: number) => void;
+  onEndDay: () => void;
+  onOpenProgression: () => void;
 }) {
-  const base = "flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition";
-  const cls = primary
-    ? "bg-primary text-primary-foreground font-bold hover:brightness-110"
-    : accent
-      ? "bg-accent text-accent-foreground font-bold hover:brightness-110"
-      : hot
-        ? "bg-destructive/30 text-destructive-foreground border border-destructive/60 hover:bg-destructive/50"
-        : "bg-secondary/70 hover:bg-secondary";
   return (
-    <button onClick={onClick} title={title} className={`${base} ${cls}`}>
-      {icon} {label}
+    <button
+      onClick={onClick}
+      title={title}
+      className="rounded-md border border-border bg-background p-1.5 hover:border-primary"
+    >
+      {children}
     </button>
   );
 }
-
 function Pill({
   icon,
-  label,
   value,
-  accent,
   hot,
 }: {
-  icon?: React.ReactNode;
-  label: string;
-  value: string;
-  accent?: boolean;
-  hot?: boolean;
+  state: GameState;
+  onOpenRoster: () => void;
+  onOpenStaff: () => void;
+  onOpenInventory: () => void;
+  onOpenGallery: () => void;
+  onOpenOptions: () => void;
+  onAdvanceTime: (hours?: number) => void;
+  onEndDay: () => void;
+  onOpenProgression: () => void;
 }) {
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1 font-mono ${accent ? "bg-primary/15 text-primary neon-text" : hot ? "bg-destructive/20 text-destructive-foreground" : "bg-card/50"}`}
+      className={`flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 font-mono ${hot ? "bg-destructive/20" : "bg-card/50"}`}
     >
       {icon}
-      <span className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</span>
       <span className="font-bold">{value}</span>
     </div>
   );

@@ -44,7 +44,7 @@ export function WebcamModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-primary/60 bg-card shadow-2xl"
+        className="w-full max-w-[1040px] overflow-hidden rounded-2xl border border-primary/60 bg-card shadow-2xl"
       >
         <div className="flex items-start justify-between border-b border-border bg-secondary/40 p-3">
           <div>
@@ -61,7 +61,7 @@ export function WebcamModal({
           </button>
         </div>
 
-        <div className="space-y-3 p-3">
+        <div className="grid gap-4 p-3 lg:grid-cols-2">
           {/* Show types */}
           <div>
             <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">

@@ -143,7 +143,7 @@ export function LocationView({
                             </div>
                           )}
                           <div className="mt-0.5 text-[10px] text-primary/80">
-                            {a.hours > 0 ? `${a.hours}t` : "0t"} · Forhåndsvisning av effekt
+                            {a.hours > 0 ? `${a.hours}t` : "0t"} · Tid / effekt / krav
                           </div>
                         </div>
                       </button>
@@ -190,7 +190,7 @@ export function LocationView({
                           : "text-muted-foreground"
                     }
                   >
-                    {major ? "⚡ " : ""}
+                    {major ? "★ " : ""}
                     {line}
                   </p>
                 );
@@ -247,7 +247,18 @@ function ActionRow({
   const heat = previewHeat(action.id === "visit" ? 2 : 0, intensity);
   const staminaCost = action.hours * 4;
   const cooldown = selectedGirlObj ? intensityCooldownHours(action.hours, intensity) : 0;
-  const compactPreview = `${action.hours > 0 ? `${action.hours}t` : "0t"} · -${staminaCost} stamina · +${heat.total} heat`;
+  const req =
+    action.id === "sellTrucker"
+      ? "Req: moonshine"
+      : action.id === "supplies"
+        ? "Cost: $"
+        : action.id === "postFlyer"
+          ? "Lead: adds candidate"
+          : action.id === "layLow"
+            ? "Utility: lowers heat"
+            : "Req: none";
+  const compactPreview = `${action.hours > 0 ? `${action.hours}t` : "0t"} · 💵$? · ⭐rep ? · 🔥+${heat.total} · ⚡-${staminaCost}`;
+  const compactMeta = `${req} · Cooldown: ${cooldown}t`;
   return (
     <div
       className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}
@@ -266,6 +277,7 @@ function ActionRow({
           </div>
           {action.desc && <div className="text-[10px] text-muted-foreground">{action.desc}</div>}
           <div className="text-[10px] text-accent/80">{compactPreview}</div>
+          <div className="text-[10px] text-muted-foreground">{compactMeta}</div>
           {!open && (
             <div className="text-[10px] text-accent/80">
               {girlId
