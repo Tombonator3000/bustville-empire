@@ -1,5 +1,5 @@
 import type { GameState } from "./useGame";
-
+import { STAGE_ORDER } from "./productions";
 
 export const DOWNTOWN_UNLOCK_GATE = {
   cash: 12000,
