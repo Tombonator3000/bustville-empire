@@ -45,6 +45,10 @@ export function LocationView({
     "repay",
     "loan",
     "supplies",
+    "gasCondoms",
+    "postFlyer",
+    "layLow",
+    "searchProps",
     "hideStash",
     "bribe",
     "produce",
@@ -138,6 +142,9 @@ export function LocationView({
                               Velg jente, type & intensitet
                             </div>
                           )}
+                          <div className="mt-0.5 text-[10px] text-primary/80">
+                            {a.hours > 0 ? `${a.hours}t` : "0t"} · Forhåndsvisning av effekt
+                          </div>
                         </div>
                       </button>
                     );
@@ -167,11 +174,15 @@ export function LocationView({
               Logg
             </div>
             <div className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
-              {state.log.slice(0, 8).map((line, i) => (
-                <p key={i} className={i === 0 ? "text-foreground" : "text-muted-foreground"}>
-                  {line}
-                </p>
-              ))}
+              {state.log.slice(0, 8).map((line, i) => {
+                const major = /(first hit|milestone|recruit|hired|new local lead|heat \+|utbrent|weekly|unlock)/i.test(line);
+                return (
+                  <p key={i} className={major ? "rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-foreground" : i === 0 ? "text-foreground" : "text-muted-foreground"}>
+                    {major ? "⚡ " : ""}
+                    {line}
+                  </p>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -224,6 +235,7 @@ function ActionRow({
   const heat = previewHeat(action.id === "visit" ? 2 : 0, intensity);
   const staminaCost = action.hours * 4;
   const cooldown = selectedGirlObj ? intensityCooldownHours(action.hours, intensity) : 0;
+  const compactPreview = `${action.hours > 0 ? `${action.hours}t` : "0t"} · -${staminaCost} stamina · +${heat.total} heat`;
   return (
     <div
       className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}
@@ -241,6 +253,7 @@ function ActionRow({
             </span>
           </div>
           {action.desc && <div className="text-[10px] text-muted-foreground">{action.desc}</div>}
+          <div className="text-[10px] text-accent/80">{compactPreview}</div>
           {!open && (
             <div className="text-[10px] text-accent/80">
               {girlId

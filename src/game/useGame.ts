@@ -1418,7 +1418,7 @@ export function useGame() {
         next = advanceFn(next, action.hours);
         return log(
           { ...next, moonshine: next.moonshine - 1, cash: next.cash + $ },
-          `🚛 Trucker tok flaska: +$${$}.`,
+          `🚛 Tok et odd cash job ved pumpene: +$${$}.`,
         );
       }
       case "gas:supplies": {
@@ -1449,7 +1449,7 @@ export function useGame() {
         );
         return log(
           { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, g] },
-          "📣 Posted flyers at the gas station. New local lead added to the Casting Board.",
+          "📣 Casting flyer posted at Stinky's. New local lead added to the Casting Board.",
         );
       }
 
@@ -1459,7 +1459,7 @@ export function useGame() {
         const heatDrop = ri(4, 8);
         return log(
           { ...next, heatLevel: Math.max(0, next.heatLevel - heatDrop) },
-          `🌲 You stayed quiet and out of sight. Heat -${heatDrop}.`,
+          `🌲 Lay low in the backwoods. Heat -${heatDrop}.`,
         );
       }
       case "forest:searchProps": {
@@ -1468,12 +1468,12 @@ export function useGame() {
         if (roll < 0.33)
           return log(
             { ...next, costumes: next.costumes + 1 },
-            "🔦 Found usable wardrobe junk. +1 costume.",
+            "🔦 Found lost prop gear. +1 costume.",
           );
         if (roll < 0.66)
           return log(
             { ...next, filmstock: next.filmstock + 1 },
-            "🔦 Found spare filmstock in an old crate. +1 filmstock.",
+            "🔦 Recovered old filmstock from a stash crate. +1 filmstock.",
           );
         const cash = ri(40, 90);
         return log({ ...next, cash: next.cash + cash }, `🔦 Salvaged and sold scrap. +$${cash}.`);
