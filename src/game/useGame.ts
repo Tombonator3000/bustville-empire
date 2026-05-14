@@ -2346,8 +2346,9 @@ export function useGame() {
       if (nextStage.id === "shooting" && p.girlIds.length === 0)
         return log(s, "Kan ikke filme uten cast. Tilordne minst én stjerne.");
       // Inventory gates for new shops
-      const isFirstProductionCasting = nextStage.id === "casting" && !s.milestones.firstHit;
-      if (nextStage.id === "casting" && s.auditionVouchers < 1 && !isFirstProductionCasting)
+      const isVoucherWaivedForProduction =
+        nextStage.id === "casting" && s.productions[0]?.id === p.id;
+      if (nextStage.id === "casting" && s.auditionVouchers < 1 && !isVoucherWaivedForProduction)
         return log(
           s,
           "🎟️ Trenger 1 audition-voucher fra Open Mic Casting i Downtown (kjøp audition-pass).",
@@ -2411,7 +2412,7 @@ export function useGame() {
         stamina: Math.max(0, s.stamina - nextStage.staminaCost),
       };
       // consume inventory at stage entry
-      if (nextStage.id === "casting" && !isFirstProductionCasting) next.auditionVouchers -= 1;
+      if (nextStage.id === "casting" && !isVoucherWaivedForProduction) next.auditionVouchers -= 1;
       if (nextStage.id === "shooting") {
         next.filmstock -= 1;
         next.costumes -= 1;
