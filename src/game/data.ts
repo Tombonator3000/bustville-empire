@@ -141,6 +141,12 @@ export interface Girl {
   popularity: number;
   loyalty: number;
   salary: number;
+  age?: number;
+  profession?: string;
+  preferences?: string[];
+  starRating?: 1 | 2 | 3 | 4 | 5;
+  tagline?: string;
+  recruitRarityLabel?: string;
   mission?: GirlMission;
   lastActivity?: string;     // shown inline under the portrait
   lastActivityDay?: number;
