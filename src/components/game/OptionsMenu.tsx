@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { listSaveSlots } from "@/game/useGame";
 import { toast } from "sonner";
+import { SyncStatusBox } from "./SyncStatusBox";
 
 interface Props {
   onClose: () => void;
