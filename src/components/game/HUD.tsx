@@ -1,6 +1,5 @@
 import { LOCATIONS } from "@/game/data";
 import { absHour, dayName, hoursUntilNextClockTime, timeStr, type GameState } from "@/game/useGame";
-import { getDistrictTransitionLock } from "@/game/locations";
 import {
   DollarSign,
   Star,
@@ -9,7 +8,6 @@ import {
   Calendar,
   Backpack,
   Users,
-  ArrowLeftRight,
   Settings,
   Image as ImageIcon,
 } from "lucide-react";
@@ -21,7 +19,6 @@ export function HUD({
   onOpenInventory,
   onOpenGallery,
   onOpenOptions,
-  onSwitch,
   onAdvanceTime,
   onEndDay,
   onOpenProgression,
@@ -32,7 +29,6 @@ export function HUD({
   onOpenInventory: () => void;
   onOpenGallery: () => void;
   onOpenOptions: () => void;
-  onSwitch: () => void;
   onAdvanceTime: (hours?: number) => void;
   onEndDay: () => void;
   onOpenProgression: () => void;
@@ -40,7 +36,6 @@ export function HUD({
   const loc = LOCATIONS[state.locationLevel - 1];
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
 
-  const downtownLock = getDistrictTransitionLock(state, "downtown");
   const districtLocations = LOCATIONS.filter((location) => location.district === state.district);
   const currentDistrictIndex = Math.max(
     districtLocations.findIndex((location) => location.level === state.locationLevel),
@@ -51,15 +46,14 @@ export function HUD({
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
-      {/* Row 1 — brand + resources */}
-      <div className="mx-auto flex w-full items-center gap-2 px-4 py-1.5 text-xs">
+      <div className="mx-auto flex w-full items-center gap-1.5 px-4 py-1.5 text-xs">
         <h1 className="mr-1 font-display text-xl font-black uppercase neon-text leading-none">
           Bustville
         </h1>
-        <span className="hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground md:inline">
+        <span className="hidden text-[10px] uppercase tracking-[0.2em] text-muted-foreground lg:inline">
           › Lv{loc.level} {loc.name}
         </span>
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5 overflow-x-auto">
           <Pill
             icon={<DollarSign className="h-3.5 w-3.5" />}
             label="Cash"
@@ -116,8 +110,7 @@ export function HUD({
         </div>
       </div>
 
-      {/* Row 2 — navigation */}
-      <div className="mx-auto flex w-full flex-wrap items-center gap-1.5 border-t border-border/40 bg-background/60 px-4 py-1.5 text-xs">
+      <div className="mx-auto flex w-full items-center gap-1.5 border-t border-border/40 bg-background/60 px-4 py-1 text-xs">
         <NavBtn
           onClick={onOpenRoster}
           icon={<Users className="h-3.5 w-3.5" />}
@@ -143,13 +136,6 @@ export function HUD({
           >
             <span>{progressSummary}</span>
           </button>
-          <NavBtn
-            onClick={onSwitch}
-            icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
-            label={state.district === "park" ? "→ Downtown" : "→ Park"}
-            accent
-            title={state.district === "park" && downtownLock.locked ? "Downtown route locked" : "Switch district"}
-          />
           <button
             onClick={onOpenOptions}
             title="Meny / Lagre / Innstillinger"

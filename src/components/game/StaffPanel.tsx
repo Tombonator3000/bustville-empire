@@ -38,8 +38,8 @@ export function StaffPanel({
         </div>
         <p className="mb-2 text-xs text-muted-foreground">
           {mode === "helpWanted"
-            ? "Cheap local crew. Some are useful. Some own a van."
-            : "Hire new crew from Trailer Office → Help Wanted Board."}
+            ? "Pinned cards, hand-written numbers, and budget freelancers. This is where early crew gets hired."
+            : "Management overview. For hiring, use Trailer Office → Help Wanted Board."}
         </p>
         <p className="mb-2 text-xs">
           Staff slots: {state.staff.length}/{slots}

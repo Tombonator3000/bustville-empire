@@ -86,7 +86,6 @@ function GamePage() {
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
-        onSwitch={g.switchDistrict}
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
         onOpenProgression={() => setProgressionOpen(true)}

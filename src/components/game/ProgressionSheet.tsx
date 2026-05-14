@@ -1,9 +1,22 @@
 import { X } from "lucide-react";
-import { deriveProgressionSnapshot } from "@/game/progression";
+import { DOWNTOWN_UNLOCK_GATE, deriveProgressionSnapshot, getDowntownUnlockDeltas } from "@/game/progression";
 import type { GameState } from "@/game/useGame";
 
 export function ProgressionSheet({ state, onClose }: { state: GameState; onClose: () => void }) {
   const snapshot = deriveProgressionSnapshot(state);
+  const downtown = getDowntownUnlockDeltas(state);
+  const checks = [
+    { label: `Cash $${state.cash.toLocaleString()} / $${DOWNTOWN_UNLOCK_GATE.cash.toLocaleString()}`, done: downtown.cash === 0 },
+    { label: `Rep ${state.reputation} / ${DOWNTOWN_UNLOCK_GATE.reputation}`, done: downtown.reputation === 0 },
+    { label: "First Hit milestone", done: downtown.milestone.length === 0 },
+    { label: `Heat ≤ ${DOWNTOWN_UNLOCK_GATE.maxHeat}% (current ${state.heatLevel}%)`, done: downtown.heat === 0 },
+  ];
+  const nextStep =
+    downtown.cash > 0 ? "Earn cash through quickies, webcam shows or odd jobs."
+    : downtown.reputation > 0 ? "Run better productions or local networking."
+    : downtown.milestone.length > 0 ? "Improve quality and produce more releases."
+    : downtown.heat > 0 ? "Lay low and use safer actions to reduce heat."
+    : "Downtown gate is ready. Use the map exit to travel.";
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-4 pt-20">
@@ -19,8 +32,17 @@ export function ProgressionSheet({ state, onClose }: { state: GameState; onClose
         </div>
 
         <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto p-4 text-xs">
-          <div className="mb-3">
-            <span className="rounded border border-primary/50 bg-primary/15 px-2 py-1 font-mono text-primary">Next: {snapshot.nextMajorUnlock}</span>
+          <div className="mb-3 rounded border border-primary/40 bg-primary/10 p-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Next Unlock</p>
+            <p className="font-semibold text-primary">{snapshot.nextMajorUnlock}</p>
+            <div className="mt-2 space-y-1">
+              {checks.map((check) => (
+                <div key={check.label} className={`rounded border px-2 py-1 ${check.done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-border/50 bg-background/40"}`}>
+                  {check.done ? "✅" : "⬜"} {check.label}
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[11px] text-accent">Next best step: {nextStep}</p>
           </div>
 
           <div className="grid gap-2 md:grid-cols-2">
