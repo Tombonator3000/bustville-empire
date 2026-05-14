@@ -79,33 +79,18 @@ function GamePage() {
       <HUD
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
-        onOpenStats={() => setStatsOpen(true)}
         onOpenStaff={() => {
           setStaffMode("overview");
           setStaffOpen(true);
         }}
-        onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
+        onOpenProgression={() => setProgressionOpen(true)}
       />
-      <div className="shrink-0 border-b border-border/40 bg-background/70 px-4 py-1">
-        <button
-          onClick={() => setProgressionOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary hover:brightness-110"
-        >
-          <span>Progress</span>
-          <span className="text-foreground/80">
-            {g.state.locationLevel > 0 ? `Lv ${g.state.locationLevel}` : "Lv ?"}
-          </span>
-          <span className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px]">
-            {district.id === "park" ? "Next: Downtown" : "Downtown Open"}
-          </span>
-        </button>
-      </div>
 
       <div className="relative flex-1 min-h-0 overflow-hidden">
         {activeLoc ? (

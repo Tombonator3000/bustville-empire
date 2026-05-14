@@ -1,18 +1,13 @@
 import { LOCATIONS } from "@/game/data";
 import { absHour, dayName, hoursUntilNextClockTime, timeStr, type GameState } from "@/game/useGame";
-import { formatDowntownRemainingRequirements } from "@/game/progression";
 import { getDistrictTransitionLock } from "@/game/locations";
-import { STAGE_ORDER } from "@/game/productions";
 import {
   DollarSign,
   Star,
   Zap,
   Flame,
-  Wine,
   Calendar,
   Backpack,
-  Crown,
-  Clapperboard,
   Users,
   ArrowLeftRight,
   Settings,
@@ -23,37 +18,36 @@ export function HUD({
   state,
   onOpenRoster,
   onOpenStaff,
-  onOpenStats,
-  onOpenProductions,
   onOpenInventory,
   onOpenGallery,
   onOpenOptions,
   onSwitch,
   onAdvanceTime,
   onEndDay,
+  onOpenProgression,
 }: {
   state: GameState;
   onOpenRoster: () => void;
-  onOpenStats: () => void;
   onOpenStaff: () => void;
-  onOpenProductions: () => void;
   onOpenInventory: () => void;
   onOpenGallery: () => void;
   onOpenOptions: () => void;
   onSwitch: () => void;
   onAdvanceTime: (hours?: number) => void;
   onEndDay: () => void;
+  onOpenProgression: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
-  const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
-  const headline = state.news[0];
-  const activeProds = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
 
   const downtownLock = getDistrictTransitionLock(state, "downtown");
-  const nextUnlockText = state.district === "park" && downtownLock.locked
-    ? formatDowntownRemainingRequirements(state)
-    : "Downtown route is open.";
+  const districtLocations = LOCATIONS.filter((location) => location.district === state.district);
+  const currentDistrictIndex = Math.max(
+    districtLocations.findIndex((location) => location.level === state.locationLevel),
+    0,
+  );
+  const districtLabel = state.district.charAt(0).toUpperCase() + state.district.slice(1);
+  const progressSummary = `LV${state.locationLevel} Hustler · ${districtLabel} ${Math.min(currentDistrictIndex + 1, districtLocations.length)}/${districtLocations.length}`;
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
@@ -81,11 +75,6 @@ export function HUD({
             icon={<Zap className="h-3.5 w-3.5" />}
             label="Stam"
             value={`${state.stamina}/${state.maxStamina}`}
-          />
-          <Pill
-            icon={<Wine className="h-3.5 w-3.5" />}
-            label="Moon"
-            value={state.moonshine.toString()}
           />
           <Pill
             icon={<Flame className="h-3.5 w-3.5" />}
@@ -136,7 +125,6 @@ export function HUD({
           primary
         />
         <NavBtn onClick={onOpenStaff} icon={<Users className="h-3.5 w-3.5" />} label={`Staff ${state.staff.length}`} />
-        <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn
           onClick={onOpenInventory}
           icon={<Backpack className="h-3.5 w-3.5" />}
@@ -148,12 +136,19 @@ export function HUD({
           label="Galleri"
         />
         <div className="ml-auto flex items-center gap-1.5">
+          <button
+            onClick={onOpenProgression}
+            title="Open progression"
+            className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary hover:brightness-110"
+          >
+            <span>{progressSummary}</span>
+          </button>
           <NavBtn
             onClick={onSwitch}
             icon={<ArrowLeftRight className="h-3.5 w-3.5" />}
             label={state.district === "park" ? "→ Downtown" : "→ Park"}
             accent
-            title={state.district === "park" && downtownLock.locked ? nextUnlockText : "Switch district"}
+            title={state.district === "park" && downtownLock.locked ? "Downtown route locked" : "Switch district"}
           />
           <button
             onClick={onOpenOptions}
@@ -164,52 +159,6 @@ export function HUD({
           </button>
         </div>
       </div>
-
-      {state.district === "park" && (
-        <div className="border-t border-border/40 bg-background/70 px-4 py-1 text-[10px] text-muted-foreground">
-          <span className="font-semibold text-accent">Next unlock:</span> {nextUnlockText}
-        </div>
-      )}
-
-      {/* Status strip — campaign + rival + news */}
-      {(state.campaignBonus > 0 || topRival || headline || activeProds > 0) && (
-        <div className="flex items-center gap-3 border-t border-border/40 bg-background/70 px-4 py-1 text-[10px]">
-          {activeProds > 0 && (
-            <button
-              onClick={onOpenProductions}
-              title="Aktive produksjoner — åpne pipeline"
-              className="flex items-center gap-1 rounded border border-primary/60 bg-primary/15 px-1.5 py-0.5 font-mono text-primary hover:brightness-125 whitespace-nowrap"
-            >
-              <Clapperboard className="h-3 w-3" /> {activeProds}
-            </button>
-          )}
-          {state.campaignBonus > 0 && (
-            <span
-              title="Marketing-kampanje aktiv — brukes opp ved neste release"
-              className="flex items-center gap-1 rounded border border-accent/60 bg-accent/15 px-1.5 py-0.5 font-mono text-accent whitespace-nowrap"
-            >
-              📣 +{state.campaignBonus}%
-            </span>
-          )}
-          {topRival && (
-            <span
-              title={`Topp-rival: ${topRival.name}`}
-              className="hidden items-center gap-1 font-mono text-muted-foreground md:flex whitespace-nowrap"
-            >
-              {topRival.emoji} <span className="uppercase tracking-wider">Rival</span>
-              <span className="font-bold text-foreground">{Math.round(topRival.share)}%</span>
-            </span>
-          )}
-          {headline && (
-            <div className="flex min-w-0 flex-1 items-center gap-2 text-muted-foreground">
-              <span className="rounded bg-accent/20 px-1.5 py-0.5 font-bold uppercase tracking-widest text-accent shrink-0">
-                News
-              </span>
-              <span className="truncate">{headline}</span>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 }
