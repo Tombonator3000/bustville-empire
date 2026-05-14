@@ -35,6 +35,7 @@ export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImp
         <div className="flex gap-1 border-b border-border bg-background/40 px-2 py-1">
           {([
             ["saves", "💾 Lagre / Last"],
+            ["sync", "🔄 Synk"],
             ["data", "📦 Data"],
             ["settings", "🎚️ Innstillinger"],
             ["about", "ℹ️ Om"],
