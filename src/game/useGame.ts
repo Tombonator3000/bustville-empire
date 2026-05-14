@@ -138,6 +138,38 @@ export interface StaffMember {
   trait: string;
 }
 
+
+export interface WeeklyRivalSummary {
+  week: number;
+  playerMarketSharePct: number;
+  rivals: Array<{
+    id: string;
+    name: string;
+    emoji: string;
+    sharePct: number;
+    deltaPct: number;
+    weeklyAction: string;
+  }>;
+  effects: string[];
+}
+
+export interface DistributionDealSummary {
+  id: string;
+  label: string;
+  dealType: DistributionDealType;
+  royaltyPct: number;
+  terms: string;
+  weeksRemaining: number;
+  isActive: boolean;
+}
+
+export interface WeeklyRoyaltyBreakdown {
+  week: number;
+  baseCatalogPayout: number;
+  dealPayoutTotal: number;
+  byTitle: Array<{ title: string; dealLabel: string; royaltyPct: number; payout: number }>;
+}
+
 export interface GameState {
   cash: number;
   reputation: number;
@@ -175,6 +207,7 @@ export interface GameState {
   rivals: Rival[];
   news: string[]; // siste byens overskrifter (nyeste først)
   rivalDigest: string[]; // kompakt ukesdigest med +/- share
+  weeklyRivalSummary: WeeklyRivalSummary;
   webcamLevel: number; // 1-3, hvor mange webcam-show typer låst opp
   trailerLevel: number; // 1-4, hvor mange visit-typer er låst opp
   condoms: number; // forbrukbare beskyttelse — brukes auto i risikable scener
@@ -182,6 +215,8 @@ export interface GameState {
   milestones: GameMilestones;
   milestoneEvent: MilestoneEventPayload | null;
   distributionDeals: DistributionDeal[];
+  distributionSummary: DistributionDealSummary[];
+  weeklyRoyaltyBreakdown: WeeklyRoyaltyBreakdown;
 }
 export type DistributionDealType = "streaming" | "dvd" | "cable" | "theatrical";
 export interface DistributionDeal {
@@ -306,6 +341,7 @@ const INITIAL: GameState = {
   rivals: INITIAL_RIVALS,
   news: ["📰 Bustville Bugle: 'Ny gründer i Trailer Park — hva i all verden brygger han på?'"],
   rivalDigest: ["Rival watch online. Første ukesrapport kommer dag 8."],
+  weeklyRivalSummary: { week: 0, playerMarketSharePct: 0, rivals: [], effects: [] },
   webcamLevel: 1,
   trailerLevel: 1,
   condoms: 2,
@@ -317,6 +353,8 @@ const INITIAL: GameState = {
     { id: "deal-dvd-1", label: "Red State DVD Club", dealType: "dvd", durationWeeks: 10, royaltyPct: 6, genrePreference: "wild", minQuality: 35, minReputation: 8 },
     { id: "deal-cable-1", label: "AfterDark Cable", dealType: "cable", durationWeeks: 8, royaltyPct: 7, minQuality: 50, minReputation: 15, advancePayment: 500 },
   ],
+  distributionSummary: [],
+  weeklyRoyaltyBreakdown: { week: 0, baseCatalogPayout: 0, dealPayoutTotal: 0, byTitle: [] },
 };
 const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
   editor: { names: ["Marty Cut", "Joan Razor", "Vince Splice"], traits: ["Night Owl", "Precision", "Fast Hands"] },
@@ -434,7 +472,10 @@ function normalizeGameState(raw: unknown): GameState {
     distributionDeals: Array.isArray(rest.distributionDeals)
       ? rest.distributionDeals
       : [...INITIAL.distributionDeals],
+    distributionSummary: Array.isArray(rest.distributionSummary) ? rest.distributionSummary : INITIAL.distributionSummary,
+    weeklyRoyaltyBreakdown: rest.weeklyRoyaltyBreakdown ?? INITIAL.weeklyRoyaltyBreakdown,
     rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
+    weeklyRivalSummary: rest.weeklyRivalSummary ?? INITIAL.weeklyRivalSummary,
   };
 }
 
@@ -787,6 +828,18 @@ export function useGame() {
     return evaluateFirstHitMilestone(next, "weekly");
   }
 
+
+  function buildDistributionSummary(state: GameState): DistributionDealSummary[] {
+    return state.distributionDeals.map((deal) => {
+      const isActive = Boolean(deal.activeFromDay && deal.expiresDay && state.day <= deal.expiresDay);
+      const weeksRemaining = isActive && deal.expiresDay
+        ? Math.max(0, Math.ceil((deal.expiresDay - state.day + 1) / 7))
+        : 0;
+      const terms = `Min Q${deal.minQuality} · Min Rep ${deal.minReputation}${deal.genrePreference ? ` · Pref ${deal.genrePreference}` : ""}`;
+      return { id: deal.id, label: deal.label, dealType: deal.dealType, royaltyPct: deal.royaltyPct, terms, weeksRemaining, isActive };
+    });
+  }
+
   function weekTick(s: GameState): GameState {
     let next = { ...s };
     const wages = next.girls.reduce((a, g) => a + effectiveSalary(g), 0);
@@ -794,6 +847,7 @@ export function useGame() {
     next.cash += royalty - wages;
     next = log(next, `📅 Ukens lønn: -$${wages}. Royalties: +$${royalty}.`);
     const royaltyLines: string[] = [];
+    const royaltyByTitle: WeeklyRoyaltyBreakdown["byTitle"] = [];
     let dealRoyaltyTotal = 0;
     for (const p of next.productions) {
       if (!p.releasedGross || !p.distributionDealId) continue;
@@ -804,7 +858,14 @@ export function useGame() {
       if (payout <= 0) continue;
       dealRoyaltyTotal += payout;
       royaltyLines.push(`💿 Deal royalty: "${p.title}" via ${deal.label} +$${payout} (${deal.royaltyPct}%).`);
+      royaltyByTitle.push({ title: p.title, dealLabel: deal.label, royaltyPct: deal.royaltyPct, payout });
     }
+    next.weeklyRoyaltyBreakdown = {
+      week: Math.max(1, Math.floor((next.day - 1) / 7) + 1),
+      baseCatalogPayout: royalty,
+      dealPayoutTotal: dealRoyaltyTotal,
+      byTitle: royaltyByTitle,
+    };
     if (dealRoyaltyTotal > 0) {
       next.cash += dealRoyaltyTotal;
       next.news = [`💿 Ukens deal-royalties: +$${dealRoyaltyTotal}.`, ...next.news].slice(0, 12);
@@ -867,6 +928,13 @@ export function useGame() {
       return `${r.emoji} ${r.name}: ${Math.round(r.share)}% (${delta}) • ${r.weeklyMove}`;
     });
     next.rivalDigest = digest.slice(0, 4);
+    next.weeklyRivalSummary = {
+      week: Math.max(1, Math.floor((next.day - 1) / 7) + 1),
+      playerMarketSharePct: Math.round(Math.max(0, 100 - newRivals.reduce((sum, r) => sum + r.share, 0))),
+      rivals: newRivals.map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, sharePct: Math.round(r.share), deltaPct: Number(r.lastDelta.toFixed(1)), weeklyAction: r.weeklyMove })),
+      effects: counterLines,
+    };
+    next.distributionSummary = buildDistributionSummary(next);
     // STD-tick: ukentlig loyalty-drain for syke jenter, og kronisk-varsel
     const sickGirls = next.girls.filter((g) => g.std);
     if (sickGirls.length) {
