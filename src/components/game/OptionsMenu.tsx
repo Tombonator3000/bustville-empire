@@ -91,6 +91,8 @@ export function OptionsMenu({ onClose, onSave, onLoad, onDelete, onExport, onImp
             </div>
           )}
 
+          {tab === "sync" && <SyncStatusBox />}
+
           {tab === "data" && (
             <div className="space-y-4">
               <div>
