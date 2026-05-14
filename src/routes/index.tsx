@@ -16,7 +16,7 @@ import { RosterSheet } from "@/components/game/RosterSheet";
 import { StatsSheet } from "@/components/game/StatsSheet";
 import { StaffPanel } from "@/components/game/StaffPanel";
 import { Splash, WinScreen } from "@/components/game/Splash";
-import { ProgressionPanel } from "@/components/game/ProgressionPanel";
+import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 
 export const Route = createFileRoute("/")({
@@ -47,6 +47,7 @@ function GamePage() {
   const [webcamOpen, setWebcamOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
   const [clinicOpen, setClinicOpen] = useState(false);
+  const [progressionOpen, setProgressionOpen] = useState(false);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
@@ -71,7 +72,7 @@ function GamePage() {
     : null;
 
   return (
-    <main className="relative min-h-screen w-full">
+    <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-background">
       <HUD
         state={g.state}
         onOpenRoster={() => setRosterOpen(true)}
@@ -80,14 +81,23 @@ function GamePage() {
         onOpenProductions={() => setProdOpen(true)}
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
-        onOpenClinic={() => setClinicOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
         onSwitch={g.switchDistrict}
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
       />
-      <ProgressionPanel state={g.state} />
+      <div className="shrink-0 border-b border-border/40 bg-background/70 px-4 py-1">
+        <button
+          onClick={() => setProgressionOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary hover:brightness-110"
+        >
+          <span>Progress</span>
+          <span className="text-foreground/80">{g.state.locationLevel > 0 ? `Lv ${g.state.locationLevel}` : "Lv ?"}</span>
+          <span className="rounded border border-primary/50 px-1.5 py-0.5 text-[10px]">{district.id === "park" ? "Next: Downtown" : "Downtown Open"}</span>
+        </button>
+      </div>
 
+      <div className="relative flex-1 min-h-0 overflow-hidden">
       {activeLoc ? (
         <LocationView
           state={g.state}
@@ -116,6 +126,9 @@ function GamePage() {
           onSwitchDistrict={g.switchDistrict}
         />
       )}
+      </div>
+
+      {progressionOpen && <ProgressionSheet state={g.state} onClose={() => setProgressionOpen(false)} />}
 
       {rosterOpen && (
         <RosterSheet
@@ -194,22 +207,6 @@ function GamePage() {
           }}
         />
       )}
-
-      <footer className="mx-auto mt-4 max-w-7xl px-3 pb-3 text-center text-[10px] text-muted-foreground">
-        <button
-          onClick={() => {
-            if (confirm("Slett all progresjon?")) {
-              g.reset();
-              setStarted(false);
-            }
-          }}
-          className="underline hover:text-primary"
-        >
-          Reset
-        </button>
-        <span className="mx-2">·</span>
-        Bustville Empire — A Lula-style satire.
-      </footer>
     </main>
   );
 }

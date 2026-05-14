@@ -17,7 +17,6 @@ import {
   ArrowLeftRight,
   Settings,
   Image as ImageIcon,
-  Stethoscope,
 } from "lucide-react";
 
 export function HUD({
@@ -28,7 +27,6 @@ export function HUD({
   onOpenProductions,
   onOpenInventory,
   onOpenGallery,
-  onOpenClinic,
   onOpenOptions,
   onSwitch,
   onAdvanceTime,
@@ -41,7 +39,6 @@ export function HUD({
   onOpenProductions: () => void;
   onOpenInventory: () => void;
   onOpenGallery: () => void;
-  onOpenClinic: () => void;
   onOpenOptions: () => void;
   onSwitch: () => void;
   onAdvanceTime: (hours?: number) => void;
@@ -50,7 +47,6 @@ export function HUD({
   const loc = LOCATIONS[state.locationLevel - 1];
   const topRival = [...state.rivals].sort((a, b) => b.share - a.share)[0];
   const headline = state.news[0];
-  const sickCount = state.girls.filter((x) => x.std).length;
   const activeProds = state.productions.filter((p) => p.stageIdx < STAGE_ORDER.length).length;
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
 
@@ -141,7 +137,6 @@ export function HUD({
         />
         <NavBtn onClick={onOpenStaff} icon={<Users className="h-3.5 w-3.5" />} label={`Staff ${state.staff.length}`} />
         <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
-        <NavBtn onClick={onOpenStats} icon={<Crown className="h-3.5 w-3.5" />} label="Boss" />
         <NavBtn
           onClick={onOpenInventory}
           icon={<Backpack className="h-3.5 w-3.5" />}
@@ -151,12 +146,6 @@ export function HUD({
           onClick={onOpenGallery}
           icon={<ImageIcon className="h-3.5 w-3.5" />}
           label="Galleri"
-        />
-        <NavBtn
-          onClick={onOpenClinic}
-          icon={<Stethoscope className={`h-3.5 w-3.5 ${sickCount ? "text-destructive" : ""}`} />}
-          label={sickCount ? `Klinikk (${sickCount})` : "Klinikk"}
-          hot={sickCount > 0}
         />
         <div className="ml-auto flex items-center gap-1.5">
           <NavBtn

@@ -50,7 +50,7 @@ export function MapView({ state, district, onGoTo, onSwitchDistrict }: {
   const moonGlowOpacity = 0.22 * night + 0.18 * cool;
 
   return (
-    <section className="relative h-[calc(100vh-6.25rem)] w-full overflow-hidden">
+    <section className="relative h-full w-full overflow-hidden">
       <img
         src={district.image}
         alt={district.name}

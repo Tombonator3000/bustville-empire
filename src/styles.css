@@ -145,6 +145,10 @@
     border-color: var(--color-border);
   }
 
+  html, body, #root {
+    height: 100%;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -152,6 +156,8 @@
     background-image: radial-gradient(circle at 20% 10%, oklch(0.32 0.18 350 / 0.4), transparent 60%),
                       radial-gradient(circle at 80% 90%, oklch(0.3 0.18 290 / 0.4), transparent 60%);
     background-attachment: fixed;
+    overflow: hidden;
+    margin: 0;
   }
 
   h1, h2, h3, .font-display {
