@@ -32,6 +32,7 @@ import {
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
 import { trackTelemetry } from "./telemetry";
+import { applyGoalEvent, initGoalsState, normalizeGoalsState, type GoalsState } from "./goals";
 import {
   generateRecruitPresentation,
   getPhaseByLocationLevel,
@@ -224,7 +225,7 @@ export interface GameState {
   distributionDeals: DistributionDeal[];
   distributionSummary: DistributionDealSummary[];
   weeklyRoyaltyBreakdown: WeeklyRoyaltyBreakdown;
-  goals: import("./goals").GoalsState;
+  goals: GoalsState;
   activeEvents: PendingEvent[];
 }
 export type DistributionDealType = "streaming" | "dvd" | "cable" | "theatrical";
