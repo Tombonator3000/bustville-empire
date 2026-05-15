@@ -175,23 +175,37 @@ export function LocationView({
             </div>
             <div className="mt-1 max-h-40 space-y-0.5 overflow-y-auto">
               {state.log.slice(0, 8).map((line, i) => {
-                const major =
-                  /(first hit|milestone|recruit|hired|new local lead|heat \+|utbrent|weekly|unlock)/i.test(
-                    line,
-                  );
+                const cls = classifyLogEvent(line);
                 return (
                   <p
                     key={i}
-                    className={
-                      major
+                    className={`flex items-start gap-1.5 ${
+                      cls.important
                         ? "rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-foreground"
                         : i === 0
                           ? "text-foreground"
-                          : "text-muted-foreground"
-                    }
+                          : LOG_TONE_CLASS[cls.tone]
+                    }`}
                   >
-                    {major ? "★ " : ""}
-                    {line}
+                    <GameIcon
+                      name={cls.icon}
+                      size={12}
+                      className="mt-0.5 shrink-0"
+                      tone={
+                        cls.tone === "danger"
+                          ? "danger"
+                          : cls.tone === "warning"
+                            ? "warning"
+                            : cls.tone === "cash"
+                              ? "cash"
+                              : cls.tone === "milestone"
+                                ? "purple"
+                                : cls.tone === "success"
+                                  ? "success"
+                                  : "neutral"
+                      }
+                    />
+                    <span>{line}</span>
                   </p>
                 );
               })}
