@@ -1,4 +1,5 @@
 import { LOCATIONS } from "@/game/data";
+import { exportTelemetry } from "@/game/telemetry";
 import type { GameState } from "@/game/useGame";
 
 export function StatsSheet({
@@ -10,6 +11,21 @@ export function StatsSheet({
   onClose: () => void;
   onUpgrade: (s: "charisma" | "hustle" | "business" | "lust") => void;
 }) {
+  const handleExportTelemetry = () => {
+    try {
+      if (typeof window === "undefined" || typeof document === "undefined") return;
+      const payload = exportTelemetry();
+      const blob = new Blob([payload.json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = payload.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Ignore export failures in UI.
+    }
+  };
   const stats: Array<"charisma" | "hustle" | "business" | "lust"> = [
     "charisma",
     "hustle",
@@ -30,15 +46,32 @@ export function StatsSheet({
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl uppercase neon-text">The Boss</h2>
-          <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">
-            Lukk
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportTelemetry}
+              className="rounded bg-secondary px-3 py-1 text-sm"
+            >
+              Export telemetry
+            </button>
+            <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">
+              Lukk
+            </button>
+          </div>
         </div>
 
         <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">
           Rival Watch
         </h3>
-        <p className="text-[11px] text-muted-foreground">Active rival pressure: <b>{state.activeEvents.filter((e) => e.kind === "rival_billboard" || e.kind === "price_dump").length}</b></p>
+        <p className="text-[11px] text-muted-foreground">
+          Active rival pressure:{" "}
+          <b>
+            {
+              state.activeEvents.filter(
+                (e) => e.kind === "rival_billboard" || e.kind === "price_dump",
+              ).length
+            }
+          </b>
+        </p>
         <div className="mt-2 space-y-1.5">
           {state.weeklyRivalSummary.rivals.map((r) => (
             <div key={r.id} className="rounded-md border border-border bg-secondary/30 p-2">
