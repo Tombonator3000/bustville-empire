@@ -1,6 +1,8 @@
 import type { GameState } from "@/game/useGame";
 import { EQUIPMENT_LABELS, getEquipmentLevelLabel } from "@/game/useGame";
 import { SHOP_COVER } from "@/game/data";
+import { GameIcon, type GameIconName, type IconTone } from "@/components/game/GameIcon";
+import { GameMeter } from "@/components/game/GameMeter";
 
 interface Props {
   state: GameState;
@@ -53,23 +55,23 @@ export function InventorySheet({ state, onClose }: Props) {
         <div className="space-y-4 p-4">
           {/* Cash + resources */}
           <Section title="Ressurser">
-            <Item icon="💵" label="Kontanter" value={`$${state.cash.toLocaleString()}`} accent />
-            <Item icon="🥃" label="Moonshine" sub="flasker" value={state.moonshine} />
-            <Item icon="⭐" label="Omdømme" value={state.reputation} />
-            <Item icon="⚡" label="Stamina" value={`${state.stamina} / ${state.maxStamina}`} />
+            <Item icon="cash" tone="cash" label="Kontanter" value={`$${state.cash.toLocaleString()}`} accent />
+            <Item icon="moonshine" label="Moonshine" sub="flasker" value={state.moonshine} />
+            <Item icon="rep" tone="rep" label="Omdømme" value={state.reputation} meter max={200} />
+            <Item icon="stamina" tone="stamina" label="Stamina" value={`${state.stamina} / ${state.maxStamina}`} meterValue={state.stamina} max={state.maxStamina} meter />
             {state.backlog > 0 && (
-              <Item icon="📼" label="Backlog" sub="usolgte produksjoner" value={state.backlog} />
+              <Item icon="inventory" label="Backlog" sub="usolgte produksjoner" value={state.backlog} />
             )}
-            <Item icon="🎞️" label="Filmstock" sub="ruller (Sparky's)" value={state.filmstock} />
-            <Item icon="👗" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
+            <Item icon="film" label="Filmstock" sub="ruller (Sparky's)" value={state.filmstock} />
+            <Item icon="inventory" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
             <Item
-              icon="🎟️"
+              icon="auditionVoucher"
               label="Audition-vouchers"
               sub="Open Mic Casting"
               value={state.auditionVouchers}
             />
             <Item
-              icon="🧪"
+              icon="healthCheck"
               label="Condoms"
               sub="auto i intense scener — beskytter 100%"
               value={state.condoms}
@@ -79,7 +81,7 @@ export function InventorySheet({ state, onClose }: Props) {
             />
             {state.distribBonus > 0 && (
               <Item
-                icon="🤝"
+                icon="distribution"
                 label="Distribusjons-bonus"
                 sub="neste utgivelse"
                 value={`+${state.distribBonus}%`}
@@ -90,15 +92,19 @@ export function InventorySheet({ state, onClose }: Props) {
           {/* Status */}
           <Section title="Status">
             <Item
-              icon="🔥"
+              icon="heat"
+              tone="heat"
               label="Heat"
               sub="razzia-risiko"
               value={`${state.heatLevel}%`}
+              meter
+              meterValue={state.heatLevel}
+              max={100}
               className={heatColor}
             />
             {state.bribedUntilDay > state.day && (
               <Item
-                icon="🤝"
+                icon="bribe"
                 label="Bestikket sheriff"
                 sub="til dag"
                 value={state.bribedUntilDay}
@@ -106,27 +112,27 @@ export function InventorySheet({ state, onClose }: Props) {
             )}
             {state.loan > 0 ? (
               <Item
-                icon="🏦"
+                icon="cashLoss"
                 label="Lån"
                 sub={`forfaller dag ${state.loanDueDay}`}
                 value={`$${state.loan}`}
                 className="text-destructive"
               />
             ) : (
-              <Item icon="🏦" label="Lån" value="—" />
+              <Item icon="cashLoss" label="Lån" value="—" />
             )}
           </Section>
 
           {/* Upgrades */}
           <Section title="Bygg & Utstyr">
             <Item
-              icon="🛠️"
+              icon="upgradeHome"
               label="Destilleri"
               sub={`+${(state.distilleryLevel - 1) * 50}% utbytte`}
               value={`Lv ${state.distilleryLevel}`}
             />
             <Item
-              icon="🎬"
+              icon="film"
               label="Studio"
               sub="produksjons-base"
               value={`Lv ${state.studioLevel}`}
@@ -144,20 +150,20 @@ export function InventorySheet({ state, onClose }: Props) {
 
           {/* Roster summary */}
           <Section title="Stab">
-            <Item icon="💋" label="Stjerner i roster" value={state.girls.length} />
+            <Item icon="roster" label="Stjerner i roster" value={state.girls.length} />
             <Item
-              icon="⏳"
+              icon="cooldown"
               label="På oppdrag"
               value={state.girls.filter((g) => g.mission).length}
             />
             <Item
-              icon="🎥"
+              icon="film"
               label="Aktive produksjoner"
               value={state.productions.filter((p) => !p.flopped && p.stageIdx < 5).length}
             />
             {state.girls.some((g) => g.std) && (
               <Item
-                icon="🧪"
+                icon="healthCheck"
                 label="Syke stjerner"
                 sub="trenger Doc Lonnie"
                 value={state.girls.filter((g) => g.std).length}
@@ -190,25 +196,42 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Item({
   icon,
+  tone = "neutral",
   label,
   sub,
   value,
   accent,
   className,
+  meter,
+  meterValue,
+  max = 100,
 }: {
-  icon: string;
+  icon: GameIconName;
+  tone?: IconTone;
   label: string;
   sub?: string;
   value: React.ReactNode;
   accent?: boolean;
   className?: string;
+  meter?: boolean;
+  meterValue?: number;
+  max?: number;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-background/60">
-      <span className="text-xl leading-none">{icon}</span>
+      <GameIcon name={icon} tone={tone} size={16} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold leading-tight">{label}</p>
         {sub && <p className="text-[10px] text-muted-foreground leading-tight">{sub}</p>}
+        {meter && typeof (meterValue ?? value) === "number" && (
+          <GameMeter
+            className="mt-1"
+            value={(meterValue ?? value) as number}
+            max={max}
+            tone={tone === "heat" ? "heat" : tone === "stamina" ? "stamina" : "progress"}
+            size="tiny"
+          />
+        )}
       </div>
       <span
         className={`font-mono font-bold ${accent ? "text-primary neon-text" : ""} ${className ?? ""}`}

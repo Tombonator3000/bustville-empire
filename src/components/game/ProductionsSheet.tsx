@@ -21,6 +21,8 @@ import { ARCHETYPE_PORTRAITS, STUDIO_COVERS, type Girl } from "@/game/data";
 import { GENRES, getGenre } from "@/game/genres";
 import { deriveProductionReleaseForecast } from "@/game/productionForecast";
 import { suggestRole } from "@/game/roleSuggestion";
+import { GameIcon } from "@/components/game/GameIcon";
+import { StatPill, GameMeter } from "@/components/game/GameMeter";
 
 interface Props {
   state: GameState;
@@ -77,21 +79,21 @@ export function ProductionsSheet({
             <h3 className="font-display text-sm uppercase tracking-widest text-accent">
               Studio Lv {state.studioLevel}
             </h3>
-            <span
-              className={`text-[11px] font-mono ${full ? "text-destructive" : "text-foreground"}`}
-            >
-              🎬 {activeCount}/{mods.capacity} kø
-            </span>
+            <StatPill
+              icon={<GameIcon name="film" tone="neutral" size={12} />}
+              label="Queue"
+              value={activeCount}
+              max={mods.capacity}
+              meter
+              tone={full ? "danger" : "progress"}
+            />
           </div>
-          <div className="mt-1 grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
-            <div>
-              Kost <span className="text-foreground font-mono">×{mods.costMult.toFixed(2)}</span>
-            </div>
-            <div>
-              Tid <span className="text-foreground font-mono">×{mods.hoursMult.toFixed(2)}</span>
-            </div>
-            <div>
-              Q-tak <span className="text-foreground font-mono">{mods.qualityCap}</span>
+          <div className="mt-1 grid grid-cols-3 gap-2 text-[10px]">
+            <StatPill icon={<GameIcon name="cash" tone="cash" size={11} />} label="Kost" value={`×${mods.costMult.toFixed(2)}`} />
+            <StatPill icon={<GameIcon name="time" size={11} />} label="Tid" value={`×${mods.hoursMult.toFixed(2)}`} />
+            <div className="rounded border border-border/60 bg-background/60 px-2 py-1">
+              <div className="mb-0.5 flex items-center justify-between text-[10px]"><span>Q-tak</span><span className="font-mono">{mods.qualityCap}</span></div>
+              <GameMeter value={Math.min(100, mods.qualityCap)} max={100} tone="rep" size="tiny" />
             </div>
           </div>
 
