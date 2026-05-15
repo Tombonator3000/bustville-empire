@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -34,8 +36,17 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
   const router = useRouter();
+  const errorId = useMemo(
+    () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    [],
+  );
+
+  console.error({
+    error,
+    routePath: router.state.location.pathname,
+    errorId,
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -46,6 +57,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        <p className="mt-2 text-xs text-muted-foreground">Error ID: {errorId}</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -55,6 +67,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("Open safe mode? This will clear local data and reload the page.")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+              }
+            }}
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Open safe mode
           </button>
           <a
             href="/"
