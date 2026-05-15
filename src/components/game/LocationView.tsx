@@ -9,6 +9,7 @@ import {
 } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId } from "@/game/locations";
+import { getActionPreview } from "@/game/actionPreview";
 import { getLocationImage } from "@/components/game/HotspotEditor";
 import { ArrowLeft } from "lucide-react";
 import { GameIcon, type GameIconName } from "./GameIcon";
@@ -169,31 +170,32 @@ export function LocationView({
                               Velg jente, type & intensitet
                             </div>
                           )}
-                          <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
-                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
-                              <GameIcon name="time" size={11} />~{a.hours || 0}t
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
-                              <GameIcon name="cash" size={11} tone="cash" />
-                              {a.id === "webcam" || a.id === "visit" || a.id === "oddJob"
-                                ? "variable"
-                                : "impact"}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
-                              <GameIcon name="stamina" size={11} tone="stamina" />
-                              cost
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
-                              <GameIcon name="heat" size={11} tone="heat" />
-                              risk
-                            </span>
-                            {(a.id === "webcam" || a.id === "visit") && (
-                              <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
-                                <GameIcon name="requiresStar" size={11} />
-                                star
-                              </span>
-                            )}
-                          </div>
+                          {(() => {
+                            const preview = getActionPreview({
+                              locationId: locId,
+                              actionId: a.id,
+                              state,
+                            });
+                            return (
+                              <>
+                                <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+                                  {preview.rows.slice(0, 4).map((row) => (
+                                    <span
+                                      key={row.label}
+                                      className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5"
+                                    >
+                                      {row.label}: {row.value}
+                                    </span>
+                                  ))}
+                                </div>
+                                {preview.disabledReason && (
+                                  <div className="mt-1 text-[10px] text-destructive">
+                                    ⛔ {preview.disabledReason}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </button>
                     );
@@ -205,6 +207,8 @@ export function LocationView({
                       open={open}
                       onToggle={() => setOpenId(open ? null : a.id)}
                       girls={state.girls}
+                      state={state}
+                      locId={locId}
                       nowAbs={absHour(state)}
                       defaultGirl={selectedGirl}
                       onRun={(girlId, intensity) => {
@@ -271,6 +275,8 @@ function ActionRow({
   open,
   onToggle,
   girls,
+  state,
+  locId,
   nowAbs,
   defaultGirl,
   onRun,
@@ -279,6 +285,8 @@ function ActionRow({
   open: boolean;
   onToggle: () => void;
   girls: Girl[];
+  state: GameState;
+  locId: LocationId;
   nowAbs: number;
   defaultGirl?: string;
   onRun: (girlId: string | undefined, intensity: Intensity) => void;
@@ -310,18 +318,12 @@ function ActionRow({
   const heat = previewHeat(action.id === "visit" ? 2 : 0, intensity);
   const staminaCost = action.hours * 4;
   const cooldown = selectedGirlObj ? intensityCooldownHours(action.hours, intensity) : 0;
-  const req =
-    action.id === "sellTrucker"
-      ? "Req: moonshine"
-      : action.id === "supplies"
-        ? "Cost: $"
-        : action.id === "postFlyer"
-          ? "Lead: adds candidate"
-          : action.id === "layLow"
-            ? "Utility: lowers heat"
-            : "Req: none";
-  const compactPreview = `${action.hours > 0 ? `${action.hours}t` : "0t"} · 💵$? · ⭐rep ? · 🔥+${heat.total} · ⚡-${staminaCost}`;
-  const compactMeta = `${req} · Cooldown: ${cooldown}t`;
+  const preview = getActionPreview({
+    locationId: locId,
+    actionId: action.id,
+    state,
+    intensity,
+  });
   return (
     <div
       className={`rounded-lg border ${open ? "border-primary/70 bg-secondary/60" : "border-border bg-secondary/40"} transition`}
@@ -339,8 +341,17 @@ function ActionRow({
             </span>
           </div>
           {action.desc && <div className="text-[10px] text-muted-foreground">{action.desc}</div>}
-          <div className="text-[10px] text-accent/80">{compactPreview}</div>
-          <div className="text-[10px] text-muted-foreground">{compactMeta}</div>
+          <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-accent/80">
+            {preview.rows.slice(0, 5).map((row) => (
+              <span key={row.label} className="rounded bg-background/40 px-1 py-0.5">
+                {row.label}: {row.value}
+              </span>
+            ))}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Cooldown: {cooldown}t</div>
+          {preview.disabledReason && (
+            <div className="text-[10px] text-destructive">⛔ {preview.disabledReason}</div>
+          )}
           {!open && (
             <div className="text-[10px] text-accent/80">
               {girlId
