@@ -20,6 +20,7 @@ import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 import { CastingBoardPanel } from "@/components/game/CastingBoardPanel";
 import { GoalsSheet } from "@/components/game/GoalsSheet";
+import { EventQueueSheet } from "@/components/game/EventQueueSheet";
 
 const STARTED_FLAG_KEY = "bustville-started";
 
@@ -55,6 +56,7 @@ function GamePage() {
   const [clinicOpen, setClinicOpen] = useState(false);
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const initializedStartedRef = useRef(false);
 
   useEffect(() => {
@@ -119,6 +121,7 @@ function GamePage() {
         onEndDay={g.endDay}
         onOpenProgression={() => setProgressionOpen(true)}
         onOpenGoals={() => setGoalsOpen(true)}
+        onOpenEvents={() => setEventsOpen(true)}
       />
 
       <div className="relative flex-1 min-h-0 overflow-hidden">
@@ -158,6 +161,13 @@ function GamePage() {
       </div>
 
       {goalsOpen && <GoalsSheet state={g.state} onClose={() => setGoalsOpen(false)} />}
+      {eventsOpen && (
+        <EventQueueSheet
+          state={g.state}
+          onClose={() => setEventsOpen(false)}
+          onResolve={g.resolveActiveEvent}
+        />
+      )}
 
       {progressionOpen && (
         <ProgressionSheet state={g.state} onClose={() => setProgressionOpen(false)} />
