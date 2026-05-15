@@ -1943,7 +1943,7 @@ export function useGame() {
       if (s.cash < 200) return log(s, "Trening koster $200.");
       const g = s.girls.find((x) => x.id === id);
       if (!g) return s;
-      const stat = ["beauty", "performance", "popularity"][ri(0, 2)] as keyof Girl;
+      const stat = (["beauty", "performance", "popularity"] as const)[ri(0, 2)];
       const inc = ri(2, 6);
       return log(
         {
