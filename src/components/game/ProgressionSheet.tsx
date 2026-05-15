@@ -1,28 +1,25 @@
 import { X } from "lucide-react";
-import {
-  DOWNTOWN_UNLOCK_GATE,
-  deriveProgressionSnapshot,
-  getDowntownUnlockDeltas,
-} from "@/game/progression";
+import { deriveProgressionSnapshot, getDowntownUnlockGateStatus } from "@/game/progression";
 import type { GameState } from "@/game/useGame";
 import { GameIcon } from "./GameIcon";
 import { SegmentedProgress } from "./GameMeter";
 
 export function ProgressionSheet({ state, onClose }: { state: GameState; onClose: () => void }) {
   const snapshot = deriveProgressionSnapshot(state);
-  const downtown = getDowntownUnlockDeltas(state);
+  const downtownGate = getDowntownUnlockGateStatus(state);
+  const downtown = downtownGate.deltas;
   const checks = [
     {
-      label: `Cash $${state.cash.toLocaleString()} / $${DOWNTOWN_UNLOCK_GATE.cash.toLocaleString()}`,
+      label: `Cash $${state.cash.toLocaleString()} / $${downtownGate.required.cash.toLocaleString()}`,
       done: downtown.cash === 0,
     },
     {
-      label: `Rep ${state.reputation} / ${DOWNTOWN_UNLOCK_GATE.reputation}`,
+      label: `Rep ${state.reputation} / ${downtownGate.required.reputation}`,
       done: downtown.reputation === 0,
     },
     { label: "First Hit milestone", done: downtown.milestone.length === 0 },
     {
-      label: `Heat ≤ ${DOWNTOWN_UNLOCK_GATE.maxHeat}% (current ${state.heatLevel}%)`,
+      label: `Heat ≤ ${downtownGate.required.maxHeat}% (current ${state.heatLevel}%)`,
       done: downtown.heat === 0,
     },
   ];
