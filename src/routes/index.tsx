@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGame } from "@/game/useGame";
 import { DISTRICTS } from "@/game/locations";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
@@ -19,6 +19,8 @@ import { Splash, WinScreen } from "@/components/game/Splash";
 import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 import { CastingBoardPanel } from "@/components/game/CastingBoardPanel";
+
+const STARTED_FLAG_KEY = "bustville-started";
 
 export const Route = createFileRoute("/")({
   component: GamePage,
@@ -51,11 +53,34 @@ function GamePage() {
   const [visitOpen, setVisitOpen] = useState(false);
   const [clinicOpen, setClinicOpen] = useState(false);
   const [progressionOpen, setProgressionOpen] = useState(false);
+  const initializedStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (!g.loaded || typeof window === "undefined" || initializedStartedRef.current) return;
+
+    const hasStartedFlag = window.localStorage.getItem(STARTED_FLAG_KEY) === "true";
+    const isFreshState = g.state.day === 1 && g.state.hour === 8 && g.state.girls.length === 0;
+
+    setStarted(hasStartedFlag || !isFreshState);
+    initializedStartedRef.current = true;
+  }, [g.loaded, g.state.day, g.state.girls.length, g.state.hour]);
 
   if (!g.loaded) return <div className="min-h-screen" />;
 
   if (!started && g.state.day === 1 && g.state.girls.length === 0 && g.state.hour === 8) {
-    return <Splash onStart={() => setStarted(true)} onReset={g.reset} />;
+    return (
+      <Splash
+        onStart={() => {
+          setStarted(true);
+          window.localStorage.setItem(STARTED_FLAG_KEY, "true");
+        }}
+        onReset={() => {
+          g.reset();
+          setStarted(false);
+          window.localStorage.removeItem(STARTED_FLAG_KEY);
+        }}
+      />
+    );
   }
   if (g.state.won) {
     return (
@@ -63,6 +88,7 @@ function GamePage() {
         onReset={() => {
           g.reset();
           setStarted(false);
+          window.localStorage.removeItem(STARTED_FLAG_KEY);
         }}
       />
     );
@@ -215,6 +241,7 @@ function GamePage() {
           onReset={() => {
             g.reset();
             setStarted(false);
+            window.localStorage.removeItem(STARTED_FLAG_KEY);
           }}
         />
       )}
