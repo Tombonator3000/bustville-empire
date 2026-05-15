@@ -224,6 +224,7 @@ export interface GameState {
   distributionSummary: DistributionDealSummary[];
   weeklyRoyaltyBreakdown: WeeklyRoyaltyBreakdown;
   goals: import("./goals").GoalsState;
+  activeEvents: PendingEvent[];
 }
 export type DistributionDealType = "streaming" | "dvd" | "cable" | "theatrical";
 export interface DistributionDeal {
@@ -392,6 +393,7 @@ const INITIAL: GameState = {
   distributionSummary: [],
   weeklyRoyaltyBreakdown: { week: 0, baseCatalogPayout: 0, dealPayoutTotal: 0, byTitle: [] },
   goals: initGoalsState(),
+  activeEvents: [],
 };
 const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
   editor: {
@@ -514,6 +516,7 @@ function normalizeGameState(raw: unknown): GameState {
     rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
     weeklyRivalSummary: rest.weeklyRivalSummary ?? INITIAL.weeklyRivalSummary,
     goals: normalizeGoalsState(rest.goals),
+    activeEvents: Array.isArray(rest.activeEvents) ? rest.activeEvents : [],
   };
 }
 
@@ -838,6 +841,16 @@ export function useGame() {
       next.hour -= 24;
       next.day += 1;
       next.heatLevel = Math.max(0, next.heatLevel - 3);
+      const expired = expireEvents(next);
+      next = expired.state;
+      expired.summaries.forEach((line) => {
+        next = log(next, line);
+      });
+      const pending = maybeGenerateEvent(next);
+      if (pending) {
+        next = { ...next, activeEvents: [...next.activeEvents, pending] };
+        next = log(next, `⚠️ Ny hendelse: ${pending.title}.`);
+      }
       // Daglig overskrift (60% sjanse for å unngå spam)
       if (Math.random() < 0.6) {
         const headline = dailyHeadline(next.rivals);
@@ -2863,6 +2876,15 @@ export function useGame() {
     });
   }, []);
 
+  const resolveActiveEvent = useCallback((eventId: string, choiceId: string) => {
+    setState((s) => {
+      const event = s.activeEvents.find((e) => e.id === eventId);
+      if (!event) return s;
+      const resolved = applyEventChoice(s, event, choiceId);
+      return log(resolved.state, resolved.summary);
+    });
+  }, []);
+
   const companyRank = deriveCompanyRank({
     locationLevel: state.locationLevel,
     cash: state.cash,
@@ -2914,5 +2936,6 @@ export function useGame() {
     advanceTime,
     endDay,
     clearRecruitReveal,
+    resolveActiveEvent,
   };
 }

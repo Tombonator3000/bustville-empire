@@ -114,7 +114,7 @@ export function MapView({
         <h2 className="font-display text-2xl uppercase neon-text leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
           {district.name}
         </h2>
-        <p className="text-[10px] text-foreground/80 leading-tight">{district.tagline}</p>
+        <p className="text-[10px] text-foreground/80 leading-tight">{district.tagline} · ⚠️ {state.activeEvents.length} pending</p>
       </div>
 
       <button

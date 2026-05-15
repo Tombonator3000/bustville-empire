@@ -38,6 +38,7 @@ export function StatsSheet({
         <h3 className="mt-5 font-display text-sm uppercase tracking-widest text-accent">
           Rival Watch
         </h3>
+        <p className="text-[11px] text-muted-foreground">Active rival pressure: <b>{state.activeEvents.filter((e) => e.kind === "rival_billboard" || e.kind === "price_dump").length}</b></p>
         <div className="mt-2 space-y-1.5">
           {state.weeklyRivalSummary.rivals.map((r) => (
             <div key={r.id} className="rounded-md border border-border bg-secondary/30 p-2">

@@ -18,6 +18,7 @@ export function HUD({
   onEndDay,
   onOpenProgression,
   onOpenGoals,
+  onOpenEvents,
 }: {
   state: GameState;
   onOpenRoster: () => void;
@@ -30,6 +31,7 @@ export function HUD({
   onEndDay: () => void;
   onOpenProgression: () => void;
   onOpenGoals: () => void;
+  onOpenEvents: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
@@ -100,6 +102,8 @@ export function HUD({
           Goals {state.goals.completedCount}/{state.goals.list.length} · Next: {next ? next.title : "All done"}
         </button>
         <span className="hidden text-[10px] text-muted-foreground xl:inline">💡 {hint}</span>
+
+        <button onClick={onOpenEvents} className="rounded-md border border-amber-500/60 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold" title="Pending events">⚠️ Events {state.activeEvents.length}</button>
 
         <button
           onClick={onOpenStats}
