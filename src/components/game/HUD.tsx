@@ -1,6 +1,8 @@
 import { LOCATIONS } from "@/game/data";
 import type { ReactNode } from "react";
 import { absHour, dayName, hoursUntilNextClockTime, timeStr, type GameState } from "@/game/useGame";
+import { bestNextActionHint } from "@/game/hints";
+import { nextGoal } from "@/game/goals";
 import { GameIcon } from "./GameIcon";
 import { StatPill } from "./GameMeter";
 
@@ -15,6 +17,7 @@ export function HUD({
   onAdvanceTime,
   onEndDay,
   onOpenProgression,
+  onOpenGoals,
 }: {
   state: GameState;
   onOpenRoster: () => void;
@@ -26,10 +29,13 @@ export function HUD({
   onAdvanceTime: (hours?: number) => void;
   onEndDay: () => void;
   onOpenProgression: () => void;
+  onOpenGoals: () => void;
 }) {
   const loc = LOCATIONS[state.locationLevel - 1];
   const hoursToMorning = hoursUntilNextClockTime(absHour(state), 8);
   const districtLabel = state.district.charAt(0).toUpperCase() + state.district.slice(1);
+  const next = nextGoal(state.goals);
+  const hint = bestNextActionHint(state);
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur-md">
@@ -84,6 +90,16 @@ export function HUD({
         <IconBtn onClick={onOpenGallery} title="Galleri">
           <GameIcon name="gallery" size={14} />
         </IconBtn>
+
+
+        <button
+          onClick={onOpenGoals}
+          className="rounded-md border border-border/70 bg-card/70 px-2 py-1 text-[10px] font-semibold"
+          title="Open goals"
+        >
+          Goals {state.goals.completedCount}/{state.goals.list.length} · Next: {next ? next.title : "All done"}
+        </button>
+        <span className="hidden text-[10px] text-muted-foreground xl:inline">💡 {hint}</span>
 
         <button
           onClick={onOpenStats}

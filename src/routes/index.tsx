@@ -19,6 +19,7 @@ import { Splash, WinScreen } from "@/components/game/Splash";
 import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 import { CastingBoardPanel } from "@/components/game/CastingBoardPanel";
+import { GoalsSheet } from "@/components/game/GoalsSheet";
 
 const STARTED_FLAG_KEY = "bustville-started";
 
@@ -53,6 +54,7 @@ function GamePage() {
   const [visitOpen, setVisitOpen] = useState(false);
   const [clinicOpen, setClinicOpen] = useState(false);
   const [progressionOpen, setProgressionOpen] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
   const initializedStartedRef = useRef(false);
 
   useEffect(() => {
@@ -116,6 +118,7 @@ function GamePage() {
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
         onOpenProgression={() => setProgressionOpen(true)}
+        onOpenGoals={() => setGoalsOpen(true)}
       />
 
       <div className="relative flex-1 min-h-0 overflow-hidden">
@@ -153,6 +156,8 @@ function GamePage() {
           />
         )}
       </div>
+
+      {goalsOpen && <GoalsSheet state={g.state} onClose={() => setGoalsOpen(false)} />}
 
       {progressionOpen && (
         <ProgressionSheet state={g.state} onClose={() => setProgressionOpen(false)} />
