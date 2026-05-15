@@ -15,6 +15,14 @@ export interface DowntownUnlockDeltas {
   milestone: string[];
 }
 
+export interface DowntownUnlockGateStatus {
+  canUnlock: boolean;
+  missing: string[];
+  required: typeof DOWNTOWN_UNLOCK_GATE;
+  chargedCost: number;
+  deltas: DowntownUnlockDeltas;
+}
+
 export function getDowntownUnlockDeltas(state: GameState): DowntownUnlockDeltas {
   const req = DOWNTOWN_UNLOCK_GATE;
   return {
@@ -25,13 +33,29 @@ export function getDowntownUnlockDeltas(state: GameState): DowntownUnlockDeltas 
   };
 }
 
+export function getDowntownUnlockGateStatus(state: GameState): DowntownUnlockGateStatus {
+  const deltas = getDowntownUnlockDeltas(state);
+  const missing: string[] = [];
+  if (deltas.cash > 0) missing.push("cash");
+  if (deltas.reputation > 0) missing.push("reputation");
+  if (deltas.heat > 0) missing.push("heat");
+  if (deltas.milestone.length > 0) missing.push("firstHit");
+
+  return {
+    canUnlock: missing.length === 0,
+    missing,
+    required: DOWNTOWN_UNLOCK_GATE,
+    chargedCost: DOWNTOWN_UNLOCK_GATE.cash,
+    deltas,
+  };
+}
+
 export function canUnlockDowntown(state: GameState): boolean {
-  const d = getDowntownUnlockDeltas(state);
-  return d.cash === 0 && d.reputation === 0 && d.heat === 0 && d.milestone.length === 0;
+  return getDowntownUnlockGateStatus(state).canUnlock;
 }
 
 export function formatDowntownRemainingRequirements(state: GameState): string {
-  const d = getDowntownUnlockDeltas(state);
+  const d = getDowntownUnlockGateStatus(state).deltas;
   const needs: string[] = [];
   if (d.cash > 0) needs.push(`+$${d.cash.toLocaleString()} cash`);
   if (d.reputation > 0) needs.push(`+${d.reputation} rep`);

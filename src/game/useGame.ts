@@ -25,10 +25,10 @@ import { rollDrama } from "./drama";
 import { rollSTD, STDS, activeSTD, isBlockedByStd, payoutMult, type STDState } from "./health";
 import { deriveProductionReleaseForecast, roleScoreForProduction } from "./productionForecast";
 import {
-  DOWNTOWN_UNLOCK_GATE,
   canUnlockDowntown,
   deriveCompanyRank,
   formatDowntownRemainingRequirements,
+  getDowntownUnlockGateStatus,
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
 import {
@@ -420,20 +420,6 @@ function staffMods(s: GameState) {
   };
 }
 
-export interface DowntownUnlockRequirements {
-  cash: number;
-  reputation: number;
-  maxHeat: number;
-  requiresFirstHit: boolean;
-}
-
-export const DOWNTOWN_UNLOCK_REQUIREMENTS: DowntownUnlockRequirements = {
-  cash: DOWNTOWN_UNLOCK_GATE.cash,
-  reputation: DOWNTOWN_UNLOCK_GATE.reputation,
-  maxHeat: DOWNTOWN_UNLOCK_GATE.maxHeat,
-  requiresFirstHit: DOWNTOWN_UNLOCK_GATE.requiresFirstHit,
-};
-
 const FIRST_HIT_REQUIREMENTS = {
   minQuality: 58,
   minGross: 1400,
@@ -451,10 +437,6 @@ function isQuickieRelease(tierId: string): boolean {
 
 export function hasFirstHit(state: GameState): boolean {
   return state.milestones.firstHit;
-}
-
-export function meetsDowntownUnlockRequirements(state: GameState): boolean {
-  return canUnlockDowntown(state);
 }
 
 const STORAGE_KEY = "bustville-empire-v2";
@@ -1302,21 +1284,23 @@ export function useGame() {
       case "trailer:upgrade": {
         const nextLoc = LOCATIONS[next.locationLevel];
         if (!nextLoc) return log(next, "Du er allerede på toppen.");
+        const downtownGate = getDowntownUnlockGateStatus(next);
+        const upgradeCost = nextLoc.level === 3 ? downtownGate.chargedCost : nextLoc.unlockCash;
         if (nextLoc.level === 3) {
-          if (!canUnlockDowntown(next))
+          if (!downtownGate.canUnlock)
             return log(
               next,
               `Kan ikke oppgradere til Downtown ennå. ${formatDowntownRemainingRequirements(next)}`,
             );
         } else {
-          if (next.cash < nextLoc.unlockCash) return log(next, `Trenger $${nextLoc.unlockCash}.`);
+          if (next.cash < upgradeCost) return log(next, `Trenger $${upgradeCost}.`);
           if (next.reputation < nextLoc.unlockRep)
             return log(next, `Trenger ${nextLoc.unlockRep} rep.`);
         }
         return log(
           {
             ...next,
-            cash: next.cash - nextLoc.unlockCash,
+            cash: Math.max(0, next.cash - upgradeCost),
             locationLevel: nextLoc.level,
             maxStamina: next.maxStamina + 10,
           },

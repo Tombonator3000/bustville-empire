@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
+import { isOpen, type GameState } from "@/game/useGame";
 import {
-  DOWNTOWN_UNLOCK_REQUIREMENTS,
-  isOpen,
-  meetsDowntownUnlockRequirements,
-  type GameState,
-} from "@/game/useGame";
-import { formatDowntownRemainingRequirements } from "@/game/progression";
+  formatDowntownRemainingRequirements,
+  getDowntownUnlockGateStatus,
+} from "@/game/progression";
 import {
   DISTRICTS,
   LOCATION_DEFS,
@@ -133,8 +131,9 @@ export function MapView({
           if (!exit) return null;
           const transition = getDistrictTransitionLock(state, "downtown");
           const unlocked = !transition.locked;
-          const req = DOWNTOWN_UNLOCK_REQUIREMENTS;
-          const readyForPromotion = meetsDowntownUnlockRequirements(state);
+          const gate = getDowntownUnlockGateStatus(state);
+          const req = gate.required;
+          const readyForPromotion = gate.canUnlock;
           const checks = [
             {
               label: "Cash",
