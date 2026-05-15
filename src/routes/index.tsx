@@ -112,6 +112,7 @@ function GamePage() {
         onOpenInventory={() => setInvOpen(true)}
         onOpenGallery={() => setGalleryOpen(true)}
         onOpenOptions={() => setOptionsOpen(true)}
+        onOpenStats={() => setStatsOpen(true)}
         onAdvanceTime={g.advanceTime}
         onEndDay={g.endDay}
         onOpenProgression={() => setProgressionOpen(true)}

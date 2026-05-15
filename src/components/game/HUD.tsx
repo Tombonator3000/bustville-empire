@@ -11,6 +11,7 @@ export function HUD({
   onOpenInventory,
   onOpenGallery,
   onOpenOptions,
+  onOpenStats,
   onAdvanceTime,
   onEndDay,
   onOpenProgression,
@@ -21,6 +22,7 @@ export function HUD({
   onOpenInventory: () => void;
   onOpenGallery: () => void;
   onOpenOptions: () => void;
+  onOpenStats: () => void;
   onAdvanceTime: (hours?: number) => void;
   onEndDay: () => void;
   onOpenProgression: () => void;
@@ -82,6 +84,14 @@ export function HUD({
         <IconBtn onClick={onOpenGallery} title="Galleri">
           <GameIcon name="gallery" size={14} />
         </IconBtn>
+
+        <button
+          onClick={onOpenStats}
+          className="rounded-md border border-border/70 bg-card/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground hover:border-primary/70 hover:text-primary transition"
+          title="Empire stats and ledger"
+        >
+          Empire / Stats / Ledger
+        </button>
 
         <button
           onClick={onOpenProgression}
