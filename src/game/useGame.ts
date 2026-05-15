@@ -484,9 +484,142 @@ function safeParseJson(raw: string): unknown | null {
 }
 
 function migrateByVersion(rawState: SaveLike, version: unknown): SaveLike {
-  const resolvedVersion: SaveStorageVersion =
-    version === "bustville-empire-v2" ? version : "bustville-empire-v2";
-  return SAVE_MIGRATIONS[resolvedVersion](rawState);
+  const hasKnownVersion = version === "bustville-empire-v2";
+  const normalizedBase = rawState && typeof rawState === "object" ? rawState : {};
+  if (!hasKnownVersion) {
+    return SAVE_MIGRATIONS["bustville-empire-v2"]({
+      ...INITIAL,
+      ...normalizedBase,
+      storageVersion: "bustville-empire-v2",
+    });
+  }
+  return SAVE_MIGRATIONS["bustville-empire-v2"](normalizedBase);
+}
+
+function normalizeGirlArray(input: unknown): { girls: Girl[]; recovered: boolean } {
+  if (!Array.isArray(input)) return { girls: [], recovered: true };
+  let recovered = false;
+  const girls = input.reduce<Girl[]>((acc, item) => {
+    if (!item || typeof item !== "object") {
+      recovered = true;
+      return acc;
+    }
+    const candidate = item as Partial<Girl>;
+    if (typeof candidate.id !== "string" || typeof candidate.name !== "string") {
+      recovered = true;
+      return acc;
+    }
+    if (
+      typeof candidate.beauty !== "number" ||
+      typeof candidate.performance !== "number" ||
+      typeof candidate.popularity !== "number" ||
+      typeof candidate.salary !== "number"
+    ) {
+      recovered = true;
+      return acc;
+    }
+    acc.push(candidate as Girl);
+    return acc;
+  }, []);
+  return { girls, recovered };
+}
+
+function normalizeProductionArray(input: unknown): {
+  productions: Production[];
+  recovered: boolean;
+} {
+  if (!Array.isArray(input)) return { productions: [], recovered: true };
+  let recovered = false;
+  const productions = input.reduce<Production[]>((acc, item) => {
+    if (!item || typeof item !== "object") {
+      recovered = true;
+      return acc;
+    }
+    const candidate = item as Partial<Production>;
+    if (typeof candidate.id !== "string" || typeof candidate.title !== "string") {
+      recovered = true;
+      return acc;
+    }
+    acc.push(candidate as Production);
+    return acc;
+  }, []);
+  return { productions, recovered };
+}
+
+function normalizeDistributionDeals(input: unknown): {
+  deals: DistributionDeal[];
+  recovered: boolean;
+} {
+  if (!Array.isArray(input)) return { deals: [...INITIAL.distributionDeals], recovered: true };
+  let recovered = false;
+  const validDealTypes: DistributionDealType[] = ["streaming", "dvd", "cable", "theatrical"];
+  const deals = input.reduce<DistributionDeal[]>((acc, item) => {
+    if (!item || typeof item !== "object") {
+      recovered = true;
+      return acc;
+    }
+    const candidate = item as Partial<DistributionDeal>;
+    if (
+      typeof candidate.id !== "string" ||
+      typeof candidate.label !== "string" ||
+      typeof candidate.durationWeeks !== "number" ||
+      typeof candidate.royaltyPct !== "number" ||
+      typeof candidate.minQuality !== "number" ||
+      typeof candidate.minReputation !== "number" ||
+      !validDealTypes.includes(candidate.dealType as DistributionDealType)
+    ) {
+      recovered = true;
+      return acc;
+    }
+    acc.push(candidate as DistributionDeal);
+    return acc;
+  }, []);
+  return { deals, recovered };
+}
+
+function normalizeWeeklyRoyaltyBreakdown(input: unknown): {
+  breakdown: WeeklyRoyaltyBreakdown;
+  recovered: boolean;
+} {
+  if (!input || typeof input !== "object") {
+    return { breakdown: INITIAL.weeklyRoyaltyBreakdown, recovered: true };
+  }
+  const candidate = input as Partial<WeeklyRoyaltyBreakdown>;
+  const week =
+    typeof candidate.week === "number" ? candidate.week : INITIAL.weeklyRoyaltyBreakdown.week;
+  const baseCatalogPayout =
+    typeof candidate.baseCatalogPayout === "number"
+      ? candidate.baseCatalogPayout
+      : INITIAL.weeklyRoyaltyBreakdown.baseCatalogPayout;
+  const dealPayoutTotal =
+    typeof candidate.dealPayoutTotal === "number"
+      ? candidate.dealPayoutTotal
+      : INITIAL.weeklyRoyaltyBreakdown.dealPayoutTotal;
+  let recovered =
+    week !== candidate.week ||
+    baseCatalogPayout !== candidate.baseCatalogPayout ||
+    dealPayoutTotal !== candidate.dealPayoutTotal;
+  const byTitle = Array.isArray(candidate.byTitle)
+    ? candidate.byTitle.reduce<WeeklyRoyaltyBreakdown["byTitle"]>((acc, entry) => {
+        if (!entry || typeof entry !== "object") {
+          recovered = true;
+          return acc;
+        }
+        const row = entry as WeeklyRoyaltyBreakdown["byTitle"][number];
+        if (
+          typeof row.title !== "string" ||
+          typeof row.dealLabel !== "string" ||
+          typeof row.royaltyPct !== "number" ||
+          typeof row.payout !== "number"
+        ) {
+          recovered = true;
+          return acc;
+        }
+        acc.push(row);
+        return acc;
+      }, [])
+    : ((recovered = true), INITIAL.weeklyRoyaltyBreakdown.byTitle);
+  return { breakdown: { week, baseCatalogPayout, dealPayoutTotal, byTitle }, recovered };
 }
 
 function normalizeGameState(raw: unknown): GameState {
@@ -498,6 +631,23 @@ function normalizeGameState(raw: unknown): GameState {
     departments: _departments,
     ...rest
   } = migrated;
+  const normalizedGirls = normalizeGirlArray(rest.girls);
+  const normalizedCastingLeads = normalizeGirlArray(rest.castingLeads);
+  const normalizedProductions = normalizeProductionArray(rest.productions);
+  const normalizedDeals = normalizeDistributionDeals(rest.distributionDeals);
+  const normalizedRoyaltyBreakdown = normalizeWeeklyRoyaltyBreakdown(rest.weeklyRoyaltyBreakdown);
+  const recoveredFromInvalidData =
+    normalizedGirls.recovered ||
+    normalizedCastingLeads.recovered ||
+    normalizedProductions.recovered ||
+    normalizedDeals.recovered ||
+    normalizedRoyaltyBreakdown.recovered;
+  if (recoveredFromInvalidData) {
+    enqueueToast("save:recovered-defaults", {
+      kind: "info",
+      title: "Save recovered with defaults",
+    });
+  }
   return {
     ...INITIAL,
     ...rest,
@@ -505,15 +655,15 @@ function normalizeGameState(raw: unknown): GameState {
       rest.milestones && typeof rest.milestones === "object"
         ? { ...INITIAL.milestones, ...rest.milestones }
         : { ...INITIAL.milestones },
+    girls: normalizedGirls.girls,
+    productions: normalizedProductions.productions,
     staff: Array.isArray(rest.staff) ? rest.staff : [],
-    castingLeads: Array.isArray(rest.castingLeads) ? rest.castingLeads : [],
-    distributionDeals: Array.isArray(rest.distributionDeals)
-      ? rest.distributionDeals
-      : [...INITIAL.distributionDeals],
+    castingLeads: normalizedCastingLeads.girls,
+    distributionDeals: normalizedDeals.deals,
     distributionSummary: Array.isArray(rest.distributionSummary)
       ? rest.distributionSummary
       : INITIAL.distributionSummary,
-    weeklyRoyaltyBreakdown: rest.weeklyRoyaltyBreakdown ?? INITIAL.weeklyRoyaltyBreakdown,
+    weeklyRoyaltyBreakdown: normalizedRoyaltyBreakdown.breakdown,
     rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
     weeklyRivalSummary: rest.weeklyRivalSummary ?? INITIAL.weeklyRivalSummary,
     goals: normalizeGoalsState(rest.goals),
