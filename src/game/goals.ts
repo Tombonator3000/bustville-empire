@@ -1,4 +1,5 @@
 import type { GameState } from "./useGame";
+import { trackTelemetry } from "./telemetry";
 
 export type GoalEvent =
   | "lead_generated"
@@ -28,7 +29,12 @@ const BLUEPRINT: Omit<Goal, "progress" | "completed">[] = [
   { id: "prod_1", title: "Start a production", target: 1, reward: { reputation: 1 } },
   { id: "stage_3", title: "Advance 3 production stages", target: 3, reward: { cash: 120 } },
   { id: "release_1", title: "Complete a release", target: 1, reward: { cash: 180, reputation: 1 } },
-  { id: "first_hit", title: "Land your first hit", target: 1, reward: { cash: 250, reputation: 1 } },
+  {
+    id: "first_hit",
+    title: "Land your first hit",
+    target: 1,
+    reward: { cash: 250, reputation: 1 },
+  },
 ];
 
 export function initGoalsState(): GoalsState {
@@ -73,8 +79,15 @@ export function applyGoalEvent(state: GameState, event: GoalEvent): GameState {
   const completed = progress >= goal.target;
   const updatedGoal: Goal = { ...goal, progress, completed };
   const list = state.goals.list.map((g, i) => (i === idx ? updatedGoal : g));
-  const cashBonus = completed ? updatedGoal.reward.cash ?? 0 : 0;
-  const repBonus = completed ? updatedGoal.reward.reputation ?? 0 : 0;
+  const cashBonus = completed ? (updatedGoal.reward.cash ?? 0) : 0;
+  const repBonus = completed ? (updatedGoal.reward.reputation ?? 0) : 0;
+  if (completed) {
+    trackTelemetry({
+      type: "goal_completion",
+      at: new Date().toISOString(),
+      goalId: updatedGoal.id,
+    });
+  }
   return {
     ...state,
     cash: state.cash + cashBonus,

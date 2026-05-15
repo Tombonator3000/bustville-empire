@@ -31,6 +31,7 @@ import {
   getDowntownUnlockGateStatus,
 } from "./progression";
 import { EQUIPMENT_LEVEL_ZERO_FLAVOR, getLowEquipmentPenalties } from "./balanceConstants";
+import { trackTelemetry } from "./telemetry";
 import {
   generateRecruitPresentation,
   getPhaseByLocationLevel,
@@ -1156,6 +1157,13 @@ export function useGame() {
       if (target === "downtown" && !canUnlockDowntown(s))
         return log(s, `Downtown er låst. ${formatDowntownRemainingRequirements(s)}`);
       const next = advance(s, 2);
+      if (target === "downtown") {
+        trackTelemetry({
+          type: "downtown_unlock",
+          at: new Date().toISOString(),
+          via: "district_switch",
+        });
+      }
       return log(
         { ...next, district: target, activeLocation: null },
         `🚗 Kjørte til ${target === "park" ? "Trailer Park" : "Downtown"}.`,
@@ -1230,6 +1238,13 @@ export function useGame() {
         }
         // Apply cooldown to the working girl if action consumed time
         if (girlId && action && action.hours > 0 && after !== before) {
+          trackTelemetry({
+            type: "action_use",
+            at: new Date().toISOString(),
+            locationId: locId,
+            actionId,
+            girlId,
+          });
           const cd = intensityCooldownHours(action.hours, intensity);
           const until = absHour(after) + cd;
           after = {
@@ -1313,6 +1328,13 @@ export function useGame() {
           if (next.cash < upgradeCost) return log(next, `Trenger $${upgradeCost}.`);
           if (next.reputation < nextLoc.unlockRep)
             return log(next, `Trenger ${nextLoc.unlockRep} rep.`);
+        }
+        if (nextLoc.level === 3) {
+          trackTelemetry({
+            type: "downtown_unlock",
+            at: new Date().toISOString(),
+            via: "hq_upgrade",
+          });
         }
         return log(
           {
@@ -2068,6 +2090,12 @@ export function useGame() {
         -1 + staffMods(next).scoutingQuality,
       );
       next = { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, lead] };
+      trackTelemetry({
+        type: "lead_gen",
+        at: new Date().toISOString(),
+        source: "scout_local",
+        leadId: lead.id,
+      });
       next = applyGoalEvent(next, "lead_generated");
       return log(next, "📋 New local talent lead added to the Casting Board.");
     });
@@ -2087,6 +2115,12 @@ export function useGame() {
         girls: [...s.girls, signed],
         lastRecruitId: signed.id,
       };
+      trackTelemetry({
+        type: "recruit_hire",
+        at: new Date().toISOString(),
+        source: "casting_board",
+        recruitId: signed.id,
+      });
       next = applyGoalEvent(next, "recruit_hired");
       return log(next, `✍️ ${signed.name} hired from Casting Board.`);
     });
@@ -2142,11 +2176,18 @@ export function useGame() {
       };
       const genreLabel = genreId ? ` [${getGenre(genreId)?.name ?? genreId}]` : "";
       let next = {
-          ...s,
-          cash: s.cash - cost,
-          stamina: s.stamina - brief.staminaCost,
-          productions: [...s.productions, prod],
-        };
+        ...s,
+        cash: s.cash - cost,
+        stamina: s.stamina - brief.staminaCost,
+        productions: [...s.productions, prod],
+      };
+      trackTelemetry({
+        type: "production_start",
+        at: new Date().toISOString(),
+        productionId: prod.id,
+        tierId,
+        genreId,
+      });
       next = applyGoalEvent(next, "production_started");
       return log(
         next,
@@ -2338,6 +2379,15 @@ export function useGame() {
           releasedState,
           `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""}`,
         );
+        trackTelemetry({
+          type: "production_release",
+          at: new Date().toISOString(),
+          productionId: p.id,
+          title: p.title,
+          flopped,
+          cashDelta: gross + dealAdvance,
+          reputationDelta: repGain,
+        });
         withReleaseLog = applyGoalEvent(withReleaseLog, "release_completed");
         return evaluateFirstHitMilestone(withReleaseLog, "release");
       }
@@ -2430,7 +2480,16 @@ export function useGame() {
         const qualityPenalty = -8;
         const totalDeducted = nextCost + reworkCost;
         next = applyGoalEvent(next, "stage_advanced");
-      const updated = next.productions.map((x, i) =>
+        trackTelemetry({
+          type: "production_stage",
+          at: new Date().toISOString(),
+          productionId: p.id,
+          fromStage: tier.stages[p.stageIdx].id,
+          toStage: nextStage.id,
+          success: false,
+          rework: true,
+        });
+        const updated = next.productions.map((x, i) =>
           i === idx
             ? {
                 ...x,
@@ -2474,6 +2533,15 @@ export function useGame() {
       const qualityAfter = Math.max(0, Math.min(mods.qualityCap, p.quality + qDelta));
       const qImpact = qDelta === 0 ? "Q ±0" : `Q ${qDelta > 0 ? "+" : ""}${Math.round(qDelta)}`;
       const costImpact = `kost -$${nextCost}`;
+      trackTelemetry({
+        type: "production_stage",
+        at: new Date().toISOString(),
+        productionId: p.id,
+        fromStage: tier.stages[p.stageIdx].id,
+        toStage: nextStage.id,
+        success: !failed,
+        rework: false,
+      });
       return log(
         { ...next, productions: updated },
         `${nextStage.emoji} "${p.title}" ${prevStageLabel} → ${nextStageLabel} (${costImpact}, ${qImpact}, Q${Math.round(qualityAfter)}/${mods.qualityCap}, ${nextHours}t)${roleNote}. ${flavor}`,
@@ -2881,6 +2949,13 @@ export function useGame() {
       const event = s.activeEvents.find((e) => e.id === eventId);
       if (!event) return s;
       const resolved = applyEventChoice(s, event, choiceId);
+      trackTelemetry({
+        type: "event_choice",
+        at: new Date().toISOString(),
+        eventId,
+        eventKind: event.kind,
+        choiceId,
+      });
       return log(resolved.state, resolved.summary);
     });
   }, []);
