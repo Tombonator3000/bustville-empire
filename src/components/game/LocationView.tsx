@@ -11,6 +11,8 @@ import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId } from "@/game/locations";
 import { getLocationImage } from "@/components/game/HotspotEditor";
 import { ArrowLeft } from "lucide-react";
+import { GameIcon } from "./GameIcon";
+import { classifyLogEvent, LOG_TONE_CLASS } from "./logIcons";
 
 export function LocationView({
   state,
