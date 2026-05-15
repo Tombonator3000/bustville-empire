@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useGame } from "@/game/useGame";
 import { DISTRICTS } from "@/game/locations";
 import { ProductionsSheet } from "@/components/game/ProductionsSheet";
@@ -15,12 +15,15 @@ import { LocationView } from "@/components/game/LocationView";
 import { RosterSheet } from "@/components/game/RosterSheet";
 import { StatsSheet } from "@/components/game/StatsSheet";
 import { StaffPanel } from "@/components/game/StaffPanel";
-import { Splash, WinScreen } from "@/components/game/Splash";
+import { WinScreen } from "@/components/game/Splash";
 import { ProgressionSheet } from "@/components/game/ProgressionSheet";
 import { RecruitRevealModal } from "@/components/game/RecruitRevealModal";
 import { CastingBoardPanel } from "@/components/game/CastingBoardPanel";
 import { GoalsSheet } from "@/components/game/GoalsSheet";
 import { EventQueueSheet } from "@/components/game/EventQueueSheet";
+import { StartMenu } from "@/components/game/StartMenu";
+import { listSaveSlots } from "@/game/useGame";
+import { toast } from "sonner";
 
 const STARTED_FLAG_KEY = "bustville-started";
 
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/")({
 
 function GamePage() {
   const g = useGame();
-  const [started, setStarted] = useState(true);
+  const [inMainMenu, setInMainMenu] = useState(true);
   const [selectedGirl, setSelectedGirl] = useState<string | undefined>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -57,33 +60,72 @@ function GamePage() {
   const [progressionOpen, setProgressionOpen] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
-  const initializedStartedRef = useRef(false);
+  const [menuSlots, setMenuSlots] = useState(() => listSaveSlots());
 
   useEffect(() => {
-    if (!g.loaded || typeof window === "undefined" || initializedStartedRef.current) return;
+    if (!g.loaded || typeof window === "undefined") return;
+    setMenuSlots(listSaveSlots());
+  }, [g.loaded]);
 
-    const hasStartedFlag = window.localStorage.getItem(STARTED_FLAG_KEY) === "true";
-    const isFreshState = g.state.day === 1 && g.state.hour === 8 && g.state.girls.length === 0;
+  const bootReady = g.loaded;
+  const inGame = bootReady && !inMainMenu;
 
-    setStarted(hasStartedFlag || !isFreshState);
-    initializedStartedRef.current = true;
-  }, [g.loaded, g.state.day, g.state.girls.length, g.state.hour]);
+  const refreshSlots = () => setMenuSlots(listSaveSlots());
 
-  if (!g.loaded) return <div className="min-h-screen" />;
+  const markStarted = () => window.localStorage.setItem(STARTED_FLAG_KEY, "true");
 
-  if (!started && g.state.day === 1 && g.state.girls.length === 0 && g.state.hour === 8) {
+  const handleNewGame = () => {
+    g.reset();
+    markStarted();
+    setInMainMenu(false);
+  };
+
+  const handleContinue = () => {
+    markStarted();
+    setInMainMenu(false);
+  };
+
+  const handleLoadSlot = (slot: number) => {
+    const loaded = g.loadFromSlot(slot);
+    if (!loaded) {
+      toast.error(`Load Slot ${slot} feilet`, {
+        description: "Lagringssporet er tomt eller ugyldig.",
+      });
+      refreshSlots();
+      return;
+    }
+    markStarted();
+    setInMainMenu(false);
+    refreshSlots();
+  };
+
+  if (!bootReady) return <div className="min-h-screen" />;
+
+  if (inMainMenu) {
     return (
-      <Splash
-        onStart={() => {
-          setStarted(true);
-          window.localStorage.setItem(STARTED_FLAG_KEY, "true");
-        }}
-        onReset={() => {
-          g.reset();
-          setStarted(false);
-          window.localStorage.removeItem(STARTED_FLAG_KEY);
-        }}
-      />
+      <>
+        <StartMenu
+          slots={menuSlots}
+          onNewGame={handleNewGame}
+          onContinue={handleContinue}
+          onLoadSlot={handleLoadSlot}
+          onOpenOptions={() => setOptionsOpen(true)}
+        />
+        {optionsOpen && (
+          <OptionsMenu
+            onClose={() => setOptionsOpen(false)}
+            onSave={g.saveToSlot}
+            onLoad={g.loadFromSlot}
+            onDelete={g.deleteSlot}
+            onExport={g.exportSave}
+            onImport={g.importSave}
+            onReset={() => {
+              g.reset();
+              setMenuSlots(listSaveSlots());
+            }}
+          />
+        )}
+      </>
     );
   }
   if (g.state.won) {
@@ -91,8 +133,8 @@ function GamePage() {
       <WinScreen
         onReset={() => {
           g.reset();
-          setStarted(false);
-          window.localStorage.removeItem(STARTED_FLAG_KEY);
+          setInMainMenu(true);
+          window.localStorage.setItem(STARTED_FLAG_KEY, "true");
         }}
       />
     );
@@ -103,6 +145,8 @@ function GamePage() {
   const recruitRevealGirl = g.state.lastRecruitId
     ? (g.state.girls.find((x) => x.id === g.state.lastRecruitId) ?? null)
     : null;
+
+  if (!inGame) return null;
 
   return (
     <main className="relative flex h-dvh w-full flex-col overflow-hidden bg-background">
@@ -256,8 +300,8 @@ function GamePage() {
           onImport={g.importSave}
           onReset={() => {
             g.reset();
-            setStarted(false);
-            window.localStorage.removeItem(STARTED_FLAG_KEY);
+            setInMainMenu(true);
+            window.localStorage.setItem(STARTED_FLAG_KEY, "true");
           }}
         />
       )}
