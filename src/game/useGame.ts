@@ -223,6 +223,7 @@ export interface GameState {
   distributionDeals: DistributionDeal[];
   distributionSummary: DistributionDealSummary[];
   weeklyRoyaltyBreakdown: WeeklyRoyaltyBreakdown;
+  goals: import("./goals").GoalsState;
 }
 export type DistributionDealType = "streaming" | "dvd" | "cable" | "theatrical";
 export interface DistributionDeal {
@@ -390,6 +391,7 @@ const INITIAL: GameState = {
   ],
   distributionSummary: [],
   weeklyRoyaltyBreakdown: { week: 0, baseCatalogPayout: 0, dealPayoutTotal: 0, byTitle: [] },
+  goals: initGoalsState(),
 };
 const STAFF_POOLS: Record<StaffRole, { names: string[]; traits: string[] }> = {
   editor: {
@@ -511,6 +513,7 @@ function normalizeGameState(raw: unknown): GameState {
     weeklyRoyaltyBreakdown: rest.weeklyRoyaltyBreakdown ?? INITIAL.weeklyRoyaltyBreakdown,
     rivalDigest: Array.isArray(rest.rivalDigest) ? rest.rivalDigest : INITIAL.rivalDigest,
     weeklyRivalSummary: rest.weeklyRivalSummary ?? INITIAL.weeklyRivalSummary,
+    goals: normalizeGoalsState(rest.goals),
   };
 }
 
@@ -535,7 +538,7 @@ function evaluateFirstHitMilestone(s: GameState, reason: "release" | "weekly" | 
   if (s.heatLevel > FIRST_HIT_REQUIREMENTS.maxHeat) return s;
   const hitRelease = s.productions.find((p) => isEligibleFirstHitRelease(p));
   if (!hitRelease) return s;
-  const next = {
+  let next = {
     ...s,
     cash: s.cash + FIRST_HIT_REWARDS.cash,
     reputation: s.reputation + FIRST_HIT_REWARDS.reputation,
@@ -550,6 +553,7 @@ function evaluateFirstHitMilestone(s: GameState, reason: "release" | "weekly" | 
       ],
     },
   };
+  next = applyGoalEvent(next, "first_hit");
   if (reason !== "load") {
     enqueueToast(`milestone:first-hit:${reason}:${hitRelease.id}`, {
       kind: "success",
@@ -2051,6 +2055,7 @@ export function useGame() {
         -1 + staffMods(next).scoutingQuality,
       );
       next = { ...next, cash: next.cash - cost, castingLeads: [...next.castingLeads, lead] };
+      next = applyGoalEvent(next, "lead_generated");
       return log(next, "📋 New local talent lead added to the Casting Board.");
     });
   }, []);
@@ -2062,13 +2067,14 @@ export function useGame() {
       const signed = withContract(lead, s.day, 8);
       const upfront = signed.contract?.signingBonus ?? 0;
       if (s.cash < upfront) return log(s, `${lead.name} requires $${upfront} signing bonus.`);
-      const next = {
+      let next = {
         ...s,
         cash: s.cash - upfront,
         castingLeads: s.castingLeads.filter((g) => g.id !== leadId),
         girls: [...s.girls, signed],
         lastRecruitId: signed.id,
       };
+      next = applyGoalEvent(next, "recruit_hired");
       return log(next, `✍️ ${signed.name} hired from Casting Board.`);
     });
   }, []);
@@ -2122,13 +2128,15 @@ export function useGame() {
         genreId,
       };
       const genreLabel = genreId ? ` [${getGenre(genreId)?.name ?? genreId}]` : "";
-      return log(
-        {
+      let next = {
           ...s,
           cash: s.cash - cost,
           stamina: s.stamina - brief.staminaCost,
           productions: [...s.productions, prod],
-        },
+        };
+      next = applyGoalEvent(next, "production_started");
+      return log(
+        next,
         `📝 "${title}"${genreLabel} (${tier.name}) i briefing [$${cost}, ${hours}t]. ${brief.flavor}`,
       );
     });
@@ -2313,10 +2321,11 @@ export function useGame() {
           distributionDeals: updatedDeals,
           cash: s.cash + gross + dealAdvance,
         };
-        const withReleaseLog = log(
+        let withReleaseLog = log(
           releasedState,
           `${note}${dealAdvance > 0 ? ` 🤝 Deal-forskudd +$${dealAdvance}.` : ""}`,
         );
+        withReleaseLog = applyGoalEvent(withReleaseLog, "release_completed");
         return evaluateFirstHitMilestone(withReleaseLog, "release");
       }
 
@@ -2389,7 +2398,7 @@ export function useGame() {
         roleQ +
         roleAssignmentMod;
 
-      const next = {
+      let next = {
         ...s,
         cash: s.cash - nextCost,
         stamina: Math.max(0, s.stamina - nextStage.staminaCost),
@@ -2407,7 +2416,8 @@ export function useGame() {
         const reworkHours = Math.max(1, Math.floor(stageHoursWithStaff(prevStage, mods, s) * 0.7));
         const qualityPenalty = -8;
         const totalDeducted = nextCost + reworkCost;
-        const updated = next.productions.map((x, i) =>
+        next = applyGoalEvent(next, "stage_advanced");
+      const updated = next.productions.map((x, i) =>
           i === idx
             ? {
                 ...x,
