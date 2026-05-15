@@ -2,6 +2,8 @@ import { absHour, type GameState } from "@/game/useGame";
 import { ARCHETYPE_PORTRAITS, GIRL_MISSIONS, type Girl } from "@/game/data";
 import { STDS } from "@/game/health";
 import { suggestRole } from "@/game/roleSuggestion";
+import { GameIcon } from "@/components/game/GameIcon";
+import { GameMeter, StatPill } from "@/components/game/GameMeter";
 
 export function RosterSheet({
   state,
@@ -193,11 +195,11 @@ function GirlCard({
           <div className="mt-1 text-[10px] text-muted-foreground" title={roleSuggestion.reason}>
             {roleSuggestion.reason}
           </div>
-          <div className="mt-1.5 grid grid-cols-4 gap-1 text-[10px]">
-            <Stat label="Bea" v={g.beauty} />
-            <Stat label="Perf" v={g.performance} />
-            <Stat label="Pop" v={g.popularity} />
-            <Stat label="Loy" v={g.loyalty} />
+          <div className="mt-1.5 grid grid-cols-2 gap-1 text-[10px]">
+            <Stat label="Beauty" v={g.beauty} icon="mood" tone="rep" />
+            <Stat label="Perf" v={g.performance} icon="film" tone="progress" />
+            <Stat label="Pop" v={g.popularity} icon="rep" tone="rep" />
+            <Stat label="Loyalty" v={g.loyalty} icon="loyalty" tone="success" />
           </div>
         </div>
       </div>
@@ -327,11 +329,23 @@ function GirlCard({
   );
 }
 
-function Stat({ label, v }: { label: string; v: number }) {
+function Stat({
+  label,
+  v,
+  icon,
+  tone,
+}: {
+  label: string;
+  v: number;
+  icon: "mood" | "film" | "rep" | "loyalty";
+  tone: "rep" | "progress" | "success";
+}) {
   return (
-    <div className="rounded bg-background/60 px-1 py-0.5 text-center">
-      <div className="text-[8px] uppercase text-muted-foreground">{label}</div>
-      <div className="font-mono font-bold text-accent">{v}</div>
+    <div className="rounded border border-border/60 bg-background/60 p-1">
+      <div className="mb-0.5 flex items-center justify-between gap-1">
+        <StatPill icon={<GameIcon name={icon} tone={tone === "success" ? "success" : "neutral"} size={10} />} label={label} value={v} />
+      </div>
+      <GameMeter value={v} max={100} tone={tone} size="tiny" />
     </div>
   );
 }

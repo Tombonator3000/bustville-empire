@@ -1,4 +1,6 @@
 import { type GameState, type StaffRole } from "@/game/useGame";
+import { GameIcon } from "@/components/game/GameIcon";
+import { StatPill } from "@/components/game/GameMeter";
 
 const roles: { id: StaffRole; label: string; hint: string }[] = [
   { id: "editor", label: "Editor", hint: "Reduserer editing-tid" },
@@ -41,18 +43,36 @@ export function StaffPanel({
             ? "Pinned cards, hand-written numbers, and budget freelancers. This is where early crew gets hired."
             : "Management overview. For hiring, use Trailer Office → Help Wanted Board."}
         </p>
-        <p className="mb-2 text-xs">
-          Staff slots: {state.staff.length}/{slots}
-        </p>
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          <StatPill
+            icon={<GameIcon name="staff" tone="neutral" size={12} />}
+            label="Staff"
+            value={state.staff.length}
+            max={slots}
+            meter
+            tone="progress"
+          />
+          <StatPill
+            icon={<GameIcon name="cash" tone="cash" size={12} />}
+            label="Payroll/w"
+            value={`$${state.staff.reduce((sum, m) => sum + m.salary, 0)}`}
+          />
+        </div>
         <div className="space-y-2">
           {state.staff.map((m) => (
             <div key={m.id} className="rounded border border-border bg-secondary/40 p-2 text-xs">
               <div className="flex items-center justify-between">
                 <b>{m.name}</b>
-                <span>${m.salary}/w</span>
+                <StatPill
+                  icon={<GameIcon name="cash" tone="cash" size={11} />}
+                  value={`$${m.salary}/w`}
+                />
               </div>
-              <div>
-                {m.role} · Lv {m.level} · +{m.bonus} · {m.trait}
+              <div className="mt-1 flex flex-wrap gap-1">
+                <StatPill icon={<GameIcon name="staff" size={11} />} value={m.role} />
+                <StatPill icon={<GameIcon name="progress" tone="purple" size={11} />} value={`Lv ${m.level}`} />
+                <StatPill icon={<GameIcon name="reward" tone="success" size={11} />} value={`+${m.bonus}`} />
+                <StatPill icon={<GameIcon name="info" size={11} />} value={m.trait} />
               </div>
               <button
                 onClick={() => onUpgrade(m.id)}
