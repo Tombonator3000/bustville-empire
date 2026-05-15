@@ -5,6 +5,8 @@ import {
   getDowntownUnlockDeltas,
 } from "@/game/progression";
 import type { GameState } from "@/game/useGame";
+import { GameIcon } from "./GameIcon";
+import { SegmentedProgress } from "./GameMeter";
 
 export function ProgressionSheet({ state, onClose }: { state: GameState; onClose: () => void }) {
   const snapshot = deriveProgressionSnapshot(state);
@@ -62,12 +64,36 @@ export function ProgressionSheet({ state, onClose }: { state: GameState; onClose
             </p>
             <p className="font-semibold text-primary">{snapshot.nextMajorUnlock}</p>
             <div className="mt-2 space-y-1">
+              <SegmentedProgress
+                segments={[
+                  {
+                    label: "Cash",
+                    complete: checks[0].done,
+                    icon: <GameIcon name="cash" size={12} tone="cash" />,
+                  },
+                  {
+                    label: "Rep",
+                    complete: checks[1].done,
+                    icon: <GameIcon name="rep" size={12} tone="rep" />,
+                  },
+                  {
+                    label: "First Hit",
+                    complete: checks[2].done,
+                    icon: <GameIcon name="firstHit" size={12} tone="purple" />,
+                  },
+                  {
+                    label: "Heat",
+                    complete: checks[3].done,
+                    icon: <GameIcon name="heat" size={12} tone="heat" />,
+                  },
+                ]}
+              />
               {checks.map((check) => (
                 <div
                   key={check.label}
-                  className={`rounded border px-2 py-1 ${check.done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-border/50 bg-background/40"}`}
+                  className={`mt-1 rounded border px-2 py-1 ${check.done ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-border/50 bg-background/40"}`}
                 >
-                  {check.done ? "✅" : "⬜"} {check.label}
+                  {check.label}
                 </div>
               ))}
             </div>

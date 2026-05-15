@@ -22,7 +22,7 @@ import { GENRES, getGenre } from "@/game/genres";
 import { deriveProductionReleaseForecast } from "@/game/productionForecast";
 import { suggestRole } from "@/game/roleSuggestion";
 import { GameIcon } from "@/components/game/GameIcon";
-import { StatPill, GameMeter } from "@/components/game/GameMeter";
+import { StatPill, GameMeter, SegmentedProgress } from "@/components/game/GameMeter";
 
 interface Props {
   state: GameState;
@@ -63,7 +63,10 @@ export function ProductionsSheet({
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display text-2xl uppercase neon-text">Produksjon</h2>
+            <h2 className="font-display text-2xl uppercase neon-text inline-flex items-center gap-2">
+              <GameIcon name="film" size={22} />
+              Produksjon
+            </h2>
             <p className="text-xs text-muted-foreground">
               Briefing → Casting → Innspilling → Redigering → Utgivelse.
             </p>
@@ -89,10 +92,21 @@ export function ProductionsSheet({
             />
           </div>
           <div className="mt-1 grid grid-cols-3 gap-2 text-[10px]">
-            <StatPill icon={<GameIcon name="cash" tone="cash" size={11} />} label="Kost" value={`×${mods.costMult.toFixed(2)}`} />
-            <StatPill icon={<GameIcon name="time" size={11} />} label="Tid" value={`×${mods.hoursMult.toFixed(2)}`} />
+            <StatPill
+              icon={<GameIcon name="cash" tone="cash" size={11} />}
+              label="Kost"
+              value={`×${mods.costMult.toFixed(2)}`}
+            />
+            <StatPill
+              icon={<GameIcon name="time" size={11} />}
+              label="Tid"
+              value={`×${mods.hoursMult.toFixed(2)}`}
+            />
             <div className="rounded border border-border/60 bg-background/60 px-2 py-1">
-              <div className="mb-0.5 flex items-center justify-between text-[10px]"><span>Q-tak</span><span className="font-mono">{mods.qualityCap}</span></div>
+              <div className="mb-0.5 flex items-center justify-between text-[10px]">
+                <span>Q-tak</span>
+                <span className="font-mono">{mods.qualityCap}</span>
+              </div>
               <GameMeter value={Math.min(100, mods.qualityCap)} max={100} tone="rep" size="tiny" />
             </div>
           </div>
@@ -360,26 +374,30 @@ function ProductionCard({
       </div>
       <div className="p-3 pt-2">
         {/* Stage track */}
-        <div className="mt-2 grid grid-cols-5 gap-1">
-          {tier.stages.map((s, i) => {
-            const done = i < p.stageIdx || isDone;
-            const active = !isDone && i === p.stageIdx;
-            return (
-              <div
-                key={s.id}
-                className={`rounded p-1.5 text-center text-[10px] transition ${
-                  done
-                    ? "bg-accent/80 text-accent-foreground"
-                    : active
-                      ? "bg-primary text-primary-foreground neon-border"
-                      : "bg-background/60 text-muted-foreground"
-                }`}
-              >
-                <div className="text-base leading-none">{s.emoji}</div>
-                <div className="mt-0.5 font-bold">{s.label}</div>
-              </div>
-            );
-          })}
+        <div className="mt-2">
+          <SegmentedProgress
+            segments={tier.stages.map((s, i) => ({
+              label: s.label,
+              complete: i < p.stageIdx || isDone,
+              current: !isDone && i === p.stageIdx,
+              icon: (
+                <GameIcon
+                  name={
+                    s.id === "briefing"
+                      ? "idea"
+                      : s.id === "casting"
+                        ? "casting"
+                        : s.id === "shooting"
+                          ? "shoot"
+                          : s.id === "editing"
+                            ? "edit"
+                            : "release"
+                  }
+                  size={12}
+                />
+              ),
+            }))}
+          />
         </div>
 
         {!isDone && currentStage && (
