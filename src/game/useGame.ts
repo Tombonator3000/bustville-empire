@@ -36,6 +36,7 @@ import {
   getPhaseByLocationLevel,
   pickArchetypeForPhase,
 } from "./recruitPresentation";
+import { applyEventChoice, expireEvents, maybeGenerateEvent } from "./events";
 
 // Toast queue — populated inside setState updaters, flushed via effect to avoid
 // double-firing under React StrictMode.
