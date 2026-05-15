@@ -22,3 +22,36 @@
 - Wire production pipeline icons (idea → casting → shoot → edit → release) into `ProductionsSheet`.
 - Replace text-only action metadata in `LocationView` action cards with icon rows (time / cash / stamina / heat).
 - Add icon row to `StaffPanel` role cards and `CastingBoardPanel` lead cards.
+
+## 2026-05-15 07:21 — Icon + Meter UX Pass 2 (Apply pass)
+
+### Files changed
+- `src/components/game/LocationView.tsx`
+- `src/components/game/CastingBoardPanel.tsx`
+- `src/components/game/StaffPanel.tsx`
+- `src/components/game/RosterSheet.tsx`
+- `src/components/game/InventorySheet.tsx`
+- `src/components/game/ProductionsSheet.tsx`
+- `src/components/game/ProgressionSheet.tsx`
+
+### Panels updated
+- Location action cards: replaced emoji-leading layout with `GameIcon` action icons and compact mechanical preview chips (time/cash/stamina/heat + star requirement where relevant).
+- Casting Board: iconized header, scout CTA, hire/pass actions, salary/hidden-potential pills.
+- Staff/Help Wanted: iconized header mode, role-specific icons, level meter and upgrade icon button.
+- Roster: iconized header, per-performer star + stamina mini meter + clear status icon (available/busy/cooldown/tired/injured fallback).
+- Inventory: inventory-icon header and improved item icon mapping.
+- Productions: stage strip converted to `SegmentedProgress` with pipeline icons (idea/casting/shoot/edit/release).
+- Progression modal: unlock checks now include segmented icon progress row.
+
+### Icons/meters applied
+- `GameIcon`, `StatPill`, `GameMeter`, `SegmentedProgress` applied across the above panels as an extension of pass 1 primitives.
+- No save/state schema changes.
+
+### Test results
+- `npm run typecheck`: script missing in package.json.
+- `npm run lint`: passes with pre-existing warnings (no new lint errors).
+- `npm run build`: passes.
+
+### Known limitations
+- Action preview values in `LocationView` remain intentionally generic in this pass (variable/impact/cost/risk) because per-action deterministic economy previews are not centrally exposed yet.
+- Productions currently does not enforce/display an audition-voucher requirement gate in the card flow because no direct requirement hook was found in existing production state/actions.

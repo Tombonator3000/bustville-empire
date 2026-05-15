@@ -11,8 +11,31 @@ import { ARCHETYPE_PORTRAITS, type Girl } from "@/game/data";
 import { LOCATION_DEFS, LOCATION_ACTIONS, type LocationId } from "@/game/locations";
 import { getLocationImage } from "@/components/game/HotspotEditor";
 import { ArrowLeft } from "lucide-react";
-import { GameIcon } from "./GameIcon";
+import { GameIcon, type GameIconName } from "./GameIcon";
 import { classifyLogEvent, LOG_TONE_CLASS } from "./logIcons";
+const ACTION_ICON: Record<string, GameIconName> = {
+  sleep: "sleep",
+  roster: "roster",
+  upgrade: "upgradeHome",
+  supplies: "supplies",
+  gasCondoms: "safetyStock",
+  postFlyer: "flyer",
+  layLow: "layLow",
+  searchProps: "searchEquipment",
+  hideStash: "hideStash",
+  bribe: "bribe",
+  produce: "film",
+  castingBoard: "castingBoard",
+  helpWanted: "helpWanted",
+  webcam: "webcam",
+  visit: "visit",
+  quickie: "quickie",
+  train: "training",
+  rumor: "rumor",
+  oddJob: "oddJob",
+  moonshine: "moonshine",
+  recover: "recover",
+};
 
 export function LocationView({
   state,
@@ -125,7 +148,9 @@ export function LocationView({
                         }}
                         className="flex w-full items-start gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-left hover:border-primary/60 hover:bg-secondary/80 transition"
                       >
-                        <span className="text-xl leading-none">{a.emoji}</span>
+                        <span className="mt-0.5">
+                          <GameIcon name={ACTION_ICON[a.id] ?? "info"} size={18} tone="neutral" />
+                        </span>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold">
@@ -144,8 +169,30 @@ export function LocationView({
                               Velg jente, type & intensitet
                             </div>
                           )}
-                          <div className="mt-0.5 text-[10px] text-primary/80">
-                            {a.hours > 0 ? `${a.hours}t` : "0t"} · Tid / effekt / krav
+                          <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
+                              <GameIcon name="time" size={11} />~{a.hours || 0}t
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
+                              <GameIcon name="cash" size={11} tone="cash" />
+                              {a.id === "webcam" || a.id === "visit" || a.id === "oddJob"
+                                ? "variable"
+                                : "impact"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
+                              <GameIcon name="stamina" size={11} tone="stamina" />
+                              cost
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
+                              <GameIcon name="heat" size={11} tone="heat" />
+                              risk
+                            </span>
+                            {(a.id === "webcam" || a.id === "visit") && (
+                              <span className="inline-flex items-center gap-1 rounded bg-background/40 px-1 py-0.5">
+                                <GameIcon name="requiresStar" size={11} />
+                                star
+                              </span>
+                            )}
                           </div>
                         </div>
                       </button>

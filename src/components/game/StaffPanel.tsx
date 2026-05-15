@@ -1,12 +1,12 @@
 import { type GameState, type StaffRole } from "@/game/useGame";
-import { GameIcon } from "@/components/game/GameIcon";
-import { StatPill } from "@/components/game/GameMeter";
+import { GameIcon, type GameIconName } from "@/components/game/GameIcon";
+import { GameMeter, StatPill } from "@/components/game/GameMeter";
 
-const roles: { id: StaffRole; label: string; hint: string }[] = [
-  { id: "editor", label: "Editor", hint: "Reduserer editing-tid" },
-  { id: "scout", label: "Scout", hint: "Bedre rekrutteringskvalitet" },
-  { id: "marketer", label: "Marketer", hint: "Sterkere kampanjer" },
-  { id: "fixer", label: "Fixer", hint: "Demper heat" },
+const roles: { id: StaffRole; label: string; hint: string; icon: GameIconName }[] = [
+  { id: "editor", label: "Editor", hint: "Reduserer editing-tid", icon: "edit" },
+  { id: "scout", label: "Scout", hint: "Bedre rekrutteringskvalitet", icon: "casting" },
+  { id: "marketer", label: "Marketer", hint: "Sterkere kampanjer", icon: "flyer" },
+  { id: "fixer", label: "Fixer", hint: "Demper heat", icon: "heatReduction" },
 ];
 
 export function StaffPanel({
@@ -32,7 +32,11 @@ export function StaffPanel({
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-2xl uppercase neon-text">
-            {mode === "helpWanted" ? "Help Wanted Board" : "Staff"}
+            <span className="inline-flex items-center gap-2">
+              {" "}
+              <GameIcon name={mode === "helpWanted" ? "helpWanted" : "staff"} size={20} />
+              {mode === "helpWanted" ? "Help Wanted Board" : "Staff"}
+            </span>
           </h2>
           <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">
             Lukk
@@ -69,15 +73,41 @@ export function StaffPanel({
                 />
               </div>
               <div className="mt-1 flex flex-wrap gap-1">
-                <StatPill icon={<GameIcon name="staff" size={11} />} value={m.role} />
-                <StatPill icon={<GameIcon name="progress" tone="purple" size={11} />} value={`Lv ${m.level}`} />
-                <StatPill icon={<GameIcon name="reward" tone="success" size={11} />} value={`+${m.bonus}`} />
+                <StatPill
+                  icon={
+                    <GameIcon
+                      name={
+                        m.role === "editor"
+                          ? "edit"
+                          : m.role === "scout"
+                            ? "casting"
+                            : m.role === "marketer"
+                              ? "flyer"
+                              : "heatReduction"
+                      }
+                      size={11}
+                    />
+                  }
+                  value={m.role}
+                />
+                <StatPill
+                  icon={<GameIcon name="progress" tone="purple" size={11} />}
+                  value={`Lv ${m.level}`}
+                />
+                <StatPill
+                  icon={<GameIcon name="reward" tone="success" size={11} />}
+                  value={`+${m.bonus}`}
+                />
                 <StatPill icon={<GameIcon name="info" size={11} />} value={m.trait} />
+              </div>
+              <div className="mt-1">
+                <GameMeter value={m.level} max={5} tone="progress" size="tiny" />
               </div>
               <button
                 onClick={() => onUpgrade(m.id)}
-                className="mt-1 rounded bg-primary/30 px-2 py-0.5"
+                className="mt-1 inline-flex items-center gap-1 rounded bg-primary/30 px-2 py-0.5"
               >
+                <GameIcon name="upgradeHome" size={12} />
                 Upgrade
               </button>
             </div>
@@ -96,7 +126,11 @@ export function StaffPanel({
                   onClick={() => onHire(r.id)}
                   className="rounded bg-secondary px-2 py-1 text-left text-xs hover:bg-secondary/80"
                 >
-                  {r.label} — {r.hint}
+                  <span className="inline-flex items-center gap-1">
+                    <GameIcon name={r.icon} size={12} />
+                    {r.label}
+                  </span>{" "}
+                  — {r.hint}
                 </button>
               ))}
             </div>

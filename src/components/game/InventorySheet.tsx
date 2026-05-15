@@ -40,7 +40,10 @@ export function InventorySheet({ state, onClose }: Props) {
                 Lager · Glitter & Garter
               </p>
               <h2 className="font-display text-2xl uppercase neon-text drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                🎒 Inventar
+                <span className="inline-flex items-center gap-2">
+                  <GameIcon name="inventory" size={20} />
+                  Inventar
+                </span>
               </h2>
             </div>
             <button
@@ -55,15 +58,34 @@ export function InventorySheet({ state, onClose }: Props) {
         <div className="space-y-4 p-4">
           {/* Cash + resources */}
           <Section title="Ressurser">
-            <Item icon="cash" tone="cash" label="Kontanter" value={`$${state.cash.toLocaleString()}`} accent />
+            <Item
+              icon="cash"
+              tone="cash"
+              label="Kontanter"
+              value={`$${state.cash.toLocaleString()}`}
+              accent
+            />
             <Item icon="moonshine" label="Moonshine" sub="flasker" value={state.moonshine} />
             <Item icon="rep" tone="rep" label="Omdømme" value={state.reputation} meter max={200} />
-            <Item icon="stamina" tone="stamina" label="Stamina" value={`${state.stamina} / ${state.maxStamina}`} meterValue={state.stamina} max={state.maxStamina} meter />
+            <Item
+              icon="stamina"
+              tone="stamina"
+              label="Stamina"
+              value={`${state.stamina} / ${state.maxStamina}`}
+              meterValue={state.stamina}
+              max={state.maxStamina}
+              meter
+            />
             {state.backlog > 0 && (
-              <Item icon="inventory" label="Backlog" sub="usolgte produksjoner" value={state.backlog} />
+              <Item
+                icon="inventory"
+                label="Backlog"
+                sub="usolgte produksjoner"
+                value={state.backlog}
+              />
             )}
             <Item icon="film" label="Filmstock" sub="ruller (Sparky's)" value={state.filmstock} />
-            <Item icon="inventory" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
+            <Item icon="supplies" label="Kostymer" sub="Glitter & Garter" value={state.costumes} />
             <Item
               icon="auditionVoucher"
               label="Audition-vouchers"

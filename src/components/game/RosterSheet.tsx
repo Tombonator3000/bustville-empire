@@ -38,7 +38,10 @@ export function RosterSheet({
         className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-card p-4 shadow-2xl"
       >
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-2xl uppercase neon-text">Roster</h2>
+          <h2 className="font-display text-2xl uppercase neon-text inline-flex items-center gap-2">
+            <GameIcon name="roster" size={22} />
+            Roster
+          </h2>
           <button onClick={onClose} className="rounded bg-secondary px-3 py-1 text-sm">
             Lukk
           </button>
@@ -135,6 +138,61 @@ function GirlCard({
           </div>
           <div className="text-[10px] uppercase tracking-wider text-accent truncate">
             {g.archetype}
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <StatPill
+              icon={<GameIcon name="requiresStar" size={11} />}
+              value={g.starRating ?? "?"}
+              label="star"
+            />
+            <div className="w-24">
+              <GameMeter
+                value={g.stamina ?? 0}
+                max={40}
+                tone={(g.stamina ?? 0) <= 10 ? "danger" : "stamina"}
+                size="tiny"
+                label="Stamina"
+                showText
+              />
+            </div>
+            <StatPill
+              icon={
+                <GameIcon
+                  name={
+                    onMission
+                      ? "busy"
+                      : isBusy
+                        ? "cooldown"
+                        : (g.stamina ?? 0) <= 10
+                          ? "tired"
+                          : g.std
+                            ? "injured"
+                            : "available"
+                  }
+                  tone={
+                    onMission || isBusy
+                      ? "warning"
+                      : (g.stamina ?? 0) <= 10
+                        ? "warning"
+                        : g.std
+                          ? "danger"
+                          : "success"
+                  }
+                  size={11}
+                />
+              }
+              value={
+                onMission
+                  ? "busy"
+                  : isBusy
+                    ? `${busyHoursLeft}t`
+                    : (g.stamina ?? 0) <= 10
+                      ? "tired"
+                      : g.std
+                        ? "recover"
+                        : "ready"
+              }
+            />
           </div>
           <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
             <span
@@ -343,7 +401,13 @@ function Stat({
   return (
     <div className="rounded border border-border/60 bg-background/60 p-1">
       <div className="mb-0.5 flex items-center justify-between gap-1">
-        <StatPill icon={<GameIcon name={icon} tone={tone === "success" ? "success" : "neutral"} size={10} />} label={label} value={v} />
+        <StatPill
+          icon={
+            <GameIcon name={icon} tone={tone === "success" ? "success" : "neutral"} size={10} />
+          }
+          label={label}
+          value={v}
+        />
       </div>
       <GameMeter value={v} max={100} tone={tone} size="tiny" />
     </div>

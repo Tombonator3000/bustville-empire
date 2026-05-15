@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 
-export type MeterTone =
-  | "stamina"
-  | "heat"
-  | "rep"
-  | "progress"
-  | "health"
-  | "danger"
-  | "neutral";
+export type MeterTone = "stamina" | "heat" | "rep" | "progress" | "health" | "danger" | "neutral";
 
 const FILL: Record<MeterTone, string> = {
   stamina: "bg-cyan-400",
@@ -64,10 +57,7 @@ export function GameMeter({
         aria-valuemax={max}
         aria-label={label}
       >
-        <div
-          className={`h-full ${FILL[tone]} transition-all`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full ${FILL[tone]} transition-all`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -144,5 +134,7 @@ export function SegmentedProgress({
 }
 
 export function CooldownMeter({ remaining, total }: { remaining: number; total: number }) {
-  return <GameMeter value={Math.max(0, total - remaining)} max={total} tone="progress" size="tiny" />;
+  return (
+    <GameMeter value={Math.max(0, total - remaining)} max={total} tone="progress" size="tiny" />
+  );
 }
